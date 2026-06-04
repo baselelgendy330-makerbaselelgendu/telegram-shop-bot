@@ -175,6 +175,45 @@ def product_label(product_key: str):
         return "Gemini Ready"
     return product_key
 
+async def broadcast_stock_added(product_key: str, quantity: int, total: int):
+    product = PRODUCTS[product_key]
+    users = []
+
+    async with db_pool.acquire() as conn:
+        users = await conn.fetch(
+            "SELECT telegram_id, lang FROM users"
+        )
+
+    for user in users:
+        user_id = user["telegram_id"]
+        lang = user["lang"] or "ar"
+
+        if lang == "en":
+            text = (
+                "🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n"
+                "━━━━━━━━━━━━━━\n\n"
+                f"✨ {product['title_en']} is now available.\n"
+                f"📦 New Stock: +{quantity}\n"
+                f"🔥 Available Now: {total}\n\n"
+                "💎 Premium quality • Fast delivery • Trusted service\n\n"
+                "🛍 Open Products and order before stock runs out!"
+            )
+        else:
+            text = (
+                "🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n"
+                "━━━━━━━━━━━━━━\n\n"
+                f"✨ تم إضافة مخزون جديد من {product['title_ar']}\n"
+                f"📦 الكمية المضافة: +{quantity}\n"
+                f"🔥 المتوفر الآن: {total}\n\n"
+                "💎 جودة بريميوم • تسليم سريع • خدمة موثوقة\n\n"
+                "🛍 افتح المنتجات واطلب قبل نفاد الكمية!"
+            )
+
+        try:
+            await bot.send_message(user_id, text)
+        except Exception:
+            pass
+
 async def loading_bar(message: Message, title: str):
     msg = await message.answer(f"{title}\n\n▱▱▱▱▱▱▱▱▱▱ 0%")
     frames = [
@@ -639,6 +678,8 @@ async def add_stock(message: Message):
         f"Quantity Added: {len(items)}\n"
         f"Current Stock: {total}"
     )
+
+    await broadcast_stock_added(product_key, len(items), total)
 
 @dp.message(Command("liststock"))
 async def list_stock(message: Message):
