@@ -153,6 +153,28 @@ async def get_stock_count(product_key: str = "chatgpt"):
             product["stock_name"],
         )
 
+
+def resolve_stock_product(product_type: str):
+    aliases = {
+        "chatgpt": "chatgpt",
+        "chat": "chatgpt",
+        "gpt": "chatgpt",
+        "gemini": "gemini_ready",
+        "gemini_ready": "gemini_ready",
+        "gemini-ready": "gemini_ready",
+    }
+    product_key = aliases.get(product_type.lower())
+    if not product_key:
+        return None, None
+    return product_key, PRODUCTS[product_key]["stock_name"]
+
+def product_label(product_key: str):
+    if product_key == "chatgpt":
+        return "ChatGPT Plus"
+    if product_key == "gemini_ready":
+        return "Gemini Ready"
+    return product_key
+
 async def loading_bar(message: Message, title: str):
     msg = await message.answer(f"{title}\n\n▱▱▱▱▱▱▱▱▱▱ 0%")
     frames = [
@@ -456,14 +478,19 @@ async def pay_product(call: CallbackQuery):
 async def approve(call: CallbackQuery):
     if call.from_user.id != ADMIN_ID:
         return
+
     dep_id = int(call.data.split("_")[1])
+
     async with db_pool.acquire() as conn:
         dep = await conn.fetchrow("SELECT * FROM deposits WHERE id=$1", dep_id)
+
         if not dep or dep["status"] != "pending":
             await call.answer("Already handled")
             return
+
         product_key = dep["product_key"]
         product = PRODUCTS[product_key]
+
         if product["type"] == "activation":
             await bot.send_message(
                 dep["telegram_id"],
@@ -481,16 +508,37 @@ async def approve(call: CallbackQuery):
                 """,
                 product["stock_name"],
             )
+
             if not item:
                 await call.message.edit_text("❌ لا يوجد مخزون متاح حاليًا")
                 await bot.send_message(dep["telegram_id"], "❌ لا يوجد مخزون حاليًا. تواصل مع الدعم.")
                 return
+
             await conn.execute("UPDATE stock SET sold=true WHERE id=$1", item["id"])
+
+            remaining = await conn.fetchval(
+                "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
+                product["stock_name"],
+            )
+
             await bot.send_message(
                 dep["telegram_id"],
                 f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 بيانات الحساب:\n\n{item['item_data']}\n\nشكراً لشرائك ❤️",
             )
+
+            if remaining == 0:
+                await bot.send_message(
+                    ADMIN_ID,
+                    f"🚨 OUT OF STOCK\n\nProduct: {product['stock_name']}"
+                )
+            elif remaining <= 3:
+                await bot.send_message(
+                    ADMIN_ID,
+                    f"⚠️ Low Stock Alert\n\nProduct: {product['stock_name']}\nRemaining: {remaining}"
+                )
+
         await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
+
     await call.message.edit_text(f"✅ Order #{dep_id} Approved")
     await call.answer()
 
@@ -518,9 +566,22 @@ async def payment_photo(message: Message):
 async def stock_count(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
+
     chatgpt = await get_stock_count("chatgpt")
     gemini = await get_stock_count("gemini_ready")
-    await message.answer(f"📦 ChatGPT Stock: {chatgpt}\n💎 Gemini Ready Stock: {gemini}")
+
+    await message.answer(
+        f"📦 Stock Report\n\n"
+        f"🤖 ChatGPT Stock: {chatgpt}\n"
+        f"💎 Gemini Ready Stock: {gemini}\n\n"
+        f"الأوامر:\n"
+        f"/liststock chatgpt\n"
+        f"/liststock gemini\n"
+        f"/delstock chatgpt ID\n"
+        f"/delstock gemini ID\n"
+        f"/clearstock chatgpt\n"
+        f"/clearstock gemini"
+    )
 
 @dp.message(Command("addstock"))
 async def add_stock(message: Message):
@@ -532,11 +593,9 @@ async def add_stock(message: Message):
     if not text:
         await message.answer(
             "📦 إضافة استوك:\n\n"
-            "ChatGPT:\n"
             "/addstock chatgpt\n"
             "email1:pass1\n"
             "email2:pass2\n\n"
-            "Gemini Ready Account:\n"
             "/addstock gemini\n"
             "email1:pass1\n"
             "email2:pass2\n\n"
@@ -545,26 +604,10 @@ async def add_stock(message: Message):
         return
 
     lines = [x.strip() for x in text.splitlines() if x.strip()]
-    product_type = lines[0].lower()
-
-    aliases = {
-        "chatgpt": "chatgpt",
-        "chat": "chatgpt",
-        "gpt": "chatgpt",
-        "gemini": "gemini_ready",
-        "gemini_ready": "gemini_ready",
-        "gemini-ready": "gemini_ready",
-    }
-
-    product_key = aliases.get(product_type)
+    product_key, stock_name = resolve_stock_product(lines[0])
 
     if not product_key:
-        await message.answer(
-            "❌ نوع المنتج غير صحيح. استخدم:\n"
-            "/addstock chatgpt\n"
-            "أو\n"
-            "/addstock gemini"
-        )
+        await message.answer("❌ نوع المنتج غير صحيح. استخدم chatgpt أو gemini")
         return
 
     items = lines[1:]
@@ -577,12 +620,148 @@ async def add_stock(message: Message):
         for item in items:
             await conn.execute(
                 "INSERT INTO stock(product,item_data) VALUES($1,$2)",
-                PRODUCTS[product_key]["stock_name"],
+                stock_name,
                 item,
             )
+        total = await conn.fetchval(
+            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
+            stock_name,
+        )
 
-    product_label = "ChatGPT Plus" if product_key == "chatgpt" else "Gemini Ready"
-    await message.answer(f"✅ تم إضافة {len(items)} حساب إلى {product_label}")
+    label = product_label(product_key)
+
+    await message.answer(f"✅ تم إضافة {len(items)} حساب إلى {label}\n📦 المخزون الحالي: {total}")
+
+    await bot.send_message(
+        ADMIN_ID,
+        f"📦 Stock Added\n\n"
+        f"Product: {label}\n"
+        f"Quantity Added: {len(items)}\n"
+        f"Current Stock: {total}"
+    )
+
+@dp.message(Command("liststock"))
+async def list_stock(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(
+            "استخدم:\n"
+            "/liststock chatgpt\n"
+            "/liststock gemini"
+        )
+        return
+
+    product_key, stock_name = resolve_stock_product(parts[1])
+    if not product_key:
+        await message.answer("❌ استخدم chatgpt أو gemini")
+        return
+
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, item_data FROM stock
+            WHERE product=$1 AND sold=false
+            ORDER BY id ASC
+            LIMIT 50
+            """,
+            stock_name,
+        )
+
+    label = product_label(product_key)
+
+    if not rows:
+        await message.answer(f"📭 لا يوجد استوك متاح في {label}")
+        return
+
+    lines = [f"📦 {label} Stock"]
+    lines.append("━━━━━━━━━━━━━━")
+    for row in rows:
+        item = row["item_data"]
+        if len(item) > 80:
+            item = item[:80] + "..."
+        lines.append(f"ID {row['id']} - {item}")
+
+    await message.answer("\n".join(lines))
+
+@dp.message(Command("delstock"))
+async def delete_stock(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer(
+            "استخدم:\n"
+            "/delstock chatgpt 5\n"
+            "/delstock gemini 7"
+        )
+        return
+
+    product_key, stock_name = resolve_stock_product(parts[1])
+    if not product_key:
+        await message.answer("❌ استخدم chatgpt أو gemini")
+        return
+
+    try:
+        item_id = int(parts[2])
+    except ValueError:
+        await message.answer("❌ رقم ID غير صحيح")
+        return
+
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, item_data FROM stock WHERE id=$1 AND product=$2 AND sold=false",
+            item_id,
+            stock_name,
+        )
+
+        if not row:
+            await message.answer("❌ العنصر غير موجود أو مباع بالفعل")
+            return
+
+        await conn.execute("DELETE FROM stock WHERE id=$1", item_id)
+        total = await conn.fetchval(
+            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
+            stock_name,
+        )
+
+    label = product_label(product_key)
+    await message.answer(f"🗑 تم حذف العنصر ID {item_id} من {label}\n📦 المتبقي: {total}")
+
+@dp.message(Command("clearstock"))
+async def clear_stock(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(
+            "استخدم:\n"
+            "/clearstock chatgpt\n"
+            "/clearstock gemini"
+        )
+        return
+
+    product_key, stock_name = resolve_stock_product(parts[1])
+    if not product_key:
+        await message.answer("❌ استخدم chatgpt أو gemini")
+        return
+
+    async with db_pool.acquire() as conn:
+        deleted = await conn.fetchval(
+            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
+            stock_name,
+        )
+        await conn.execute(
+            "DELETE FROM stock WHERE product=$1 AND sold=false",
+            stock_name,
+        )
+
+    label = product_label(product_key)
+    await message.answer(f"🗑 تم مسح {deleted} عنصر من استوك {label}")
 
 @dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
 async def support(message: Message):
