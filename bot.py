@@ -81,6 +81,13 @@ async def get_lang(user_id):
     async with db_pool.acquire() as conn:
         return await conn.fetchval("SELECT lang FROM users WHERE telegram_id=$1", user_id) or "ar"
 
+async def get_stock_count():
+    async with db_pool.acquire() as conn:
+        return await conn.fetchval(
+            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
+            "ChatGPT Plus"
+        )
+
 def deposit_keyboard(lang="ar"):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
@@ -90,6 +97,34 @@ def deposit_keyboard(lang="ar"):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟡 بينانس UID", callback_data="dep_binance")],
         [InlineKeyboardButton(text="🔴 فودافون كاش", callback_data="dep_vodafone")]
+    ])
+
+def product_list_keyboard(lang, count):
+    if lang == "en":
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=f"🤖 ChatGPT Plus Account | $5 | 📦 {count}",
+                callback_data="product_chatgpt"
+            )],
+            [InlineKeyboardButton(text="🔄 Refresh products", callback_data="refresh_products")]
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text=f"🤖 حساب ChatGPT Plus | 250 جنيه | 📦 {count}",
+            callback_data="product_chatgpt"
+        )],
+        [InlineKeyboardButton(text="🔄 تحديث المنتجات", callback_data="refresh_products")]
+    ])
+
+def product_details_keyboard(lang):
+    if lang == "en":
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🛒 Buy Now", callback_data="buy_chatgpt")],
+            [InlineKeyboardButton(text="🔙 Back to products", callback_data="refresh_products")]
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🛒 شراء الآن", callback_data="buy_chatgpt")],
+        [InlineKeyboardButton(text="🔙 رجوع للمنتجات", callback_data="refresh_products")]
     ])
 
 @dp.message(CommandStart())
@@ -253,7 +288,7 @@ async def approve_deposit(call: CallbackQuery):
 
         await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
 
-    await bot.send_message(dep["telegram_id"], f"✅ تم قبول الإيداع وإضافة الرصيد.")
+    await bot.send_message(dep["telegram_id"], "✅ تم قبول الإيداع وإضافة الرصيد.")
     await call.message.edit_text(f"✅ Deposit #{dep_id} approved")
     await call.answer()
 
@@ -276,28 +311,113 @@ async def reject_deposit(call: CallbackQuery):
 
 @dp.message(F.text.in_(["🛍 المنتجات", "🛍 Products"]))
 async def products(message: Message):
-    async with db_pool.acquire() as conn:
-        count = await conn.fetchval(
-            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
-            "ChatGPT Plus"
+    await ensure_user(message)
+    lang = await get_lang(message.from_user.id)
+
+    loading_text = "⏳ Loading products..." if lang == "en" else "⏳ جاري تحميل المنتجات..."
+    loading_msg = await message.answer(loading_text)
+
+    await asyncio.sleep(1)
+    count = await get_stock_count()
+
+    if lang == "en":
+        text = (
+            "🛍 Available Products\n\n"
+            "━━━━━━━━━━━━━━\n"
+            "🤖 ChatGPT Plus Account\n"
+            "💰 Price: $5\n"
+            f"📦 Available: {count}\n"
+            "🛡 Warranty: 24h\n"
+            "━━━━━━━━━━━━━━\n\n"
+            "Choose a product below:"
         )
-    await message.answer(
-        f"🤖 ChatGPT Plus\n\n"
-        f"💰 5 USDT\n"
-        f"🇪🇬 250 EGP\n"
-        f"📦 Stock: {count}\n\n"
-        f"زر الشراء هنضيفه بعد اختبار المحفظة."
-    )
+    else:
+        text = (
+            "🛍 المنتجات المتاحة\n\n"
+            "━━━━━━━━━━━━━━\n"
+            "🤖 حساب ChatGPT Plus\n"
+            "💰 السعر: 250 جنيه\n"
+            f"📦 المتوفر: {count}\n"
+            "🛡 الضمان: 24 ساعة\n"
+            "━━━━━━━━━━━━━━\n\n"
+            "اختار المنتج من الزر بالأسفل:"
+        )
+
+    await loading_msg.edit_text(text, reply_markup=product_list_keyboard(lang, count))
+
+@dp.callback_query(F.data == "refresh_products")
+async def refresh_products(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    await call.message.edit_text("🔄 Refreshing..." if lang == "en" else "🔄 جاري التحديث...")
+    await asyncio.sleep(1)
+    count = await get_stock_count()
+
+    if lang == "en":
+        text = (
+            "🛍 Available Products\n\n"
+            "━━━━━━━━━━━━━━\n"
+            "🤖 ChatGPT Plus Account\n"
+            "💰 Price: $5\n"
+            f"📦 Available: {count}\n"
+            "🛡 Warranty: 24h\n"
+            "━━━━━━━━━━━━━━\n\n"
+            "Choose a product below:"
+        )
+    else:
+        text = (
+            "🛍 المنتجات المتاحة\n\n"
+            "━━━━━━━━━━━━━━\n"
+            "🤖 حساب ChatGPT Plus\n"
+            "💰 السعر: 250 جنيه\n"
+            f"📦 المتوفر: {count}\n"
+            "🛡 الضمان: 24 ساعة\n"
+            "━━━━━━━━━━━━━━\n\n"
+            "اختار المنتج من الزر بالأسفل:"
+        )
+
+    await call.message.edit_text(text, reply_markup=product_list_keyboard(lang, count))
+    await call.answer("Updated ✅")
+
+@dp.callback_query(F.data == "product_chatgpt")
+async def product_chatgpt(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    count = await get_stock_count()
+
+    if lang == "en":
+        text = (
+            "🤖 ChatGPT Plus Account\n\n"
+            "💰 Price: $5\n"
+            f"📦 Available: {count}\n"
+            "🛡 Warranty: 24h\n\n"
+            "You can pay using your wallet balance.\n"
+            "Press Buy Now to continue."
+        )
+    else:
+        text = (
+            "🤖 حساب ChatGPT Plus\n\n"
+            "💰 السعر: 250 جنيه\n"
+            f"📦 المتوفر: {count}\n"
+            "🛡 الضمان: 24 ساعة\n\n"
+            "يمكنك الدفع من رصيد المحفظة.\n"
+            "اضغط شراء الآن للمتابعة."
+        )
+
+    await call.message.edit_text(text, reply_markup=product_details_keyboard(lang))
+    await call.answer()
+
+@dp.callback_query(F.data == "buy_chatgpt")
+async def buy_chatgpt(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    if lang == "en":
+        await call.answer("Purchase system will be added next ✅", show_alert=True)
+    else:
+        await call.answer("هنضيف نظام الشراء في الخطوة الجاية ✅", show_alert=True)
 
 @dp.message(Command("stock"))
 async def stock_count(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
-    async with db_pool.acquire() as conn:
-        count = await conn.fetchval(
-            "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
-            "ChatGPT Plus"
-        )
+    count = await get_stock_count()
     await message.answer(f"📦 المخزون الحالي: {count}")
 
 @dp.message(Command("addstock"))
