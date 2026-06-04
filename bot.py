@@ -13,7 +13,7 @@ ADMIN_ID = 6728595587
 
 BINANCE_UID = "381880403"
 VODAFONE_CASH = "01063467929"
-INSTAPAY = "@mahmoud2662000"
+INSTAPAY = "mahmoud2662000"
 SUPPORT = "@VNV_I"
 
 CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
@@ -51,8 +51,6 @@ async def init_db():
             telegram_id BIGINT PRIMARY KEY,
             username TEXT,
             lang TEXT DEFAULT 'ar',
-            balance_usdt NUMERIC DEFAULT 0,
-            balance_egp NUMERIC DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         );
         """)
@@ -121,7 +119,7 @@ async def loading_bar(message, title):
             pass
     return msg
 
-def product_list_keyboard(lang, count):
+def product_buttons(lang, count):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | $5 | 📦 {count}", callback_data="product_chatgpt")],
@@ -132,7 +130,7 @@ def product_list_keyboard(lang, count):
         [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products")]
     ])
 
-def product_details_keyboard(lang):
+def product_details_buttons(lang):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🛒 Buy Now", callback_data="buy_chatgpt")],
@@ -143,7 +141,7 @@ def product_details_keyboard(lang):
         [InlineKeyboardButton(text="🔙 رجوع", callback_data="refresh_products")]
     ])
 
-def payment_keyboard(lang):
+def payment_buttons(lang):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🟡 Binance UID", callback_data="pay_binance")],
@@ -160,13 +158,22 @@ def payment_keyboard(lang):
 async def start(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
+    photo = URLInputFile(CHATGPT_IMAGE)
 
-    await loading_bar(message, "⚙️ Preparing shop..." if lang == "en" else "⚙️ جاري تجهيز المتجر...")
-
-    await message.answer(
-        "👋 Welcome to ChatGPT Accounts Store\nChoose from menu:"
+    caption = (
+        "🤖 Welcome to ChatGPT Shop\n\n"
+        "Premium AI Accounts\n"
+        "Fast • Secure • Trusted"
         if lang == "en"
-        else "👋 أهلاً بيك في متجر ChatGPT Accounts\nاختار من القائمة:",
+        else
+        "🤖 أهلاً بك في ChatGPT Shop\n\n"
+        "Premium AI Accounts\n"
+        "Fast • Secure • Trusted"
+    )
+
+    await message.answer_photo(
+        photo=photo,
+        caption=caption,
         reply_markup=menu_en if lang == "en" else menu_ar
     )
 
@@ -183,6 +190,7 @@ async def language(message: Message):
 async def set_language(call: CallbackQuery):
     lang = call.data.replace("lang_", "")
     await ensure_user_by_id(call.from_user.id, call.from_user.username)
+
     async with db_pool.acquire() as conn:
         await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
 
@@ -197,47 +205,49 @@ async def wallet(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
 
-    load = await loading_bar(message, "👛 Opening wallet..." if lang == "en" else "👛 جاري فتح المحفظة...")
-
-    async with db_pool.acquire() as conn:
-        user = await conn.fetchrow(
-            "SELECT balance_usdt, balance_egp FROM users WHERE telegram_id=$1",
-            message.from_user.id
-        )
+    await loading_bar(message, "👛 Opening wallet..." if lang == "en" else "👛 جاري فتح المحفظة...")
 
     text = (
-        f"👛 YOUR WALLET\n━━━━━━━━━━━━━━\n\n"
-        f"💵 USDT Balance: {user['balance_usdt']} USDT\n"
-        f"🇪🇬 EGP Balance: {user['balance_egp']} EGP\n\n"
-        f"💳 Deposit Methods:\n🟡 Binance UID\n🔴 Vodafone Cash\n🟣 InstaPay\n\n"
-        f"Choose deposit method:"
-    ) if lang == "en" else (
-        f"👛 محفظتك\n━━━━━━━━━━━━━━\n\n"
-        f"💵 رصيد USDT: {user['balance_usdt']} USDT\n"
-        f"🇪🇬 رصيد مصري: {user['balance_egp']} جنيه\n\n"
-        f"💳 طرق الإيداع:\n🟡 بينانس UID\n🔴 فودافون كاش\n🟣 انستا باي\n\n"
-        f"اختار طريقة الإيداع:"
+        "👛 YOUR WALLET\n"
+        "━━━━━━━━━━━━━━\n\n"
+        "💳 Deposit Methods:\n"
+        "🟡 Binance UID\n"
+        "🔴 Vodafone Cash\n"
+        "🟣 InstaPay\n\n"
+        "Choose deposit method:"
+        if lang == "en"
+        else
+        "👛 المحفظة\n"
+        "━━━━━━━━━━━━━━\n\n"
+        "💳 طرق الدفع:\n"
+        "🟡 بينانس UID\n"
+        "🔴 فودافون كاش\n"
+        "🟣 انستا باي\n\n"
+        "اختار طريقة الدفع:"
     )
 
-    await load.edit_text(text, reply_markup=payment_keyboard(lang))
+    await message.answer(text, reply_markup=payment_buttons(lang))
 
 @dp.message(F.text.in_(["🛍 المنتجات", "🛍 Products"]))
 async def products(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
 
-    load = await loading_bar(message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...")
+    await loading_bar(message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...")
     count = await get_stock_count()
 
     text = (
-        f"🛍 Available Products\n━━━━━━━━━━━━━━\n\n"
+        f"🛍 Available Products\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"🤖 ChatGPT Plus 1M\n"
         f"💰 Price: $5\n"
         f"📦 Stock: {count} accounts\n"
         f"🛡 Warranty: 15 days\n\n"
         f"Choose a product below:"
-    ) if lang == "en" else (
-        f"🛍 المنتجات المتاحة\n━━━━━━━━━━━━━━\n\n"
+        if lang == "en"
+        else
+        f"🛍 المنتجات المتاحة\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"🤖 ChatGPT Plus 1M\n"
         f"💰 السعر: 250 جنيه\n"
         f"📦 المتوفر: {count} حساب\n"
@@ -245,15 +255,13 @@ async def products(message: Message):
         f"اختار المنتج:"
     )
 
-    await load.edit_text(text, reply_markup=product_list_keyboard(lang, count))
+    await message.answer(text, reply_markup=product_buttons(lang, count))
 
 @dp.callback_query(F.data == "refresh_products")
 async def refresh_products(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await call.message.edit_text("🔄 Refreshing...\n\n▰▰▰▰▰▱▱▱▱▱ 50%" if lang == "en" else "🔄 جاري التحديث...\n\n▰▰▰▰▰▱▱▱▱▱ 50%")
-    await asyncio.sleep(0.4)
-
     count = await get_stock_count()
+
     text = (
         f"🛍 Available Products\n━━━━━━━━━━━━━━\n\n"
         f"🤖 ChatGPT Plus 1M\n"
@@ -261,7 +269,8 @@ async def refresh_products(call: CallbackQuery):
         f"📦 Stock: {count} accounts\n"
         f"🛡 Warranty: 15 days\n\n"
         f"Choose a product below:"
-    ) if lang == "en" else (
+        if lang == "en"
+        else
         f"🛍 المنتجات المتاحة\n━━━━━━━━━━━━━━\n\n"
         f"🤖 ChatGPT Plus 1M\n"
         f"💰 السعر: 250 جنيه\n"
@@ -270,53 +279,46 @@ async def refresh_products(call: CallbackQuery):
         f"اختار المنتج:"
     )
 
-    await call.message.edit_text(text, reply_markup=product_list_keyboard(lang, count))
+    await call.message.edit_text(text, reply_markup=product_buttons(lang, count))
     await call.answer("Updated ✅")
 
 @dp.callback_query(F.data == "product_chatgpt")
 async def product_chatgpt(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-
-    await call.message.edit_text("⚙️ Loading product...\n\n▰▰▰▰▰▱▱▱▱▱ 50%" if lang == "en" else "⚙️ جاري تحميل المنتج...\n\n▰▰▰▰▰▱▱▱▱▱ 50%")
-    await asyncio.sleep(0.5)
-
     count = await get_stock_count()
     photo = URLInputFile(CHATGPT_IMAGE)
 
-    if lang == "en":
-        caption = (
-            f"🤖 CHATGPT PLUS 1M\n"
-            f"━━━━━━━━━━━━━━\n\n"
-            f"💵 Price: $5.00\n"
-            f"➕ Stock: {count} accounts\n"
-            f"📊 Warranty: 15 days\n\n"
-            f"💬 Description:\n"
-            f"📌 Private account\n"
-            f"📌 1 Month Plus subscription\n"
-            f"📌 15 days warranty\n"
-            f"📌 Delivery after payment approval\n\n"
-            f"🛒 Press Buy Now to continue."
-        )
-    else:
-        caption = (
-            f"🤖 CHATGPT PLUS 1M\n"
-            f"━━━━━━━━━━━━━━\n\n"
-            f"💵 السعر: 250 جنيه\n"
-            f"➕ المتوفر: {count} حساب\n"
-            f"📊 الضمان: 15 يوم\n\n"
-            f"💬 الوصف:\n"
-            f"📌 حساب خاص\n"
-            f"📌 اشتراك Plus لمدة شهر\n"
-            f"📌 ضمان 15 يوم\n"
-            f"📌 التسليم بعد تأكيد الدفع\n\n"
-            f"🛒 اضغط شراء الآن للمتابعة."
-        )
+    caption = (
+        f"🤖 CHATGPT PLUS 1M\n"
+        f"━━━━━━━━━━━━━━\n\n"
+        f"💵 Price: $5.00\n"
+        f"➕ Stock: {count} accounts\n"
+        f"📊 Warranty: 15 days\n\n"
+        f"💬 Description:\n"
+        f"📌 Private account\n"
+        f"📌 1 Month Plus subscription\n"
+        f"📌 15 days warranty\n"
+        f"📌 Delivery after payment approval\n\n"
+        f"🛒 Press Buy Now to continue."
+        if lang == "en"
+        else
+        f"🤖 CHATGPT PLUS 1M\n"
+        f"━━━━━━━━━━━━━━\n\n"
+        f"💵 السعر: 250 جنيه\n"
+        f"➕ المتوفر: {count} حساب\n"
+        f"📊 الضمان: 15 يوم\n\n"
+        f"💬 الوصف:\n"
+        f"📌 حساب خاص\n"
+        f"📌 اشتراك Plus لمدة شهر\n"
+        f"📌 ضمان 15 يوم\n"
+        f"📌 التسليم بعد تأكيد الدفع\n\n"
+        f"🛒 اضغط شراء الآن للمتابعة."
+    )
 
-    await call.message.delete()
     await call.message.answer_photo(
         photo=photo,
         caption=caption,
-        reply_markup=product_details_keyboard(lang)
+        reply_markup=product_details_buttons(lang)
     )
     await call.answer()
 
@@ -329,24 +331,24 @@ async def buy_chatgpt(call: CallbackQuery):
         await call.answer("Out of stock ❌" if lang == "en" else "المخزون غير متوفر ❌", show_alert=True)
         return
 
-    await call.message.answer("🛒 Preparing checkout...\n\n▰▰▰▰▰▰▰▱▱▱ 70%" if lang == "en" else "🛒 جاري تجهيز الدفع...\n\n▰▰▰▰▰▰▰▱▱▱ 70%")
-    await asyncio.sleep(0.4)
-
     text = (
-        f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n"
+        f"🛒 Checkout\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"🤖 Product: ChatGPT Plus 1M\n"
         f"💰 Price: $5 / 250 EGP\n"
         f"🛡 Warranty: 15 days\n\n"
         f"Choose payment method:"
-    ) if lang == "en" else (
-        f"🛒 إتمام الشراء\n━━━━━━━━━━━━━━\n\n"
+        if lang == "en"
+        else
+        f"🛒 إتمام الشراء\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"🤖 المنتج: ChatGPT Plus 1M\n"
         f"💰 السعر: 250 جنيه / 5 USDT\n"
         f"🛡 الضمان: 15 يوم\n\n"
         f"اختار طريقة الدفع:"
     )
 
-    await call.message.answer(text, reply_markup=payment_keyboard(lang))
+    await call.message.answer(text, reply_markup=payment_buttons(lang))
     await call.answer()
 
 async def create_order(call: CallbackQuery, method, amount, currency):
@@ -384,7 +386,8 @@ async def create_order(call: CallbackQuery, method, amount, currency):
 async def pay_binance(call: CallbackQuery):
     dep_id = await create_order(call, "Binance UID", 5, "USDT")
     await call.message.answer(
-        f"🟡 Binance UID Payment\n━━━━━━━━━━━━━━\n\n"
+        f"🟡 Binance UID Payment\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"💰 Amount: 5 USDT\n"
         f"🆔 Binance UID:\n`{BINANCE_UID}`\n\n"
         f"📸 بعد الدفع ابعت صورة الإثبات هنا.\n"
@@ -397,7 +400,8 @@ async def pay_binance(call: CallbackQuery):
 async def pay_vodafone(call: CallbackQuery):
     dep_id = await create_order(call, "Vodafone Cash", 250, "EGP")
     await call.message.answer(
-        f"🔴 Vodafone Cash Payment\n━━━━━━━━━━━━━━\n\n"
+        f"🔴 Vodafone Cash Payment\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"💰 Amount: 250 EGP\n"
         f"📱 Number:\n`{VODAFONE_CASH}`\n\n"
         f"📸 بعد الدفع ابعت صورة الإثبات هنا.\n"
@@ -410,7 +414,8 @@ async def pay_vodafone(call: CallbackQuery):
 async def pay_instapay(call: CallbackQuery):
     dep_id = await create_order(call, "InstaPay", 250, "EGP")
     await call.message.answer(
-        f"🟣 InstaPay Payment\n━━━━━━━━━━━━━━\n\n"
+        f"🟣 InstaPay Payment\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"💰 Amount: 250 EGP\n"
         f"🏦 InstaPay:\n`{INSTAPAY}`\n\n"
         f"📸 بعد الدفع ابعت صورة الإثبات هنا.\n"
@@ -456,7 +461,8 @@ async def approve_deposit(call: CallbackQuery):
 
     await bot.send_message(
         dep["telegram_id"],
-        f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
+        f"✅ تم تأكيد الدفع بنجاح\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"🤖 ChatGPT Plus 1M\n"
         f"🛡 الضمان: 15 يوم\n\n"
         f"📦 بيانات الحساب:\n{item['item_data']}\n\n"
@@ -472,6 +478,7 @@ async def reject_deposit(call: CallbackQuery):
         return
 
     dep_id = int(call.data.replace("reject_", ""))
+
     async with db_pool.acquire() as conn:
         dep = await conn.fetchrow("SELECT * FROM deposits WHERE id=$1", dep_id)
         if dep:
@@ -496,11 +503,13 @@ async def add_stock(message: Message):
         return
 
     text = message.text.replace("/addstock", "").strip()
+
     if not text:
         await message.answer("/addstock\nemail:password\nemail2:password2")
         return
 
     items = [line.strip() for line in text.splitlines() if line.strip()]
+
     async with db_pool.acquire() as conn:
         for item in items:
             await conn.execute(
