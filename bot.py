@@ -526,23 +526,53 @@ async def stock_count(message: Message):
 async def add_stock(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
+
     text = message.text.replace("/addstock", "").strip()
+
     if not text:
         await message.answer(
-            "استخدم الأمر كده:\n\n"
-            "/addstock chatgpt\nemail:pass\nemail2:pass2\n\n"
-            "أو:\n/addstock gemini_ready\nemail:pass"
+            "📦 إضافة استوك:\n\n"
+            "ChatGPT:\n"
+            "/addstock chatgpt\n"
+            "email1:pass1\n"
+            "email2:pass2\n\n"
+            "Gemini Ready Account:\n"
+            "/addstock gemini\n"
+            "email1:pass1\n"
+            "email2:pass2\n\n"
+            "ملاحظة: منتج Gemini على الإيميل الشخصي لا يحتاج استوك."
         )
         return
+
     lines = [x.strip() for x in text.splitlines() if x.strip()]
-    product_key = lines[0].lower()
-    if product_key not in ["chatgpt", "gemini_ready"]:
-        await message.answer("أول سطر لازم يكون: chatgpt أو gemini_ready")
+    product_type = lines[0].lower()
+
+    aliases = {
+        "chatgpt": "chatgpt",
+        "chat": "chatgpt",
+        "gpt": "chatgpt",
+        "gemini": "gemini_ready",
+        "gemini_ready": "gemini_ready",
+        "gemini-ready": "gemini_ready",
+    }
+
+    product_key = aliases.get(product_type)
+
+    if not product_key:
+        await message.answer(
+            "❌ نوع المنتج غير صحيح. استخدم:\n"
+            "/addstock chatgpt\n"
+            "أو\n"
+            "/addstock gemini"
+        )
         return
+
     items = lines[1:]
+
     if not items:
-        await message.answer("اكتب الحسابات بعد اسم المنتج.")
+        await message.answer("❌ اكتب الحسابات تحت اسم المنتج، كل حساب في سطر.")
         return
+
     async with db_pool.acquire() as conn:
         for item in items:
             await conn.execute(
@@ -550,7 +580,9 @@ async def add_stock(message: Message):
                 PRODUCTS[product_key]["stock_name"],
                 item,
             )
-    await message.answer(f"✅ Added {len(items)} items to {product_key}")
+
+    product_label = "ChatGPT Plus" if product_key == "chatgpt" else "Gemini Ready"
+    await message.answer(f"✅ تم إضافة {len(items)} حساب إلى {product_label}")
 
 @dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
 async def support(message: Message):
