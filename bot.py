@@ -330,8 +330,8 @@ async def product_chatgpt(call: CallbackQuery):
             f"📌 Private Account\n"
             f"📌 1 Month Subscription\n"
             f"📌 Instant Delivery"
-            if lang == "en"
-            else
+            if lang == "en":
+else:
             f"🤖 ChatGPT Plus 1M\n\n"
             f"💰 السعر: 250 جنيه\n"
             f"📦 المتوفر: {count}\n"
