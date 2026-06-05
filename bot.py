@@ -938,25 +938,47 @@ async def support_message(message: Message):
     await message.answer(f"💬 {SUPPORT}")
 
 async def broadcast_stock_added(product_key: str, quantity: int, total: int):
+    # إشعار تلقائي لكل المستخدمين عند إضافة مخزون جديد للحسابات الجاهزة
     product = PRODUCTS[product_key]
+
     async with db_pool.acquire() as conn:
         users = await conn.fetch("SELECT telegram_id, lang FROM users")
+
+    if product_key == "chatgpt":
+        product_name = "ChatGPT Plus"
+    elif product_key == "gemini_ready":
+        product_name = "Gemini Pro"
+    else:
+        product_name = product["title_en"]
+
     for user in users:
         lang = user["lang"] or "ar"
+
         if lang == "en":
             text = (
-                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n━━━━━━━━━━━━━━\n\n"
-                f"✨ {product['title_en']} is now available.\n📦 New Stock: +{quantity}\n🔥 Available Now: {total}\n\n"
-                f"💎 Premium quality • Fast delivery • Trusted service\n\n🛍 Open Shop and order before stock runs out!"
+                "🎉 New Stock Available Now!\n"
+                "━━━━━━━━━━━━━━\n\n"
+                f"🛒 {product_name} — Ready Accounts\n"
+                f"✅ {quantity} account(s) added and ready for instant delivery.\n\n"
+                "⚡ Limited quantity — order now before stock runs out!"
             )
+            btn = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🛒 Order Now", callback_data="refresh_products")]
+            ])
         else:
             text = (
-                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n━━━━━━━━━━━━━━\n\n"
-                f"✨ تم إضافة مخزون جديد من {product['title_ar']}\n📦 الكمية المضافة: +{quantity}\n🔥 المتوفر الآن: {total}\n\n"
-                f"💎 جودة بريميوم • تسليم سريع • خدمة موثوقة\n\n🛍 افتح المتجر واطلب قبل نفاد الكمية!"
+                "🎉 وصل مخزون جديد الآن!\n"
+                "━━━━━━━━━━━━━━\n\n"
+                f"🛒 {product_name} — Ready Accounts\n"
+                f"✅ تمت إضافة {quantity} حساب جاهز للتسليم الفوري.\n\n"
+                "⚡ الكمية محدودة — اطلب الآن قبل النفاد!"
             )
+            btn = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🛒 اطلب الآن", callback_data="refresh_products")]
+            ])
+
         try:
-            await bot.send_message(user["telegram_id"], text)
+            await bot.send_message(user["telegram_id"], text, reply_markup=btn)
         except Exception:
             pass
 
