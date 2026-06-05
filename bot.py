@@ -21,6 +21,7 @@ BINANCE_UID = "381880403"
 VODAFONE_CASH = "01063467929"
 INSTAPAY = "mahmoud2662000"
 SUPPORT = "@VNV_I"
+BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 
 CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
 GEMINI_IMAGE = "https://i.postimg.cc/0Qfr71mh/images-(1).jpg"
@@ -77,8 +78,8 @@ PRODUCTS = {
         "title_en": "Gemini Pro 12M On Your Email",
         "title_ar": "Gemini Pro 12M تفعيل على إيميلك",
         "image": GEMINI_IMAGE,
-        "usd": 6,
-        "egp": 300,
+        "usd": 4,
+        "egp": 200,
         "type": "activation",
         "warranty_ar": "سنة كاملة",
         "warranty_en": "1 Year",
@@ -241,13 +242,13 @@ def product_buttons(lang: str, counts: dict):
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | $5 | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
             [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | $6 | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-            [InlineKeyboardButton(text="👑 Gemini On Your Email | $6", callback_data="product_gemini_email")],
+            [InlineKeyboardButton(text="👑 Gemini On Your Email | $4", callback_data="product_gemini_email")],
             [InlineKeyboardButton(text="🔄 Refresh", callback_data="refresh_products")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | 250 جنيه | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
         [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | 300 جنيه | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-        [InlineKeyboardButton(text="👑 تفعيل Gemini على إيميلك | 300 جنيه", callback_data="product_gemini_email")],
+        [InlineKeyboardButton(text="👑 تفعيل Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
         [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products")],
     ])
 
@@ -287,9 +288,9 @@ async def start(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
     caption = (
-        "🤖 Welcome to ChatGPT Shop\n\nPremium AI Accounts\nFast • Secure • Trusted"
+        f"{BOT_NAME}\n\nPremium AI Subscriptions\nFast • Secure • Trusted"
         if lang == "en"
-        else "🤖 أهلاً بك في ChatGPT Shop\n\nPremium AI Accounts\nFast • Secure • Trusted"
+        else f"{BOT_NAME}\n\nاشتراكات الذكاء الاصطناعي المميزة\nسريع • آمن • موثوق"
     )
     await message.answer_photo(
         photo=URLInputFile(CHATGPT_IMAGE),
@@ -422,7 +423,7 @@ async def product_gemini_email(call: CallbackQuery):
     if lang == "en":
         caption = (
             f"👑 Gemini Pro On Your Email\n━━━━━━━━━━━━━━\n\n"
-            f"💰 Price: $6\n🛡 Warranty: 1 Year\n\n"
+            f"💰 Price: $4\n🛡 Warranty: 1 Year\n\n"
             f"☁️ 5TB Storage\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 Monthly Credits\n"
             f"👥 Add 5 Family Members\n🔑 You Become The Owner\n\n"
             f"📧 Activated On Your Personal Email"
@@ -430,7 +431,7 @@ async def product_gemini_email(call: CallbackQuery):
     else:
         caption = (
             f"👑 Gemini على إيميلك الشخصي\n━━━━━━━━━━━━━━\n\n"
-            f"💰 السعر: 300 جنيه\n🛡 الضمان: سنة كاملة\n\n"
+            f"💰 السعر: 200 جنيه\n🛡 الضمان: سنة كاملة\n\n"
             f"☁️ مساحة 5 تيرا بايت\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 كريديت شهري\n"
             f"👥 إضافة 5 أشخاص\n🔑 تصبح المالك الأساسي\n\n"
             f"📧 التفعيل على إيميلك الشخصي"
@@ -803,6 +804,93 @@ async def clear_stock(message: Message):
 
     label = product_label(product_key)
     await message.answer(f"🗑 تم مسح {deleted} عنصر من استوك {label}")
+
+
+@dp.message(Command("broadcast"))
+async def broadcast(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    text = message.text.replace("/broadcast", "").strip()
+
+    if not text:
+        await message.answer(
+            "📢 استخدم الأمر كده:\n\n"
+            "/broadcast رسالتك هنا\n\n"
+            "مثال:\n"
+            "/broadcast 🚀 تم إضافة عروض جديدة داخل المتجر"
+        )
+        return
+
+    async with db_pool.acquire() as conn:
+        users = await conn.fetch("SELECT telegram_id FROM users")
+
+    sent = 0
+    failed = 0
+
+    for user in users:
+        try:
+            await bot.send_message(
+                user["telegram_id"],
+                f"📢 إشعار من {BOT_NAME}\n"
+                "━━━━━━━━━━━━━━\n\n"
+                f"{text}"
+            )
+            sent += 1
+            await asyncio.sleep(0.03)
+        except Exception:
+            failed += 1
+
+    await message.answer(
+        f"✅ تم إرسال البرودكاست\n\n"
+        f"📨 وصل إلى: {sent}\n"
+        f"⚠️ فشل: {failed}"
+    )
+
+@dp.message(Command("broadcastphoto"))
+async def broadcast_photo(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    if not message.reply_to_message:
+        await message.answer(
+            "🖼 استخدم الأمر كده:\n\n"
+            "1. ابعت الصورة للبوت\n"
+            "2. اعمل Reply على الصورة\n"
+            "3. اكتب /broadcastphoto"
+        )
+        return
+
+    if not message.reply_to_message.photo:
+        await message.answer("❌ لازم تعمل Reply على صورة")
+        return
+
+    photo = message.reply_to_message.photo[-1].file_id
+    caption = message.reply_to_message.caption or f"📢 إعلان من {BOT_NAME}"
+
+    async with db_pool.acquire() as conn:
+        users = await conn.fetch("SELECT telegram_id FROM users")
+
+    sent = 0
+    failed = 0
+
+    for user in users:
+        try:
+            await bot.send_photo(
+                chat_id=user["telegram_id"],
+                photo=photo,
+                caption=caption,
+            )
+            sent += 1
+            await asyncio.sleep(0.03)
+        except Exception:
+            failed += 1
+
+    await message.answer(
+        f"✅ تم إرسال الصورة لكل المستخدمين\n\n"
+        f"📨 وصل إلى: {sent}\n"
+        f"⚠️ فشل: {failed}"
+    )
 
 @dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
 async def support(message: Message):
