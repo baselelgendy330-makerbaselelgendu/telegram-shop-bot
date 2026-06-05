@@ -24,8 +24,9 @@ BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
 GEMINI_IMAGE = "https://i.postimg.cc/0Qfr71mh/images-(1).jpg"
 
-CHATGPT_PRODUCT = "ChatGPT Plus"
-GEMINI_READY_PRODUCT = "Gemini Ready"
+CHATGPT_PRODUCT = "ChatGPT Plus Ready Account"
+CHATGPT_EMAIL_PRODUCT = "ChatGPT Email Activation"
+GEMINI_READY_PRODUCT = "Gemini Pro Ready Account"
 GEMINI_EMAIL_PRODUCT = "Gemini Email Activation"
 WALLET_DEPOSIT_KEY = "wallet_deposit"
 
@@ -38,19 +39,30 @@ deposit_waiting: dict[int, str] = {}
 PRODUCTS = {
     "chatgpt": {
         "stock_name": CHATGPT_PRODUCT,
-        "title_en": "ChatGPT Plus 1M",
-        "title_ar": "ChatGPT Plus 1M",
+        "title_en": "ChatGPT Plus Ready Account",
+        "title_ar": "ChatGPT Plus حساب جاهز",
+        "image": CHATGPT_IMAGE,
+        "usd": 6,
+        "egp": 300,
+        "type": "stock",
+        "warranty_ar": "15 يوم",
+        "warranty_en": "15 days",
+    },
+    "chatgpt_email": {
+        "stock_name": CHATGPT_EMAIL_PRODUCT,
+        "title_en": "ChatGPT Plus 1M On Your Email",
+        "title_ar": "ChatGPT Plus 1M تفعيل على إيميلك",
         "image": CHATGPT_IMAGE,
         "usd": 5,
         "egp": 250,
-        "type": "stock",
+        "type": "activation",
         "warranty_ar": "15 يوم",
         "warranty_en": "15 days",
     },
     "gemini_ready": {
         "stock_name": GEMINI_READY_PRODUCT,
-        "title_en": "Gemini Pro 12M Ready Account",
-        "title_ar": "Gemini Pro 12M حساب جاهز",
+        "title_en": "Gemini Pro 12 Month Ready Account",
+        "title_ar": "Gemini Pro 12 شهر حساب جاهز",
         "image": GEMINI_IMAGE,
         "usd": 6,
         "egp": 300,
@@ -70,7 +82,6 @@ PRODUCTS = {
         "warranty_en": "1 Year",
     },
 }
-
 # ---------------- Database ----------------
 async def init_db():
     global db_pool
@@ -157,6 +168,7 @@ async def get_stock_count(product_key: str = "chatgpt"):
 async def product_counts():
     return {
         "chatgpt": await get_stock_count("chatgpt"),
+        "chatgpt_email": "∞",
         "gemini_ready": await get_stock_count("gemini_ready"),
         "gemini_email": "∞",
     }
@@ -179,6 +191,8 @@ def resolve_stock_product(product_type: str):
         "chatgpt": "chatgpt",
         "chat": "chatgpt",
         "gpt": "chatgpt",
+        "chatgpt_ready": "chatgpt",
+        "chatgpt-ready": "chatgpt",
         "gemini": "gemini_ready",
         "gemini_ready": "gemini_ready",
         "gemini-ready": "gemini_ready",
@@ -190,9 +204,11 @@ def resolve_stock_product(product_type: str):
 
 def product_label(product_key: str):
     if product_key == "chatgpt":
-        return "ChatGPT Plus"
+        return "ChatGPT Plus Ready Account"
+    if product_key == "chatgpt_email":
+        return "ChatGPT Email Activation"
     if product_key == "gemini_ready":
-        return "Gemini Ready"
+        return "Gemini Pro Ready Account"
     if product_key == "gemini_email":
         return "Gemini Email Activation"
     return product_key
@@ -274,15 +290,17 @@ def back_home_keyboard(lang: str):
 def product_buttons(lang: str, counts: dict):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | $5 | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
-            [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | $6 | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
+            [InlineKeyboardButton(text=f"🤖 ChatGPT Plus Ready Account | $6 | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
+            [InlineKeyboardButton(text="✨ ChatGPT On Your Email | $5", callback_data="product_chatgpt_email")],
+            [InlineKeyboardButton(text=f"💎 Gemini Pro Ready Account | $6 | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
             [InlineKeyboardButton(text="👑 Gemini On Your Email | $4", callback_data="product_gemini_email")],
             [InlineKeyboardButton(text="🔄 Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | 250 جنيه | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
-        [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | 300 جنيه | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-        [InlineKeyboardButton(text="👑 تفعيل Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
+        [InlineKeyboardButton(text=f"🤖 ChatGPT Plus Ready Account | 300 جنيه | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
+        [InlineKeyboardButton(text="✨ ChatGPT على إيميلك | 250 جنيه", callback_data="product_chatgpt_email")],
+        [InlineKeyboardButton(text=f"💎 Gemini Pro Ready Account | 300 جنيه | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
+        [InlineKeyboardButton(text="👑 Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
         [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ رجوع", callback_data="home_main")],
     ])
 
@@ -388,16 +406,18 @@ def product_list_text(lang: str):
     if lang == "en":
         return (
             "🛍 Available Products\n━━━━━━━━━━━━━━\n\n"
-            "🤖 ChatGPT Plus 1M\n💰 $5 | 🛡 15 days\n\n"
-            "💎 Gemini Pro 12M\n💰 $6 | 🛡 1 Year\n\n"
-            "👑 Gemini On Your Email\n💰 $4 | 🛡 1 Year\n\n"
+            "🤖 ChatGPT Plus Ready Account\n💰 $6 | 🛡 15 days\n\n"
+            "✨ ChatGPT Plus On Your Email\n💰 $5 | 🛡 15 days\n\n"
+            "💎 Gemini Pro Ready Account\n💰 $6 | 🛡 1 Year\n\n"
+            "👑 Gemini Pro On Your Email\n💰 $4 | 🛡 1 Year\n\n"
             "Choose a product below:"
         )
     return (
         "🛍 المنتجات المتاحة\n━━━━━━━━━━━━━━\n\n"
-        "🤖 ChatGPT Plus 1M\n💰 250 جنيه | 🛡 15 يوم\n\n"
-        "💎 Gemini Pro 12M\n💰 300 جنيه | 🛡 سنة كاملة\n\n"
-        "👑 تفعيل Gemini على إيميلك\n💰 200 جنيه | 🛡 سنة كاملة\n\n"
+        "🤖 ChatGPT Plus Ready Account\n💰 300 جنيه | 🛡 15 يوم\n\n"
+        "✨ ChatGPT Plus على إيميلك\n💰 250 جنيه | 🛡 15 يوم\n\n"
+        "💎 Gemini Pro Ready Account\n💰 300 جنيه | 🛡 سنة كاملة\n\n"
+        "👑 Gemini Pro على إيميلك\n💰 200 جنيه | 🛡 سنة كاملة\n\n"
         "اختار المنتج:"
     )
 
@@ -490,16 +510,45 @@ async def product_chatgpt(call: CallbackQuery):
     await animate_message(call.message, "🤖 Preparing product..." if lang == "en" else "🤖 جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("chatgpt")
     caption = (
-        f"🤖 CHATGPT PLUS 1M\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $5\n📦 Stock: {count}\n🛡 Warranty: 15 Days\n\n"
-        f"📌 Private Account\n📌 1 Month Subscription\n📌 Instant Delivery"
+        f"🤖 ChatGPT Plus Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: 15 Days\n\n"
+        f"📦 Product Type: Ready Account\n"
+        f"🔐 Delivery Type: Email + Password\n"
+        f"⏳ Subscription: 1 Month ChatGPT Plus\n"
+        f"⚡ Delivery after payment approval\n"
+        f"💎 Premium account ready to login and use immediately"
         if lang == "en"
         else
-        f"🤖 ChatGPT Plus 1M\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 250 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: 15 يوم\n\n"
-        f"📌 حساب خاص\n📌 اشتراك شهر\n📌 تسليم فوري"
+        f"🤖 ChatGPT Plus Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: 15 يوم\n\n"
+        f"📦 نوع المنتج: حساب جاهز\n"
+        f"🔐 نوع التسليم: إيميل + باسورد\n"
+        f"⏳ الاشتراك: ChatGPT Plus لمدة شهر\n"
+        f"⚡ التسليم بعد تأكيد الدفع\n"
+        f"💎 حساب بريميوم جاهز لتسجيل الدخول والاستخدام مباشرة"
     )
     await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt"))
+    await call.answer()
+
+@dp.callback_query(F.data == "product_chatgpt_email")
+async def product_chatgpt_email(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    await animate_message(call.message, "✨ Preparing product..." if lang == "en" else "✨ جاري تجهيز المنتج...", "checkout")
+    caption = (
+        f"✨ ChatGPT Plus On Your Email\n━━━━━━━━━━━━━━\n\n"
+        f"💰 Price: $5\n🛡 Warranty: 15 Days\n\n"
+        f"📧 Activation on your personal email\n"
+        f"🔐 Your email stays with you\n"
+        f"💬 After payment confirmation, contact admin to complete activation."
+        if lang == "en"
+        else
+        f"✨ ChatGPT Plus على إيميلك\n━━━━━━━━━━━━━━\n\n"
+        f"💰 السعر: 250 جنيه\n🛡 الضمان: 15 يوم\n\n"
+        f"📧 التفعيل على إيميلك الشخصي\n"
+        f"🔐 الإيميل يفضل معاك\n"
+        f"💬 بعد تأكيد الدفع، تواصل مع الأدمن لإتمام التفعيل."
+    )
+    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt_email"))
     await call.answer()
 
 @dp.callback_query(F.data == "product_gemini_ready")
@@ -508,14 +557,24 @@ async def product_gemini_ready(call: CallbackQuery):
     await animate_message(call.message, "💎 Preparing product..." if lang == "en" else "💎 جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("gemini_ready")
     caption = (
-        f"💎 Gemini Pro 12M\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: 1 Year\n\n"
-        f"☁️ 5TB Storage\n🤖 Gemini Advanced\n⚡ Ready Account"
+        f"💎 Gemini Pro Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: Full 12 Months\n\n"
+        f"📦 Product Type: Ready Gemini Pro Account\n"
+        f"🔐 Delivery Type: Email + Password + 2FA\n"
+        f"⏳ Subscription: 12 Months\n"
+        f"☁️ 5TB Storage\n"
+        f"🤖 Gemini Advanced Included\n"
+        f"⚡ Ready to login and use after delivery"
         if lang == "en"
         else
-        f"💎 Gemini Pro 12M\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: سنة كاملة\n\n"
-        f"☁️ مساحة 5 تيرا بايت\n🤖 Gemini Advanced\n⚡ حساب جاهز"
+        f"💎 Gemini Pro Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: كامل لمدة 12 شهر\n\n"
+        f"📦 نوع المنتج: حساب جيميناي برو جاهز\n"
+        f"🔐 نوع التسليم: إيميل + باسورد + 2FA\n"
+        f"⏳ مدة الاشتراك: 12 شهر\n"
+        f"☁️ مساحة 5 تيرا بايت\n"
+        f"🤖 Gemini Advanced مفعّل\n"
+        f"⚡ جاهز لتسجيل الدخول والاستخدام بعد التسليم"
     )
     await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_ready"))
     await call.answer()
@@ -801,7 +860,21 @@ async def approve(call: CallbackQuery):
             return
         product = PRODUCTS[product_key]
         if product["type"] == "activation":
-            await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n📧 تفعيل Gemini على إيميلك الشخصي\n\nيرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\nشكراً لثقتك ❤️")
+            if product_key == "chatgpt_email":
+                activation_text = (
+                    f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
+                    f"✨ تفعيل ChatGPT Plus على إيميلك الشخصي\n\n"
+                    f"يرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\n"
+                    f"شكراً لثقتك ❤️"
+                )
+            else:
+                activation_text = (
+                    f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
+                    f"📧 تفعيل Gemini Pro على إيميلك الشخصي\n\n"
+                    f"يرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\n"
+                    f"شكراً لثقتك ❤️"
+                )
+            await bot.send_message(dep["telegram_id"], activation_text)
         else:
             item = await conn.fetchrow(
                 """
@@ -894,7 +967,7 @@ async def stock_count(message: Message):
     chatgpt = await get_stock_count("chatgpt")
     gemini = await get_stock_count("gemini_ready")
     await message.answer(
-        f"📦 Stock Report\n\n🤖 ChatGPT Stock: {chatgpt}\n💎 Gemini Ready Stock: {gemini}\n\n"
+        f"📦 Stock Report\n\n🤖 ChatGPT Plus Ready Account Stock: {chatgpt}\n💎 Gemini Pro Ready Account Stock: {gemini}\n\n"
         f"/liststock chatgpt\n/liststock gemini\n/delstock chatgpt ID\n/delstock gemini ID\n/clearstock chatgpt\n/clearstock gemini"
     )
 
