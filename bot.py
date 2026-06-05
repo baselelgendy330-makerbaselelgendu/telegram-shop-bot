@@ -5,8 +5,6 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message,
-    KeyboardButton,
-    ReplyKeyboardMarkup,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     CallbackQuery,
@@ -35,26 +33,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 db_pool = None
 
-# users waiting to type a wallet deposit amount
-deposit_waiting = {}
-
-menu_ar = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="🛍 المنتجات"), KeyboardButton(text="💬 الدعم")],
-        [KeyboardButton(text="👛 المحفظة"), KeyboardButton(text="💳 إيداع")],
-        [KeyboardButton(text="🌐 اللغة")],
-    ],
-    resize_keyboard=True,
-)
-
-menu_en = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="🛍 Products"), KeyboardButton(text="💬 Support")],
-        [KeyboardButton(text="👛 Wallet"), KeyboardButton(text="💳 Deposit")],
-        [KeyboardButton(text="🌐 Language")],
-    ],
-    resize_keyboard=True,
-)
+deposit_waiting: dict[int, str] = {}
 
 PRODUCTS = {
     "chatgpt": {
@@ -92,6 +71,7 @@ PRODUCTS = {
     },
 }
 
+# ---------------- Database ----------------
 async def init_db():
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
@@ -100,12 +80,14 @@ async def init_db():
         CREATE TABLE IF NOT EXISTS users (
             telegram_id BIGINT PRIMARY KEY,
             username TEXT,
+            first_name TEXT,
             lang TEXT DEFAULT 'ar',
             balance_usdt NUMERIC DEFAULT 0,
             balance_egp NUMERIC DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         );
         """)
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usdt NUMERIC DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_egp NUMERIC DEFAULT 0;")
         await conn.execute("""
@@ -131,20 +113,21 @@ async def init_db():
         );
         """)
 
-async def ensure_user_by_id(user_id: int, username: str | None = None):
+async def ensure_user_by_id(user_id: int, username: str | None = None, first_name: str | None = None):
     async with db_pool.acquire() as conn:
         await conn.execute(
             """
-            INSERT INTO users(telegram_id, username)
-            VALUES($1, $2)
-            ON CONFLICT (telegram_id) DO UPDATE SET username=$2
+            INSERT INTO users(telegram_id, username, first_name)
+            VALUES($1, $2, $3)
+            ON CONFLICT (telegram_id) DO UPDATE SET username=$2, first_name=$3
             """,
             user_id,
             username,
+            first_name,
         )
 
 async def ensure_user(message: Message):
-    await ensure_user_by_id(message.from_user.id, message.from_user.username)
+    await ensure_user_by_id(message.from_user.id, message.from_user.username, message.from_user.first_name)
 
 async def get_lang(user_id: int) -> str:
     async with db_pool.acquire() as conn:
@@ -171,6 +154,26 @@ async def get_stock_count(product_key: str = "chatgpt"):
             product["stock_name"],
         )
 
+async def product_counts():
+    return {
+        "chatgpt": await get_stock_count("chatgpt"),
+        "gemini_ready": await get_stock_count("gemini_ready"),
+        "gemini_email": "∞",
+    }
+
+# ---------------- Helpers ----------------
+def user_display_name(user) -> str:
+    return user.first_name or user.username or "User"
+
+def format_amount(amount):
+    try:
+        amount = float(amount)
+        if amount.is_integer():
+            return str(int(amount))
+        return str(amount).rstrip("0").rstrip(".")
+    except Exception:
+        return str(amount)
+
 def resolve_stock_product(product_type: str):
     aliases = {
         "chatgpt": "chatgpt",
@@ -194,118 +197,79 @@ def product_label(product_key: str):
         return "Gemini Email Activation"
     return product_key
 
-async def broadcast_stock_added(product_key: str, quantity: int, total: int):
-    product = PRODUCTS[product_key]
-    async with db_pool.acquire() as conn:
-        users = await conn.fetch("SELECT telegram_id, lang FROM users")
+# ---------------- Animations ----------------
+async def edit_or_answer(message, text: str, reply_markup=None):
+    try:
+        await message.edit_text(text, reply_markup=reply_markup)
+    except Exception:
+        await message.answer(text, reply_markup=reply_markup)
 
-    for user in users:
-        user_id = user["telegram_id"]
-        lang = user["lang"] or "ar"
-        if lang == "en":
-            text = (
-                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n"
-                f"━━━━━━━━━━━━━━\n\n"
-                f"✨ {product['title_en']} is now available.\n"
-                f"📦 New Stock: +{quantity}\n"
-                f"🔥 Available Now: {total}\n\n"
-                f"💎 Premium quality • Fast delivery • Trusted service\n\n"
-                f"🛍 Open Products and order before stock runs out!"
-            )
-        else:
-            text = (
-                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n"
-                f"━━━━━━━━━━━━━━\n\n"
-                f"✨ تم إضافة مخزون جديد من {product['title_ar']}\n"
-                f"📦 الكمية المضافة: +{quantity}\n"
-                f"🔥 المتوفر الآن: {total}\n\n"
-                f"💎 جودة بريميوم • تسليم سريع • خدمة موثوقة\n\n"
-                f"🛍 افتح المنتجات واطلب قبل نفاد الكمية!"
-            )
+async def animate_message(message, title: str, style: str = "default"):
+    frames_map = {
+        "default": [
+            "▱▱▱▱▱▱▱▱▱▱ 0%",
+            "▰▰▰▱▱▱▱▱▱▱ 30%",
+            "▰▰▰▰▰▰▱▱▱▱ 60%",
+            "▰▰▰▰▰▰▰▰▰▱ 90%",
+            "▰▰▰▰▰▰▰▰▰▰ 100%",
+        ],
+        "wallet": [
+            "◉○○○○ 0%",
+            "◉◉○○○ 25%",
+            "◉◉◉○○ 50%",
+            "◉◉◉◉○ 75%",
+            "◉◉◉◉◉ 100%",
+        ],
+        "deposit": [
+            "⬡⬡⬡⬡⬡ 0%",
+            "⬢⬡⬡⬡⬡ 20%",
+            "⬢⬢⬡⬡⬡ 40%",
+            "⬢⬢⬢⬡⬡ 60%",
+            "⬢⬢⬢⬢⬡ 80%",
+            "⬢⬢⬢⬢⬢ 100%",
+        ],
+        "checkout": [
+            "▰▱▱▱▱ 20%",
+            "▰▰▱▱▱ 40%",
+            "▰▰▰▱▱ 60%",
+            "▰▰▰▰▱ 80%",
+            "▰▰▰▰▰ 100%",
+        ],
+    }
+    frames = frames_map.get(style, frames_map["default"])
+    try:
+        await message.edit_text(f"{title}\n\n{frames[0]}")
+        msg = message
+    except Exception:
+        msg = await message.answer(f"{title}\n\n{frames[0]}")
+    for frame in frames[1:]:
+        await asyncio.sleep(0.12)
         try:
-            await bot.send_message(user_id, text)
+            await msg.edit_text(f"{title}\n\n{frame}")
         except Exception:
             pass
-
-async def loading_bar(message: Message, title: str):
-    msg = await message.answer(f"{title}\n\n▱▱▱▱▱▱▱▱▱▱ 0%")
-    frames = [
-        ("▰▰▰▱▱▱▱▱▱▱", 30),
-        ("▰▰▰▰▰▰▱▱▱▱", 60),
-        ("▰▰▰▰▰▰▰▰▰▱", 90),
-        ("▰▰▰▰▰▰▰▰▰▰", 100),
-    ]
-    for bar, percent in frames:
-        await asyncio.sleep(0.16)
-        try:
-            await msg.edit_text(f"{title}\n\n{bar} {percent}%")
-        except Exception:
-            pass
+    await asyncio.sleep(0.08)
     return msg
 
-async def premium_transition(message: Message, title: str):
-    msg = await message.answer(f"{title}\n\n▱▱▱▱▱▱▱▱▱▱ 0%")
-    frames = [
-        ("▰▰▰▱▱▱▱▱▱▱", 30),
-        ("▰▰▰▰▰▰▱▱▱▱", 60),
-        ("▰▰▰▰▰▰▰▰▰▱", 90),
-        ("▰▰▰▰▰▰▰▰▰▰", 100),
-    ]
-    for bar, percent in frames:
-        await asyncio.sleep(0.16)
-        try:
-            await msg.edit_text(f"{title}\n\n{bar} {percent}%")
-        except Exception:
-            pass
-    await asyncio.sleep(0.12)
-    try:
-        await msg.delete()
-    except Exception:
-        pass
+# ---------------- Keyboards ----------------
+def home_keyboard(lang: str):
+    if lang == "en":
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🛍 Shop", callback_data="home_shop")],
+            [InlineKeyboardButton(text="💳 Deposit", callback_data="home_deposit"), InlineKeyboardButton(text="👛 Wallet", callback_data="home_wallet")],
+            [InlineKeyboardButton(text="💬 Support", callback_data="home_support")],
+            [InlineKeyboardButton(text="🌐 Language", callback_data="home_language")],
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🛍 المتجر", callback_data="home_shop")],
+        [InlineKeyboardButton(text="💳 إيداع", callback_data="home_deposit"), InlineKeyboardButton(text="👛 المحفظة", callback_data="home_wallet")],
+        [InlineKeyboardButton(text="💬 الدعم", callback_data="home_support")],
+        [InlineKeyboardButton(text="🌐 اللغة", callback_data="home_language")],
+    ])
 
-async def wallet_transition(message: Message, lang: str):
-    title = "👛 Opening secure wallet..." if lang == "en" else "👛 فتح المحفظة الآمنة..."
-    msg = await message.answer(f"{title}\n\n◇◇◇◇◇ 0%")
-    frames = [
-        ("◆◇◇◇◇", 20, "🔐 Securing session..." if lang == "en" else "🔐 تأمين الجلسة..."),
-        ("◆◆◇◇◇", 40, "💵 Reading balances..." if lang == "en" else "💵 قراءة الأرصدة..."),
-        ("◆◆◆◇◇", 60, "🧾 Syncing wallet..." if lang == "en" else "🧾 مزامنة المحفظة..."),
-        ("◆◆◆◆◇", 80, "✨ Finalizing..." if lang == "en" else "✨ التجهيز النهائي..."),
-        ("◆◆◆◆◆", 100, "✅ Wallet ready" if lang == "en" else "✅ المحفظة جاهزة"),
-    ]
-    for bar, percent, step in frames:
-        await asyncio.sleep(0.18)
-        try:
-            await msg.edit_text(f"{title}\n{step}\n\n{bar} {percent}%")
-        except Exception:
-            pass
-    await asyncio.sleep(0.15)
-    try:
-        await msg.delete()
-    except Exception:
-        pass
-
-async def deposit_transition(message: Message, lang: str):
-    title = "💳 Preparing premium deposit..." if lang == "en" else "💳 تجهيز الإيداع البريميوم..."
-    msg = await message.answer(f"{title}\n\n⬡⬡⬡⬡⬡ 0%")
-    frames = [
-        ("⬢⬡⬡⬡⬡", 20, "🔎 Checking limits..." if lang == "en" else "🔎 فحص حدود الإيداع..."),
-        ("⬢⬢⬡⬡⬡", 40, "💱 Loading currency options..." if lang == "en" else "💱 تجهيز العملات..."),
-        ("⬢⬢⬢⬡⬡", 60, "🏦 Preparing methods..." if lang == "en" else "🏦 تجهيز طرق الدفع..."),
-        ("⬢⬢⬢⬢⬡", 80, "🔐 Securing payment..." if lang == "en" else "🔐 تأمين الدفع..."),
-        ("⬢⬢⬢⬢⬢", 100, "✅ Ready" if lang == "en" else "✅ جاهز"),
-    ]
-    for bar, percent, step in frames:
-        await asyncio.sleep(0.18)
-        try:
-            await msg.edit_text(f"{title}\n{step}\n\n{bar} {percent}%")
-        except Exception:
-            pass
-    await asyncio.sleep(0.15)
-    try:
-        await msg.delete()
-    except Exception:
-        pass
+def back_home_keyboard(lang: str):
+    text = "⬅️ Main Menu" if lang == "en" else "⬅️ القائمة الرئيسية"
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=text, callback_data="home_main")]])
 
 def product_buttons(lang: str, counts: dict):
     if lang == "en":
@@ -313,24 +277,24 @@ def product_buttons(lang: str, counts: dict):
             [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | $5 | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
             [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | $6 | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
             [InlineKeyboardButton(text="👑 Gemini On Your Email | $4", callback_data="product_gemini_email")],
-            [InlineKeyboardButton(text="🔄 Refresh", callback_data="refresh_products")],
+            [InlineKeyboardButton(text="🔄 Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"🤖 ChatGPT Plus 1M | 250 جنيه | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
         [InlineKeyboardButton(text=f"💎 Gemini Pro 12M | 300 جنيه | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
         [InlineKeyboardButton(text="👑 تفعيل Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
-        [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products")],
+        [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ رجوع", callback_data="home_main")],
     ])
 
 def product_details_buttons(lang: str, product_key: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🛒 Buy Now", callback_data=f"buy_{product_key}")],
-            [InlineKeyboardButton(text="🔙 Back", callback_data="refresh_products")],
+            [InlineKeyboardButton(text="⬅️ Back to Shop", callback_data="home_shop")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🛒 شراء الآن", callback_data=f"buy_{product_key}")],
-        [InlineKeyboardButton(text="🔙 رجوع", callback_data="refresh_products")],
+        [InlineKeyboardButton(text="⬅️ رجوع للمتجر", callback_data="home_shop")],
     ])
 
 def payment_buttons(lang: str, product_key: str):
@@ -339,32 +303,31 @@ def payment_buttons(lang: str, product_key: str):
             [InlineKeyboardButton(text="🟡 Binance UID", callback_data=f"pay_binance_{product_key}")],
             [InlineKeyboardButton(text="🔴 Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
             [InlineKeyboardButton(text="🟣 InstaPay", callback_data=f"pay_instapay_{product_key}")],
+            [InlineKeyboardButton(text="⬅️ Back", callback_data=f"product_{product_key}")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟡 بينانس UID", callback_data=f"pay_binance_{product_key}")],
         [InlineKeyboardButton(text="🔴 فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
         [InlineKeyboardButton(text="🟣 انستا باي", callback_data=f"pay_instapay_{product_key}")],
+        [InlineKeyboardButton(text="⬅️ رجوع", callback_data=f"product_{product_key}")],
     ])
-
-def wallet_deposit_buttons(lang: str):
-    # old helper kept for compatibility
-    return deposit_currency_buttons(lang)
 
 def deposit_currency_buttons(lang: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🇪🇬 Deposit EGP", callback_data="deposit_currency_EGP")],
-            [InlineKeyboardButton(text="🟡 Deposit USDT", callback_data="deposit_currency_USDT")],
+            [InlineKeyboardButton(text="🇪🇬 EGP Deposit", callback_data="deposit_currency_EGP")],
+            [InlineKeyboardButton(text="🟡 USDT Deposit", callback_data="deposit_currency_USDT")],
+            [InlineKeyboardButton(text="⬅️ Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🇪🇬 إيداع بالمصري", callback_data="deposit_currency_EGP")],
         [InlineKeyboardButton(text="🟡 إيداع بالدولار USDT", callback_data="deposit_currency_USDT")],
+        [InlineKeyboardButton(text="⬅️ رجوع", callback_data="home_main")],
     ])
 
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
     amount_txt = format_amount(amount)
     currency = currency.upper()
-
     if currency == "USDT":
         if lang == "en":
             return InlineKeyboardMarkup(inline_keyboard=[
@@ -375,7 +338,6 @@ def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
             [InlineKeyboardButton(text=f"🟡 بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
             [InlineKeyboardButton(text="🔙 تغيير المبلغ", callback_data="deposit_currency_USDT")],
         ])
-
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=f"🔴 Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
@@ -388,55 +350,39 @@ def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
         [InlineKeyboardButton(text="🔙 تغيير المبلغ", callback_data="deposit_currency_EGP")],
     ])
 
-def format_amount(amount):
-    try:
-        amount = float(amount)
-        if amount.is_integer():
-            return str(int(amount))
-        return str(amount).rstrip("0").rstrip(".")
-    except Exception:
-        return str(amount)
+def language_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇪🇬 عربي", callback_data="lang_ar")],
+        [InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")],
+    ])
 
-def parse_deposit_amount(text: str):
-    raw = text.strip().lower().replace(",", ".")
-    currency = None
-
-    if any(x in raw for x in ["usdt", "usd", "$", "دولار"]):
-        currency = "USDT"
-    elif any(x in raw for x in ["egp", "جنيه", "جنية", "مصري", "ج "]):
-        currency = "EGP"
-
-    cleaned = raw
-    for token in ["usdt", "usd", "$", "دولار", "egp", "جنيه", "جنية", "مصري", "ج"]:
-        cleaned = cleaned.replace(token, " ")
-
-    number = None
-    for part in cleaned.split():
-        try:
-            number = float(part)
-            break
-        except ValueError:
-            continue
-
-    if number is None:
-        try:
-            number = float(cleaned.strip())
-        except Exception:
-            return None, None
-
-    if currency is None:
-        # If the user writes only 250 or more, treat it as EGP.
-        # If the user writes 5 to 249, treat it as USDT.
-        currency = "EGP" if number >= 250 else "USDT"
-
-    return number, currency
-
-async def product_counts():
-    return {
-        "chatgpt": await get_stock_count("chatgpt"),
-        "gemini_ready": await get_stock_count("gemini_ready"),
-        "gemini_email": "∞",
-    }
+# ---------------- Texts ----------------
+def home_text(lang: str, name: str):
+    if lang == "en":
+        return (
+            f"{BOT_NAME}\n"
+            f"━━━━━━━━━━━━━━\n\n"
+            f"Hey, {name} 👋\n"
+            f"Welcome back!\n\n"
+            f"💎 Premium AI Subscriptions\n"
+            f"⚡ Fast • Secure • Trusted\n\n"
+            f"🛍 Shop — Browse products\n"
+            f"💳 Deposit — Add balance\n"
+            f"👛 Wallet — Balance & orders\n"
+            f"💬 Support — Get help"
+        )
+    return (
+        f"{BOT_NAME}\n"
+        f"━━━━━━━━━━━━━━\n\n"
+        f"أهلاً، {name} 👋\n"
+        f"نورت المتجر!\n\n"
+        f"💎 اشتراكات AI مميزة\n"
+        f"⚡ سريع • آمن • موثوق\n\n"
+        f"🛍 المتجر — تصفح المنتجات\n"
+        f"💳 إيداع — إضافة رصيد\n"
+        f"👛 المحفظة — الرصيد والطلبات\n"
+        f"💬 الدعم — تواصل معنا"
+    )
 
 def product_list_text(lang: str):
     if lang == "en":
@@ -455,374 +401,93 @@ def product_list_text(lang: str):
         "اختار المنتج:"
     )
 
+def deposit_intro_text(lang: str):
+    if lang == "en":
+        return (
+            "💳 Deposit Balance\n━━━━━━━━━━━━━━\n\n"
+            "Choose the currency you want to deposit.\n\n"
+            "🇪🇬 EGP: minimum 250 EGP\n"
+            "🟡 USDT: minimum 5 USDT"
+        )
+    return (
+        "💳 إيداع رصيد\n━━━━━━━━━━━━━━\n\n"
+        "اختار العملة اللي عايز تعمل بيها إيداع.\n\n"
+        "🇪🇬 المصري: أقل مبلغ 250 جنيه\n"
+        "🟡 الدولار USDT: أقل مبلغ 5 USDT"
+    )
+
+# ---------------- Home/UI Handlers ----------------
 @dp.message(CommandStart())
 async def start(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    caption = (
-        f"{BOT_NAME}\n\nPremium AI Subscriptions\nFast • Secure • Trusted"
-        if lang == "en"
-        else f"{BOT_NAME}\n\nاشتراكات الذكاء الاصطناعي المميزة\nسريع • آمن • موثوق"
-    )
+    name = user_display_name(message.from_user)
     await message.answer_photo(
         photo=URLInputFile(CHATGPT_IMAGE),
-        caption=caption,
-        reply_markup=menu_en if lang == "en" else menu_ar,
+        caption=home_text(lang, name),
+        reply_markup=home_keyboard(lang),
     )
 
-@dp.message(F.text.in_(["🌐 اللغة", "🌐 Language"]))
-async def language(message: Message):
+@dp.callback_query(F.data == "home_main")
+async def home_main(call: CallbackQuery):
+    await ensure_user_by_id(call.from_user.id, call.from_user.username, call.from_user.first_name)
+    lang = await get_lang(call.from_user.id)
+    name = user_display_name(call.from_user)
+    msg = await animate_message(call.message, "⚡ Loading AIX Store..." if lang == "en" else "⚡ جاري فتح AIX Store...", "default")
+    await edit_or_answer(msg, home_text(lang, name), reply_markup=home_keyboard(lang))
+    await call.answer()
+
+@dp.callback_query(F.data == "home_language")
+async def home_language(call: CallbackQuery):
+    await call.message.answer("🌐 اختر اللغة / Choose language:", reply_markup=language_keyboard())
+    await call.answer()
+
+@dp.message(Command("language"))
+async def language_command(message: Message):
     await ensure_user(message)
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🇪🇬 عربي", callback_data="lang_ar")],
-        [InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")],
-    ])
-    await message.answer("🌐 اختر اللغة / Choose language:", reply_markup=kb)
+    await message.answer("🌐 اختر اللغة / Choose language:", reply_markup=language_keyboard())
 
 @dp.callback_query(F.data.startswith("lang_"))
 async def set_language(call: CallbackQuery):
     lang = call.data.replace("lang_", "")
-    await ensure_user_by_id(call.from_user.id, call.from_user.username)
+    await ensure_user_by_id(call.from_user.id, call.from_user.username, call.from_user.first_name)
     async with db_pool.acquire() as conn:
         await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
     await call.message.answer(
         "✅ Language changed to English" if lang == "en" else "✅ تم تغيير اللغة للعربية",
-        reply_markup=menu_en if lang == "en" else menu_ar,
+        reply_markup=home_keyboard(lang),
     )
     await call.answer()
 
-@dp.message(F.text.in_(["👛 المحفظة", "👛 Wallet"]))
-async def wallet(message: Message):
-    await ensure_user(message)
-    lang = await get_lang(message.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
-    await wallet_transition(message, lang)
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="choose_deposit_currency")],
-        [InlineKeyboardButton(text="🔄 Refresh Balance / تحديث الرصيد", callback_data="refresh_wallet")],
-    ])
-
-    text = (
-        f"👛 YOUR WALLET\n━━━━━━━━━━━━━━\n\n"
-        f"💵 USDT Balance: {balance_usdt} USDT\n"
-        f"🇪🇬 EGP Balance: {balance_egp} EGP\n\n"
-        f"💳 Press Deposit to add balance.\n"
-        f"⚠️ Minimum deposit: 5 USDT or 250 EGP"
-        if lang == "en"
-        else
-        f"👛 المحفظة\n━━━━━━━━━━━━━━\n\n"
-        f"💵 رصيد الدولار: {balance_usdt} USDT\n"
-        f"🇪🇬 رصيد المصري: {balance_egp} جنيه\n\n"
-        f"💳 اضغط إيداع لإضافة رصيد.\n"
-        f"⚠️ أقل إيداع: 5 USDT أو 250 جنيه"
-    )
-    await message.answer(text, reply_markup=kb)
-
-@dp.callback_query(F.data == "refresh_wallet")
-async def refresh_wallet(call: CallbackQuery):
+# ---------------- Shop ----------------
+@dp.callback_query(F.data == "home_shop")
+async def shop_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(call.from_user.id)
-    await wallet_transition(call.message, lang)
-    text = (
-        f"👛 YOUR WALLET\n━━━━━━━━━━━━━━\n\n"
-        f"💵 USDT Balance: {balance_usdt} USDT\n"
-        f"🇪🇬 EGP Balance: {balance_egp} EGP"
-        if lang == "en"
-        else
-        f"👛 المحفظة\n━━━━━━━━━━━━━━\n\n"
-        f"💵 رصيد الدولار: {balance_usdt} USDT\n"
-        f"🇪🇬 رصيد المصري: {balance_egp} جنيه"
-    )
-    await call.message.answer(text)
+    msg = await animate_message(call.message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...", "default")
+    counts = await product_counts()
+    await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
     await call.answer()
-
-@dp.message(F.text.in_(["💳 إيداع", "💳 Deposit"]))
-async def deposit_menu(message: Message):
-    await ensure_user(message)
-    lang = await get_lang(message.from_user.id)
-    await deposit_transition(message, lang)
-    text = (
-        f"💳 ADD BALANCE\n━━━━━━━━━━━━━━\n\n"
-        f"Choose the currency you want to deposit.\n\n"
-        f"🇪🇬 EGP: minimum 250 EGP\n"
-        f"🟡 USDT: minimum 5 USDT"
-        if lang == "en"
-        else
-        f"💳 إضافة رصيد\n━━━━━━━━━━━━━━\n\n"
-        f"اختار العملة اللي عايز تعمل بيها إيداع.\n\n"
-        f"🇪🇬 المصري: أقل مبلغ 250 جنيه\n"
-        f"🟡 الدولار USDT: أقل مبلغ 5 USDT"
-    )
-    await message.answer(text, reply_markup=deposit_currency_buttons(lang))
-
-@dp.callback_query(F.data == "choose_deposit_currency")
-@dp.callback_query(F.data == "start_deposit_amount")
-async def choose_deposit_currency(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    await deposit_transition(call.message, lang)
-    text = (
-        "💳 Choose deposit currency\n━━━━━━━━━━━━━━\n\n"
-        "🇪🇬 EGP: minimum 250 EGP\n"
-        "🟡 USDT: minimum 5 USDT"
-        if lang == "en"
-        else
-        "💳 اختار عملة الإيداع\n━━━━━━━━━━━━━━\n\n"
-        "🇪🇬 المصري: أقل مبلغ 250 جنيه\n"
-        "🟡 الدولار USDT: أقل مبلغ 5 USDT"
-    )
-    await call.message.answer(text, reply_markup=deposit_currency_buttons(lang))
-    await call.answer()
-
-@dp.callback_query(F.data.startswith("deposit_currency_"))
-async def deposit_currency_selected(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    currency = call.data.replace("deposit_currency_", "").upper()
-
-    if currency not in ["EGP", "USDT"]:
-        await call.answer("Invalid currency", show_alert=True)
-        return
-
-    deposit_waiting[call.from_user.id] = currency
-    await deposit_transition(call.message, lang)
-
-    if currency == "EGP":
-        text = (
-            "🇪🇬 EGP Deposit\n━━━━━━━━━━━━━━\n\n"
-            "Type the amount you want to add in EGP.\n"
-            "Minimum: 250 EGP\n\n"
-            "Example: `250` or `500`"
-            if lang == "en"
-            else
-            "🇪🇬 إيداع بالمصري\n━━━━━━━━━━━━━━\n\n"
-            "اكتب المبلغ اللي عايز تضيفه بالجنيه.\n"
-            "أقل مبلغ: 250 جنيه\n\n"
-            "مثال: `250` أو `500`"
-        )
-    else:
-        text = (
-            "🟡 USDT Deposit\n━━━━━━━━━━━━━━\n\n"
-            "Type the amount you want to add in USDT.\n"
-            "Minimum: 5 USDT\n\n"
-            "Example: `5` or `10`"
-            if lang == "en"
-            else
-            "🟡 إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
-            "اكتب المبلغ اللي عايز تضيفه بالدولار.\n"
-            "أقل مبلغ: 5 USDT\n\n"
-            "مثال: `5` أو `10`"
-        )
-
-    await call.message.answer(text, parse_mode="Markdown")
-    await call.answer()
-
-@dp.message(lambda message: message.from_user and message.from_user.id in deposit_waiting)
-async def receive_deposit_amount(message: Message):
-    await ensure_user(message)
-
-    if not message.text or message.text.startswith("/"):
-        return
-
-    lang = await get_lang(message.from_user.id)
-    selected_currency = deposit_waiting.get(message.from_user.id)
-    amount, parsed_currency = parse_deposit_amount(message.text)
-    currency = selected_currency if selected_currency in ["EGP", "USDT"] else parsed_currency
-
-    if amount is None:
-        await message.answer(
-            "❌ اكتب المبلغ رقم فقط مثل: `250` أو `5`",
-            parse_mode="Markdown",
-        )
-        return
-
-    if currency == "USDT" and amount < 5:
-        await message.answer(
-            "❌ أقل إيداع للدولار هو 5 USDT.\nاكتب مبلغ 5 USDT أو أكثر."
-            if lang != "en"
-            else "❌ Minimum USD deposit is 5 USDT.\nPlease enter 5 USDT or more."
-        )
-        return
-
-    if currency == "EGP" and amount < 250:
-        await message.answer(
-            "❌ أقل إيداع بالمصري هو 250 جنيه.\nاكتب مبلغ 250 جنيه أو أكثر."
-            if lang != "en"
-            else "❌ Minimum EGP deposit is 250 EGP.\nPlease enter 250 EGP or more."
-        )
-        return
-
-    deposit_waiting.pop(message.from_user.id, None)
-    await deposit_transition(message, lang)
-
-    amount_txt = format_amount(amount)
-    text = (
-        f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Amount: {amount_txt} {currency}\n\n"
-        f"Choose payment method below:"
-        if lang == "en"
-        else
-        f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
-        f"💰 المبلغ: {amount_txt} {currency}\n\n"
-        f"اختار طريقة الدفع من الأزرار:"
-    )
-    await message.answer(text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency))
-
-@dp.callback_query(F.data.startswith("topup_"))
-async def create_wallet_topup(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    parts = call.data.split("_")
-    if len(parts) != 4:
-        await call.answer("Error", show_alert=True)
-        return
-
-    method = parts[1]
-    try:
-        amount = float(parts[2])
-    except ValueError:
-        await call.answer("Invalid amount", show_alert=True)
-        return
-    currency = parts[3].upper()
-
-    if currency == "USDT" and amount < 5:
-        await call.answer("Minimum is 5 USDT", show_alert=True)
-        return
-    if currency == "EGP" and amount < 250:
-        await call.answer("Minimum is 250 EGP", show_alert=True)
-        return
-
-    await deposit_transition(call.message, lang)
-
-    async with db_pool.acquire() as conn:
-        dep_id = await conn.fetchval(
-            """
-            INSERT INTO deposits (telegram_id, method, amount, currency, product_key)
-            VALUES($1,$2,$3,$4,$5)
-            RETURNING id
-            """,
-            call.from_user.id,
-            method,
-            amount,
-            currency,
-            WALLET_DEPOSIT_KEY,
-        )
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Approve Deposit", callback_data=f"approve_{dep_id}"),
-            InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{dep_id}"),
-        ]
-    ])
-
-    await bot.send_message(
-        ADMIN_ID,
-        f"💳 Wallet Deposit Request #{dep_id}\n"
-        f"User: @{call.from_user.username}\n"
-        f"ID: {call.from_user.id}\n"
-        f"Method: {method}\n"
-        f"Amount: {format_amount(amount)} {currency}\n\n"
-        f"بعد التأكد اضغط Approve Deposit.",
-        reply_markup=kb,
-    )
-
-    if method == "binance":
-        pay_text = f"🟡 Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n`{BINANCE_UID}`\n\n💰 Amount: {format_amount(amount)} USDT"
-    elif method == "vodafone":
-        pay_text = f"🔴 Vodafone Cash Deposit\n━━━━━━━━━━━━━━\n\n📱 Number:\n`{VODAFONE_CASH}`\n\n💰 Amount: {format_amount(amount)} EGP"
-    else:
-        pay_text = f"🟣 InstaPay Deposit\n━━━━━━━━━━━━━━\n\n🏦 InstaPay:\n`{INSTAPAY}`\n\n💰 Amount: {format_amount(amount)} EGP"
-
-    await call.message.answer(
-        f"{pay_text}\n\n"
-        f"📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n"
-        f"🧾 Deposit ID: #{dep_id}",
-        parse_mode="Markdown",
-    )
-    await call.answer()
-
-@dp.message(Command("deposit"))
-async def manual_deposit(message: Message):
-    await ensure_user(message)
-    parts = message.text.split()
-    if len(parts) != 4:
-        await message.answer(
-            "استخدم الأمر كده:\n"
-            "/deposit binance 5 usdt\n"
-            "/deposit vodafone 250 egp\n"
-            "/deposit instapay 250 egp"
-        )
-        return
-    method = parts[1].lower()
-    currency = parts[3].upper()
-    if method not in ["binance", "vodafone", "instapay"] or currency not in ["USDT", "EGP"]:
-        await message.answer("❌ طريقة الدفع أو العملة غير صحيحة")
-        return
-    try:
-        amount = float(parts[2])
-    except ValueError:
-        await message.answer("❌ المبلغ غير صحيح")
-        return
-
-    if currency == "USDT" and amount < 5:
-        await message.answer("❌ أقل إيداع للدولار هو 5 USDT")
-        return
-    if currency == "EGP" and amount < 250:
-        await message.answer("❌ أقل إيداع بالمصري هو 250 جنيه")
-        return
-
-    async with db_pool.acquire() as conn:
-        dep_id = await conn.fetchval(
-            """
-            INSERT INTO deposits (telegram_id, method, amount, currency, product_key)
-            VALUES($1,$2,$3,$4,$5)
-            RETURNING id
-            """,
-            message.from_user.id,
-            method,
-            amount,
-            currency,
-            WALLET_DEPOSIT_KEY,
-        )
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Approve Deposit", callback_data=f"approve_{dep_id}"),
-            InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{dep_id}"),
-        ]
-    ])
-    await bot.send_message(
-        ADMIN_ID,
-        f"💳 Wallet Deposit Request #{dep_id}\n"
-        f"User: @{message.from_user.username}\n"
-        f"ID: {message.from_user.id}\n"
-        f"Method: {method}\n"
-        f"Amount: {format_amount(amount)} {currency}\n\n"
-        f"بعد التأكد اضغط Approve Deposit.",
-        reply_markup=kb,
-    )
-    await message.answer("✅ تم تسجيل طلب الإيداع. ابعت صورة إثبات الدفع الآن.")
 
 @dp.message(F.text.in_(["🛍 المنتجات", "🛍 Products"]))
-async def products(message: Message):
+async def products_message(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    await premium_transition(message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...")
+    msg = await animate_message(message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...", "default")
     counts = await product_counts()
-    await message.answer(product_list_text(lang), reply_markup=product_buttons(lang, counts))
+    await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
 
 @dp.callback_query(F.data == "refresh_products")
 async def refresh_products(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
+    msg = await animate_message(call.message, "🔄 Updating products..." if lang == "en" else "🔄 جاري تحديث المنتجات...", "default")
     counts = await product_counts()
-    await premium_transition(call.message, "🔄 Updating products..." if lang == "en" else "🔄 جاري تحديث المنتجات...")
-    try:
-        await call.message.edit_text(product_list_text(lang), reply_markup=product_buttons(lang, counts))
-    except Exception:
-        await call.message.answer(product_list_text(lang), reply_markup=product_buttons(lang, counts))
+    await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
     await call.answer("Updated ✅")
 
 @dp.callback_query(F.data == "product_chatgpt")
 async def product_chatgpt(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await premium_transition(call.message, "🤖 Preparing product..." if lang == "en" else "🤖 جاري تجهيز المنتج...")
+    await animate_message(call.message, "🤖 Preparing product..." if lang == "en" else "🤖 جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("chatgpt")
     caption = (
         f"🤖 CHATGPT PLUS 1M\n━━━━━━━━━━━━━━\n\n"
@@ -840,7 +505,7 @@ async def product_chatgpt(call: CallbackQuery):
 @dp.callback_query(F.data == "product_gemini_ready")
 async def product_gemini_ready(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await premium_transition(call.message, "💎 Preparing product..." if lang == "en" else "💎 جاري تجهيز المنتج...")
+    await animate_message(call.message, "💎 Preparing product..." if lang == "en" else "💎 جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("gemini_ready")
     caption = (
         f"💎 Gemini Pro 12M\n━━━━━━━━━━━━━━\n\n"
@@ -858,7 +523,7 @@ async def product_gemini_ready(call: CallbackQuery):
 @dp.callback_query(F.data == "product_gemini_email")
 async def product_gemini_email(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await premium_transition(call.message, "👑 Preparing product..." if lang == "en" else "👑 جاري تجهيز المنتج...")
+    await animate_message(call.message, "👑 Preparing product..." if lang == "en" else "👑 جاري تجهيز المنتج...", "checkout")
     caption = (
         f"👑 Gemini Pro On Your Email\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $4\n🛡 Warranty: 1 Year\n\n"
@@ -881,20 +546,198 @@ async def buy_product(call: CallbackQuery):
     product_key = call.data.replace("buy_", "")
     lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
-    await premium_transition(call.message, "🛒 Preparing checkout..." if lang == "en" else "🛒 جاري تجهيز الدفع...")
     if product["type"] == "stock":
         count = await get_stock_count(product_key)
         if count <= 0:
             await call.answer("Out of stock ❌" if lang == "en" else "المخزون غير متوفر ❌", show_alert=True)
             return
+    msg = await animate_message(call.message, "🚀 Preparing checkout..." if lang == "en" else "🚀 جاري تجهيز الدفع...", "checkout")
     text = (
         f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']} / {product['egp']} EGP\n\nChoose payment method:"
         if lang == "en"
         else f"🛒 إتمام الشراء\n━━━━━━━━━━━━━━\n\n💰 السعر: {product['egp']} جنيه / {product['usd']} USDT\n\nاختار طريقة الدفع:"
     )
-    await call.message.answer(text, reply_markup=payment_buttons(lang, product_key))
+    await edit_or_answer(msg, text, reply_markup=payment_buttons(lang, product_key))
     await call.answer()
 
+# ---------------- Wallet / Deposit ----------------
+@dp.callback_query(F.data == "home_wallet")
+async def wallet_inline(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    balance_usdt, balance_egp = await get_wallet_balance(call.from_user.id)
+    msg = await animate_message(call.message, "💳 Syncing Wallet..." if lang == "en" else "💳 مزامنة المحفظة...", "wallet")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
+        [InlineKeyboardButton(text="🔄 Refresh / تحديث", callback_data="home_wallet")],
+        [InlineKeyboardButton(text="⬅️ Main Menu / الرئيسية", callback_data="home_main")],
+    ])
+    text = (
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
+        f"💵 USDT Balance: {balance_usdt} USDT\n"
+        f"🇪🇬 EGP Balance: {balance_egp} EGP\n\n"
+        f"💳 Deposit funds anytime.\n"
+        f"⚠️ Minimum: 5 USDT or 250 EGP"
+        if lang == "en"
+        else
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
+        f"💵 رصيد الدولار: {balance_usdt} USDT\n"
+        f"🇪🇬 رصيد المصري: {balance_egp} جنيه\n\n"
+        f"💳 تقدر تضيف رصيد في أي وقت.\n"
+        f"⚠️ أقل إيداع: 5 USDT أو 250 جنيه"
+    )
+    await edit_or_answer(msg, text, reply_markup=kb)
+    await call.answer()
+
+@dp.message(F.text.in_(["👛 المحفظة", "👛 Wallet"]))
+async def wallet_message(message: Message):
+    await ensure_user(message)
+    fake = await message.answer("...")
+    class Obj: pass
+    # simpler: send new wallet with same function logic
+    lang = await get_lang(message.from_user.id)
+    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
+    await fake.edit_text("💳 Syncing Wallet...\n\n◉◉◉◉◉ 100%")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
+        [InlineKeyboardButton(text="⬅️ Main Menu / الرئيسية", callback_data="home_main")],
+    ])
+    text = (
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 USDT Balance: {balance_usdt} USDT\n🇪🇬 EGP Balance: {balance_egp} EGP"
+        if lang == "en" else
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 رصيد الدولار: {balance_usdt} USDT\n🇪🇬 رصيد المصري: {balance_egp} جنيه"
+    )
+    await fake.edit_text(text, reply_markup=kb)
+
+@dp.callback_query(F.data == "home_deposit")
+async def deposit_inline(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    msg = await animate_message(call.message, "🔐 Opening Deposit Gateway..." if lang == "en" else "🔐 فتح بوابة الإيداع...", "deposit")
+    await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
+    await call.answer()
+
+@dp.message(F.text.in_(["💳 إيداع", "💳 Deposit"]))
+async def deposit_message(message: Message):
+    await ensure_user(message)
+    lang = await get_lang(message.from_user.id)
+    msg = await animate_message(message, "🔐 Opening Deposit Gateway..." if lang == "en" else "🔐 فتح بوابة الإيداع...", "deposit")
+    await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
+
+@dp.callback_query(F.data.startswith("deposit_currency_"))
+async def deposit_currency_selected(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    currency = call.data.replace("deposit_currency_", "").upper()
+    if currency not in ["EGP", "USDT"]:
+        await call.answer("Invalid currency", show_alert=True)
+        return
+    deposit_waiting[call.from_user.id] = currency
+    msg = await animate_message(call.message, "✍️ Preparing amount input..." if lang == "en" else "✍️ تجهيز إدخال المبلغ...", "deposit")
+    if currency == "EGP":
+        text = (
+            "🇪🇬 EGP Deposit\n━━━━━━━━━━━━━━\n\n"
+            "Type the amount you want to add in EGP.\n"
+            "Minimum: 250 EGP\n\n"
+            "Example: 250 or 500"
+            if lang == "en" else
+            "🇪🇬 إيداع بالمصري\n━━━━━━━━━━━━━━\n\n"
+            "اكتب المبلغ اللي عايز تضيفه بالجنيه.\n"
+            "أقل مبلغ: 250 جنيه\n\n"
+            "مثال: 250 أو 500"
+        )
+    else:
+        text = (
+            "🟡 USDT Deposit\n━━━━━━━━━━━━━━\n\n"
+            "Type the amount you want to add in USDT.\n"
+            "Minimum: 5 USDT\n\n"
+            "Example: 5 or 10"
+            if lang == "en" else
+            "🟡 إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
+            "اكتب المبلغ اللي عايز تضيفه بالدولار.\n"
+            "أقل مبلغ: 5 USDT\n\n"
+            "مثال: 5 أو 10"
+        )
+    await edit_or_answer(msg, text, reply_markup=back_home_keyboard(lang))
+    await call.answer()
+
+@dp.message(lambda message: message.from_user and message.from_user.id in deposit_waiting)
+async def receive_deposit_amount(message: Message):
+    await ensure_user(message)
+    if not message.text or message.text.startswith("/"):
+        return
+    lang = await get_lang(message.from_user.id)
+    currency = deposit_waiting.get(message.from_user.id)
+    try:
+        amount = float(message.text.strip().replace(",", "."))
+    except ValueError:
+        await message.answer("❌ اكتب المبلغ رقم فقط مثل: 250 أو 5")
+        return
+    if currency == "USDT" and amount < 5:
+        await message.answer("❌ أقل إيداع للدولار هو 5 USDT." if lang != "en" else "❌ Minimum USDT deposit is 5 USDT.")
+        return
+    if currency == "EGP" and amount < 250:
+        await message.answer("❌ أقل إيداع بالمصري هو 250 جنيه." if lang != "en" else "❌ Minimum EGP deposit is 250 EGP.")
+        return
+    deposit_waiting.pop(message.from_user.id, None)
+    msg = await animate_message(message, "🔐 Loading payment methods..." if lang == "en" else "🔐 جاري تجهيز طرق الدفع...", "deposit")
+    amount_txt = format_amount(amount)
+    text = (
+        f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n💰 Amount: {amount_txt} {currency}\n\nChoose payment method below:"
+        if lang == "en" else
+        f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n💰 المبلغ: {amount_txt} {currency}\n\nاختار طريقة الدفع من الأزرار:"
+    )
+    await edit_or_answer(msg, text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency))
+
+@dp.callback_query(F.data.startswith("topup_"))
+async def create_wallet_topup(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    parts = call.data.split("_")
+    if len(parts) != 4:
+        await call.answer("Error", show_alert=True)
+        return
+    method = parts[1]
+    try:
+        amount = float(parts[2])
+    except ValueError:
+        await call.answer("Invalid amount", show_alert=True)
+        return
+    currency = parts[3].upper()
+    if currency == "USDT" and amount < 5:
+        await call.answer("Minimum is 5 USDT", show_alert=True)
+        return
+    if currency == "EGP" and amount < 250:
+        await call.answer("Minimum is 250 EGP", show_alert=True)
+        return
+    msg = await animate_message(call.message, "🔐 Preparing secure payment..." if lang == "en" else "🔐 جاري تجهيز بيانات الدفع...", "deposit")
+    async with db_pool.acquire() as conn:
+        dep_id = await conn.fetchval(
+            """
+            INSERT INTO deposits (telegram_id, method, amount, currency, product_key)
+            VALUES($1,$2,$3,$4,$5)
+            RETURNING id
+            """,
+            call.from_user.id,
+            method,
+            amount,
+            currency,
+            WALLET_DEPOSIT_KEY,
+        )
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Approve Deposit", callback_data=f"approve_{dep_id}"), InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{dep_id}")]
+    ])
+    await bot.send_message(
+        ADMIN_ID,
+        f"💳 Wallet Deposit Request #{dep_id}\nUser: @{call.from_user.username}\nID: {call.from_user.id}\nMethod: {method}\nAmount: {format_amount(amount)} {currency}\n\nبعد التأكد اضغط Approve Deposit.",
+        reply_markup=kb,
+    )
+    if method == "binance":
+        pay_text = f"🟡 Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n`{BINANCE_UID}`\n\n💰 Amount: {format_amount(amount)} USDT"
+    elif method == "vodafone":
+        pay_text = f"🔴 Vodafone Cash Deposit\n━━━━━━━━━━━━━━\n\n📱 Number:\n`{VODAFONE_CASH}`\n\n💰 Amount: {format_amount(amount)} EGP"
+    else:
+        pay_text = f"🟣 InstaPay Deposit\n━━━━━━━━━━━━━━\n\n🏦 InstaPay:\n`{INSTAPAY}`\n\n💰 Amount: {format_amount(amount)} EGP"
+    await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Deposit ID: #{dep_id}")
+    await call.answer()
+
+# ---------------- Payment / Orders ----------------
 @dp.callback_query(F.data.startswith("pay_"))
 async def pay_product(call: CallbackQuery):
     parts = call.data.split("_")
@@ -902,7 +745,7 @@ async def pay_product(call: CallbackQuery):
     product_key = "_".join(parts[2:])
     lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
-    await premium_transition(call.message, "🔐 Securing payment details..." if lang == "en" else "🔐 جاري تجهيز بيانات الدفع...")
+    msg = await animate_message(call.message, "🔐 Securing payment details..." if lang == "en" else "🔐 جاري تجهيز بيانات الدفع...", "deposit")
     currency = "USDT" if method == "binance" else "EGP"
     amount = product["usd"] if method == "binance" else product["egp"]
     async with db_pool.acquire() as conn:
@@ -919,19 +762,11 @@ async def pay_product(call: CallbackQuery):
             product_key,
         )
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Approve & Deliver", callback_data=f"approve_{dep_id}"),
-            InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{dep_id}"),
-        ]
+        [InlineKeyboardButton(text="✅ Approve & Deliver", callback_data=f"approve_{dep_id}"), InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{dep_id}")]
     ])
     await bot.send_message(
         ADMIN_ID,
-        f"🛒 New Order #{dep_id}\n"
-        f"User: @{call.from_user.username}\n"
-        f"ID: {call.from_user.id}\n"
-        f"Product: {product['title_en']}\n"
-        f"Method: {method}\n"
-        f"Amount: {amount} {currency}",
+        f"🛒 New Order #{dep_id}\nUser: @{call.from_user.username}\nID: {call.from_user.id}\nProduct: {product['title_en']}\nMethod: {method}\nAmount: {amount} {currency}",
         reply_markup=kb,
     )
     if method == "binance":
@@ -940,10 +775,7 @@ async def pay_product(call: CallbackQuery):
         pay_text = f"🔴 Vodafone Cash:\n`{VODAFONE_CASH}`\n\n💰 Amount: {amount} EGP"
     else:
         pay_text = f"🟣 InstaPay:\n`{INSTAPAY}`\n\n💰 Amount: {amount} EGP"
-    await call.message.answer(
-        f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Order ID: #{dep_id}",
-        parse_mode="Markdown",
-    )
+    await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Order ID: #{dep_id}")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("approve_"))
@@ -959,33 +791,17 @@ async def approve(call: CallbackQuery):
         product_key = dep["product_key"]
         if product_key == WALLET_DEPOSIT_KEY:
             if str(dep["currency"]).upper() == "USDT":
-                await conn.execute(
-                    "UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2",
-                    dep["amount"],
-                    dep["telegram_id"],
-                )
+                await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
             else:
-                await conn.execute(
-                    "UPDATE users SET balance_egp = balance_egp + $1 WHERE telegram_id=$2",
-                    dep["amount"],
-                    dep["telegram_id"],
-                )
+                await conn.execute("UPDATE users SET balance_egp = balance_egp + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
             await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
-            await bot.send_message(
-                dep["telegram_id"],
-                f"✅ تم قبول الإيداع وإضافة الرصيد\n━━━━━━━━━━━━━━\n\n💰 Amount: {dep['amount']} {dep['currency']}\n\nشكراً لثقتك ❤️",
-            )
+            await bot.send_message(dep["telegram_id"], f"✅ تم قبول الإيداع وإضافة الرصيد\n━━━━━━━━━━━━━━\n\n💰 Amount: {dep['amount']} {dep['currency']}\n\nشكراً لثقتك ❤️")
             await call.message.edit_text(f"✅ Wallet Deposit #{dep_id} Approved")
             await call.answer()
             return
         product = PRODUCTS[product_key]
         if product["type"] == "activation":
-            await bot.send_message(
-                dep["telegram_id"],
-                f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
-                f"📧 تفعيل Gemini على إيميلك الشخصي\n\n"
-                f"يرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\nشكراً لثقتك ❤️",
-            )
+            await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n📧 تفعيل Gemini على إيميلك الشخصي\n\nيرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\nشكراً لثقتك ❤️")
         else:
             item = await conn.fetchrow(
                 """
@@ -1001,14 +817,8 @@ async def approve(call: CallbackQuery):
                 await bot.send_message(dep["telegram_id"], "❌ لا يوجد مخزون حاليًا. تواصل مع الدعم.")
                 return
             await conn.execute("UPDATE stock SET sold=true WHERE id=$1", item["id"])
-            remaining = await conn.fetchval(
-                "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
-                product["stock_name"],
-            )
-            await bot.send_message(
-                dep["telegram_id"],
-                f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 بيانات الحساب:\n\n{item['item_data']}\n\nشكراً لشرائك ❤️",
-            )
+            remaining = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", product["stock_name"])
+            await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 بيانات الحساب:\n\n{item['item_data']}\n\nشكراً لشرائك ❤️")
             if remaining == 0:
                 await bot.send_message(ADMIN_ID, f"🚨 OUT OF STOCK\n\nProduct: {product['stock_name']}")
             elif remaining <= 3:
@@ -1037,6 +847,46 @@ async def payment_photo(message: Message):
     await bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
     await message.answer("📤 تم إرسال الإثبات للمراجعة.")
 
+# ---------------- Support / Admin commands ----------------
+@dp.callback_query(F.data == "home_support")
+async def support_inline(call: CallbackQuery):
+    lang = await get_lang(call.from_user.id)
+    msg = await animate_message(call.message, "💬 Opening Support..." if lang == "en" else "💬 فتح الدعم...", "default")
+    text = (
+        f"💬 Support Center\n━━━━━━━━━━━━━━\n\nTelegram: {SUPPORT}\n\nFast response • Trusted help"
+        if lang == "en" else
+        f"💬 مركز الدعم\n━━━━━━━━━━━━━━\n\nتليجرام: {SUPPORT}\n\nرد سريع • مساعدة موثوقة"
+    )
+    await edit_or_answer(msg, text, reply_markup=back_home_keyboard(lang))
+    await call.answer()
+
+@dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
+async def support_message(message: Message):
+    await message.answer(f"💬 {SUPPORT}")
+
+async def broadcast_stock_added(product_key: str, quantity: int, total: int):
+    product = PRODUCTS[product_key]
+    async with db_pool.acquire() as conn:
+        users = await conn.fetch("SELECT telegram_id, lang FROM users")
+    for user in users:
+        lang = user["lang"] or "ar"
+        if lang == "en":
+            text = (
+                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n━━━━━━━━━━━━━━\n\n"
+                f"✨ {product['title_en']} is now available.\n📦 New Stock: +{quantity}\n🔥 Available Now: {total}\n\n"
+                f"💎 Premium quality • Fast delivery • Trusted service\n\n🛍 Open Shop and order before stock runs out!"
+            )
+        else:
+            text = (
+                f"🚀 𝗡𝗘𝗪 𝗦𝗧𝗢𝗖𝗞 𝗔𝗗𝗗𝗘𝗗!\n━━━━━━━━━━━━━━\n\n"
+                f"✨ تم إضافة مخزون جديد من {product['title_ar']}\n📦 الكمية المضافة: +{quantity}\n🔥 المتوفر الآن: {total}\n\n"
+                f"💎 جودة بريميوم • تسليم سريع • خدمة موثوقة\n\n🛍 افتح المتجر واطلب قبل نفاد الكمية!"
+            )
+        try:
+            await bot.send_message(user["telegram_id"], text)
+        except Exception:
+            pass
+
 @dp.message(Command("stock"))
 async def stock_count(message: Message):
     if message.from_user.id != ADMIN_ID:
@@ -1044,13 +894,8 @@ async def stock_count(message: Message):
     chatgpt = await get_stock_count("chatgpt")
     gemini = await get_stock_count("gemini_ready")
     await message.answer(
-        f"📦 Stock Report\n\n"
-        f"🤖 ChatGPT Stock: {chatgpt}\n"
-        f"💎 Gemini Ready Stock: {gemini}\n\n"
-        f"الأوامر:\n"
-        f"/liststock chatgpt\n/liststock gemini\n"
-        f"/delstock chatgpt ID\n/delstock gemini ID\n"
-        f"/clearstock chatgpt\n/clearstock gemini"
+        f"📦 Stock Report\n\n🤖 ChatGPT Stock: {chatgpt}\n💎 Gemini Ready Stock: {gemini}\n\n"
+        f"/liststock chatgpt\n/liststock gemini\n/delstock chatgpt ID\n/delstock gemini ID\n/clearstock chatgpt\n/clearstock gemini"
     )
 
 @dp.message(Command("addstock"))
@@ -1059,12 +904,7 @@ async def add_stock(message: Message):
         return
     text = message.text.replace("/addstock", "").strip()
     if not text:
-        await message.answer(
-            "📦 إضافة استوك:\n\n"
-            "/addstock chatgpt\nemail1:pass1\nemail2:pass2\n\n"
-            "/addstock gemini\nemail1:pass1\nemail2:pass2\n\n"
-            "ملاحظة: منتج Gemini على الإيميل الشخصي لا يحتاج استوك."
-        )
+        await message.answer("📦 إضافة استوك:\n\n/addstock chatgpt\nemail1:pass1\nemail2:pass2\n\n/addstock gemini\nemail1:pass1\nemail2:pass2")
         return
     lines = [x.strip() for x in text.splitlines() if x.strip()]
     product_key, stock_name = resolve_stock_product(lines[0])
@@ -1081,10 +921,7 @@ async def add_stock(message: Message):
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
     label = product_label(product_key)
     await message.answer(f"✅ تم إضافة {len(items)} حساب إلى {label}\n📦 المخزون الحالي: {total}")
-    await bot.send_message(
-        ADMIN_ID,
-        f"📦 Stock Added\n\nProduct: {label}\nQuantity Added: {len(items)}\nCurrent Stock: {total}",
-    )
+    await bot.send_message(ADMIN_ID, f"📦 Stock Added\n\nProduct: {label}\nQuantity Added: {len(items)}\nCurrent Stock: {total}")
     await broadcast_stock_added(product_key, len(items), total)
 
 @dp.message(Command("liststock"))
@@ -1100,15 +937,7 @@ async def list_stock(message: Message):
         await message.answer("❌ استخدم chatgpt أو gemini")
         return
     async with db_pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, item_data FROM stock
-            WHERE product=$1 AND sold=false
-            ORDER BY id ASC
-            LIMIT 50
-            """,
-            stock_name,
-        )
+        rows = await conn.fetch("SELECT id, item_data FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT 50", stock_name)
     label = product_label(product_key)
     if not rows:
         await message.answer(f"📭 لا يوجد استوك متاح في {label}")
@@ -1139,14 +968,13 @@ async def delete_stock(message: Message):
         await message.answer("❌ رقم ID غير صحيح")
         return
     async with db_pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT id, item_data FROM stock WHERE id=$1 AND product=$2 AND sold=false", item_id, stock_name)
+        row = await conn.fetchrow("SELECT id FROM stock WHERE id=$1 AND product=$2 AND sold=false", item_id, stock_name)
         if not row:
             await message.answer("❌ العنصر غير موجود أو مباع بالفعل")
             return
         await conn.execute("DELETE FROM stock WHERE id=$1", item_id)
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
-    label = product_label(product_key)
-    await message.answer(f"🗑 تم حذف العنصر ID {item_id} من {label}\n📦 المتبقي: {total}")
+    await message.answer(f"🗑 تم حذف العنصر ID {item_id} من {product_label(product_key)}\n📦 المتبقي: {total}")
 
 @dp.message(Command("clearstock"))
 async def clear_stock(message: Message):
@@ -1163,8 +991,7 @@ async def clear_stock(message: Message):
     async with db_pool.acquire() as conn:
         deleted = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
         await conn.execute("DELETE FROM stock WHERE product=$1 AND sold=false", stock_name)
-    label = product_label(product_key)
-    await message.answer(f"🗑 تم مسح {deleted} عنصر من استوك {label}")
+    await message.answer(f"🗑 تم مسح {deleted} عنصر من استوك {product_label(product_key)}")
 
 @dp.message(Command("broadcast"))
 async def broadcast(message: Message):
@@ -1204,10 +1031,6 @@ async def broadcast_photo(message: Message):
         except Exception:
             pass
     await message.answer(f"✅ تم إرسال الصورة إلى {sent} مستخدم")
-
-@dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
-async def support(message: Message):
-    await message.answer(f"💬 {SUPPORT}")
 
 async def main():
     await init_db()
