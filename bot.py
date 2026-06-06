@@ -1026,11 +1026,38 @@ async def receive_deposit_amount(message: Message):
     deposit_waiting.pop(message.from_user.id, None)
     msg = await animate_message(message, f"{ce('payment','💳')} Loading payment methods..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز طرق الدفع...", "deposit")
     amount_txt = format_amount(amount)
-    text = (
-        f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n💰 Amount: {amount_txt} {currency}\n\nChoose payment method below:"
-        if lang == "en" else
-        f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n💰 المبلغ: {amount_txt} {currency}\n\nاختار طريقة الدفع من الأزرار:"
-    )
+    if currency == "USDT":
+        text = (
+            f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
+            f"💰 Amount: {amount_txt} {currency}\n\n"
+            f"{ce('binance','🟡')} <b>Binance UID</b>\n"
+            f"<code>{BINANCE_UID}</code>\n\n"
+            f"Choose payment method below:"
+            if lang == "en" else
+            f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
+            f"💰 المبلغ: {amount_txt} {currency}\n\n"
+            f"{ce('binance','🟡')} <b>بينانس UID</b>\n"
+            f"<code>{BINANCE_UID}</code>\n\n"
+            f"اختار طريقة الدفع من الأزرار:"
+        )
+    else:
+        text = (
+            f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
+            f"💰 Amount: {amount_txt} {currency}\n\n"
+            f"{ce('vodafone','🔴')} <b>Vodafone Cash</b>\n"
+            f"<code>{VODAFONE_CASH}</code>\n\n"
+            f"{ce('instapay','🟣')} <b>InstaPay</b>\n"
+            f"<code>{INSTAPAY}</code>\n\n"
+            f"Choose payment method below:"
+            if lang == "en" else
+            f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
+            f"💰 المبلغ: {amount_txt} {currency}\n\n"
+            f"{ce('vodafone','🔴')} <b>فودافون كاش</b>\n"
+            f"<code>{VODAFONE_CASH}</code>\n\n"
+            f"{ce('instapay','🟣')} <b>انستا باي</b>\n"
+            f"<code>{INSTAPAY}</code>\n\n"
+            f"اختار طريقة الدفع من الأزرار:"
+        )
     await edit_or_answer(msg, text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency))
 
 @dp.callback_query(F.data.startswith("topup_"))
