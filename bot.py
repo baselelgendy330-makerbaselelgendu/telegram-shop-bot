@@ -1,5 +1,6 @@
 import asyncio
 import os
+import html
 import asyncpg
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
@@ -9,6 +10,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
     URLInputFile,
+    BotCommand,
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -20,6 +22,41 @@ VODAFONE_CASH = "01063467929"
 INSTAPAY = "mahmoud2662000"
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
+
+# ضع رابط صورة الهيدر الخضراء هنا أو في Environment باسم AIX_HEADER_IMAGE
+AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg")
+
+EMOJI = {
+    "chatgpt": "5359726582447487916",
+    "store": "5373261557700509032",
+    "verified": "5370941588165893740",
+    "binance": "5319236736042149889",
+    "payment": "5364036341610858181",
+    "gemini": "5875095634033250205",
+    "wallet": "6267013757730296733",
+    "cart": "5859297284029681680",
+    "support": "6181322172263308706",
+    "telegram": "6089099509202164251",
+    "fire": "6179353385024626225",
+    "announcement": "6181594486074777254",
+    "rocket": "6181682949516173646",
+    "shield": "6179259084722675328",
+    "lightning": "6179411633371095707",
+    "home": "5195140682590722632",
+    "refresh": "5292226786229236118",
+    "stock": "6181284483925286789",
+    "success": "6179298314953956852",
+    "error": "6181467651395558500",
+    "vip": "6181731641560407212",
+    "language": "5447410659077661506",
+    "stock_add": "5397916757333654639",
+}
+
+def ce(key: str, fallback: str = "") -> str:
+    return f'<tg-emoji emoji-id="{EMOJI[key]}">{fallback}</tg-emoji>'
+
+def esc(value) -> str:
+    return html.escape(str(value), quote=False)
 
 CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
 GEMINI_IMAGE = "https://i.postimg.cc/0Qfr71mh/images-(1).jpg"
@@ -216,33 +253,35 @@ def product_label(product_key: str):
 # ---------------- Animations ----------------
 async def edit_or_answer(message, text: str, reply_markup=None):
     try:
-        await message.edit_text(text, reply_markup=reply_markup)
+        await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
     except Exception:
-        await message.answer(text, reply_markup=reply_markup)
+        await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
 
 async def animate_message(message, title: str, style: str = "default"):
     frames_map = {
         "default": [
             "▱▱▱▱▱▱▱▱▱▱ 0%",
-            "▰▰▰▱▱▱▱▱▱▱ 30%",
+            "▰▰▱▱▱▱▱▱▱▱ 20%",
+            "▰▰▰▰▱▱▱▱▱▱ 40%",
             "▰▰▰▰▰▰▱▱▱▱ 60%",
-            "▰▰▰▰▰▰▰▰▰▱ 90%",
+            "▰▰▰▰▰▰▰▰▱▱ 80%",
             "▰▰▰▰▰▰▰▰▰▰ 100%",
         ],
         "wallet": [
-            "◉○○○○ 0%",
-            "◉◉○○○ 25%",
-            "◉◉◉○○ 50%",
-            "◉◉◉◉○ 75%",
-            "◉◉◉◉◉ 100%",
+            "◇◇◇◇◇◇◇◇◇◇ 0%",
+            "◆◆◇◇◇◇◇◇◇◇ 20%",
+            "◆◆◆◆◇◇◇◇◇◇ 40%",
+            "◆◆◆◆◆◆◇◇◇◇ 60%",
+            "◆◆◆◆◆◆◆◆◇◇ 80%",
+            "◆◆◆◆◆◆◆◆◆◆ 100%",
         ],
         "deposit": [
-            "⬡⬡⬡⬡⬡ 0%",
-            "⬢⬡⬡⬡⬡ 20%",
-            "⬢⬢⬡⬡⬡ 40%",
-            "⬢⬢⬢⬡⬡ 60%",
-            "⬢⬢⬢⬢⬡ 80%",
-            "⬢⬢⬢⬢⬢ 100%",
+            "⬡⬡⬡⬡⬡⬡⬡⬡⬡⬡ 0%",
+            "⬢⬢⬡⬡⬡⬡⬡⬡⬡⬡ 20%",
+            "⬢⬢⬢⬢⬡⬡⬡⬡⬡⬡ 40%",
+            "⬢⬢⬢⬢⬢⬢⬡⬡⬡⬡ 60%",
+            "⬢⬢⬢⬢⬢⬢⬢⬢⬡⬡ 80%",
+            "⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢ 100%",
         ],
         "checkout": [
             "▰▱▱▱▱ 20%",
@@ -254,14 +293,14 @@ async def animate_message(message, title: str, style: str = "default"):
     }
     frames = frames_map.get(style, frames_map["default"])
     try:
-        await message.edit_text(f"{title}\n\n{frames[0]}")
+        await message.edit_text(f"{title}\n\n{frames[0]}", parse_mode="HTML")
         msg = message
     except Exception:
-        msg = await message.answer(f"{title}\n\n{frames[0]}")
+        msg = await message.answer(f"{title}\n\n{frames[0]}", parse_mode="HTML")
     for frame in frames[1:]:
         await asyncio.sleep(0.12)
         try:
-            await msg.edit_text(f"{title}\n\n{frame}")
+            await msg.edit_text(f"{title}\n\n{frame}", parse_mode="HTML")
         except Exception:
             pass
     await asyncio.sleep(0.08)
@@ -271,76 +310,76 @@ async def animate_message(message, title: str, style: str = "default"):
 def home_keyboard(lang: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🛍 Shop", callback_data="home_shop")],
-            [InlineKeyboardButton(text="💳 Deposit", callback_data="home_deposit"), InlineKeyboardButton(text="👛 Wallet", callback_data="home_wallet")],
-            [InlineKeyboardButton(text="💬 Support", callback_data="home_support")],
-            [InlineKeyboardButton(text="🌐 Language", callback_data="home_language")],
+            [InlineKeyboardButton(text="Browse Products", callback_data="home_shop")],
+            [InlineKeyboardButton(text="Deposit", callback_data="home_deposit"), InlineKeyboardButton(text="Wallet", callback_data="home_wallet")],
+            [InlineKeyboardButton(text="Support", callback_data="home_support")],
+            [InlineKeyboardButton(text="Language", callback_data="home_language")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🛍 المتجر", callback_data="home_shop")],
-        [InlineKeyboardButton(text="💳 إيداع", callback_data="home_deposit"), InlineKeyboardButton(text="👛 المحفظة", callback_data="home_wallet")],
-        [InlineKeyboardButton(text="💬 الدعم", callback_data="home_support")],
-        [InlineKeyboardButton(text="🌐 اللغة", callback_data="home_language")],
+        [InlineKeyboardButton(text="تصفح المنتجات", callback_data="home_shop")],
+        [InlineKeyboardButton(text="إيداع", callback_data="home_deposit"), InlineKeyboardButton(text="المحفظة", callback_data="home_wallet")],
+        [InlineKeyboardButton(text="الدعم", callback_data="home_support")],
+        [InlineKeyboardButton(text="اللغة", callback_data="home_language")],
     ])
 
 def back_home_keyboard(lang: str):
-    text = "⬅️ Main Menu" if lang == "en" else "⬅️ القائمة الرئيسية"
+    text = "Main Menu" if lang == "en" else "القائمة الرئيسية"
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=text, callback_data="home_main")]])
 
 def product_buttons(lang: str, counts: dict):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🤖 ChatGPT Plus Ready Account | $6 | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
-            [InlineKeyboardButton(text="✨ ChatGPT On Your Email | $5", callback_data="product_chatgpt_email")],
-            [InlineKeyboardButton(text=f"💎 Gemini Pro Ready Account | $6 | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-            [InlineKeyboardButton(text="👑 Gemini On Your Email | $4", callback_data="product_gemini_email")],
-            [InlineKeyboardButton(text="🔄 Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ Back", callback_data="home_main")],
+            [InlineKeyboardButton(text=f"ChatGPT Plus Ready Account | $6 | Stock {counts['chatgpt']}", callback_data="product_chatgpt")],
+            [InlineKeyboardButton(text="ChatGPT On Your Email | $5", callback_data="product_chatgpt_email")],
+            [InlineKeyboardButton(text=f"Gemini Pro Ready Account | $6 | Stock {counts['gemini_ready']}", callback_data="product_gemini_ready")],
+            [InlineKeyboardButton(text="Gemini On Your Email | $4", callback_data="product_gemini_email")],
+            [InlineKeyboardButton(text="Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🤖 ChatGPT Plus Ready Account | 300 جنيه | 📦 {counts['chatgpt']}", callback_data="product_chatgpt")],
-        [InlineKeyboardButton(text="✨ ChatGPT على إيميلك | 250 جنيه", callback_data="product_chatgpt_email")],
-        [InlineKeyboardButton(text=f"💎 Gemini Pro Ready Account | 300 جنيه | 📦 {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-        [InlineKeyboardButton(text="👑 Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
-        [InlineKeyboardButton(text="🔄 تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="⬅️ رجوع", callback_data="home_main")],
+        [InlineKeyboardButton(text=f"ChatGPT Plus Ready Account | 300 جنيه | المتاح {counts['chatgpt']}", callback_data="product_chatgpt")],
+        [InlineKeyboardButton(text="ChatGPT على إيميلك | 250 جنيه", callback_data="product_chatgpt_email")],
+        [InlineKeyboardButton(text=f"Gemini Pro Ready Account | 300 جنيه | المتاح {counts['gemini_ready']}", callback_data="product_gemini_ready")],
+        [InlineKeyboardButton(text="Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
+        [InlineKeyboardButton(text="تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="رجوع", callback_data="home_main")],
     ])
 
 def product_details_buttons(lang: str, product_key: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🛒 Buy Now", callback_data=f"buy_{product_key}")],
-            [InlineKeyboardButton(text="⬅️ Back to Shop", callback_data="home_shop")],
+            [InlineKeyboardButton(text="Buy Now", callback_data=f"buy_{product_key}")],
+            [InlineKeyboardButton(text="Back to Shop", callback_data="home_shop")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🛒 شراء الآن", callback_data=f"buy_{product_key}")],
-        [InlineKeyboardButton(text="⬅️ رجوع للمتجر", callback_data="home_shop")],
+        [InlineKeyboardButton(text="شراء الآن", callback_data=f"buy_{product_key}")],
+        [InlineKeyboardButton(text="رجوع للمتجر", callback_data="home_shop")],
     ])
 
 def payment_buttons(lang: str, product_key: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🟡 Binance UID", callback_data=f"pay_binance_{product_key}")],
-            [InlineKeyboardButton(text="🔴 Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
-            [InlineKeyboardButton(text="🟣 InstaPay", callback_data=f"pay_instapay_{product_key}")],
-            [InlineKeyboardButton(text="⬅️ Back", callback_data=f"product_{product_key}")],
+            [InlineKeyboardButton(text="Binance UID", callback_data=f"pay_binance_{product_key}")],
+            [InlineKeyboardButton(text="Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
+            [InlineKeyboardButton(text="InstaPay", callback_data=f"pay_instapay_{product_key}")],
+            [InlineKeyboardButton(text="Back", callback_data=f"product_{product_key}")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🟡 بينانس UID", callback_data=f"pay_binance_{product_key}")],
-        [InlineKeyboardButton(text="🔴 فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
-        [InlineKeyboardButton(text="🟣 انستا باي", callback_data=f"pay_instapay_{product_key}")],
-        [InlineKeyboardButton(text="⬅️ رجوع", callback_data=f"product_{product_key}")],
+        [InlineKeyboardButton(text="بينانس UID", callback_data=f"pay_binance_{product_key}")],
+        [InlineKeyboardButton(text="فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
+        [InlineKeyboardButton(text="انستا باي", callback_data=f"pay_instapay_{product_key}")],
+        [InlineKeyboardButton(text="رجوع", callback_data=f"product_{product_key}")],
     ])
 
 def deposit_currency_buttons(lang: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🇪🇬 EGP Deposit", callback_data="deposit_currency_EGP")],
-            [InlineKeyboardButton(text="🟡 USDT Deposit", callback_data="deposit_currency_USDT")],
-            [InlineKeyboardButton(text="⬅️ Back", callback_data="home_main")],
+            [InlineKeyboardButton(text="EGP Deposit", callback_data="deposit_currency_EGP")],
+            [InlineKeyboardButton(text="USDT Deposit", callback_data="deposit_currency_USDT")],
+            [InlineKeyboardButton(text="Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🇪🇬 إيداع بالمصري", callback_data="deposit_currency_EGP")],
-        [InlineKeyboardButton(text="🟡 إيداع بالدولار USDT", callback_data="deposit_currency_USDT")],
-        [InlineKeyboardButton(text="⬅️ رجوع", callback_data="home_main")],
+        [InlineKeyboardButton(text="إيداع بالمصري", callback_data="deposit_currency_EGP")],
+        [InlineKeyboardButton(text="إيداع بالدولار USDT", callback_data="deposit_currency_USDT")],
+        [InlineKeyboardButton(text="رجوع", callback_data="home_main")],
     ])
 
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
@@ -349,23 +388,23 @@ def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
     if currency == "USDT":
         if lang == "en":
             return InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"🟡 Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
-                [InlineKeyboardButton(text="🔙 Change Amount", callback_data="deposit_currency_USDT")],
+                [InlineKeyboardButton(text=f"Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+                [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_USDT")],
             ])
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🟡 بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
-            [InlineKeyboardButton(text="🔙 تغيير المبلغ", callback_data="deposit_currency_USDT")],
+            [InlineKeyboardButton(text=f"بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+            [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_USDT")],
         ])
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🔴 Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-            [InlineKeyboardButton(text=f"🟣 InstaPay • {amount_txt} EGP", callback_data=f"topup_instapay_{amount_txt}_EGP")],
-            [InlineKeyboardButton(text="🔙 Change Amount", callback_data="deposit_currency_EGP")],
+            [InlineKeyboardButton(text=f"Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
+            [InlineKeyboardButton(text=f"InstaPay • {amount_txt} EGP", callback_data=f"topup_instapay_{amount_txt}_EGP")],
+            [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_EGP")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🔴 فودافون كاش • {amount_txt} جنيه", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-        [InlineKeyboardButton(text=f"🟣 انستا باي • {amount_txt} جنيه", callback_data=f"topup_instapay_{amount_txt}_EGP")],
-        [InlineKeyboardButton(text="🔙 تغيير المبلغ", callback_data="deposit_currency_EGP")],
+        [InlineKeyboardButton(text=f"فودافون كاش • {amount_txt} جنيه", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
+        [InlineKeyboardButton(text=f"انستا باي • {amount_txt} جنيه", callback_data=f"topup_instapay_{amount_txt}_EGP")],
+        [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_EGP")],
     ])
 
 def language_keyboard():
@@ -376,64 +415,71 @@ def language_keyboard():
 
 # ---------------- Texts ----------------
 def home_text(lang: str, name: str):
+    name = esc(name)
     if lang == "en":
         return (
-            f"{BOT_NAME}\n"
-            f"━━━━━━━━━━━━━━\n\n"
-            f"Hey, {name} 👋\n"
-            f"Welcome back!\n\n"
-            f"💎 Premium AI Subscriptions\n"
-            f"⚡ Fast • Secure • Trusted\n\n"
-            f"🛍 Shop — Browse products\n"
-            f"💳 Deposit — Add balance\n"
-            f"👛 Wallet — Balance & orders\n"
-            f"💬 Support — Get help"
+            f"{ce('vip','✦')} <b>AIX Store</b> {ce('verified','✓')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n\n"
+            f"Hey, <b>{name}</b>\n"
+            f"Welcome to your premium AI subscriptions store.\n\n"
+            f"{ce('store','🛍')} <b>Shop</b> — Browse & buy products\n"
+            f"{ce('wallet','💰')} <b>Deposit</b> — Add funds to your wallet\n"
+            f"{ce('cart','🛒')} <b>Orders</b> — Fast digital delivery\n"
+            f"{ce('support','🎧')} <b>Support</b> — Get help anytime\n\n"
+            f"{ce('lightning','⚡')} Fast activation • Secure payments • Trusted service"
         )
     return (
-        f"{BOT_NAME}\n"
-        f"━━━━━━━━━━━━━━\n\n"
-        f"أهلاً، {name} 👋\n"
-        f"نورت المتجر!\n\n"
-        f"💎 اشتراكات AI مميزة\n"
-        f"⚡ سريع • آمن • موثوق\n\n"
-        f"🛍 المتجر — تصفح المنتجات\n"
-        f"💳 إيداع — إضافة رصيد\n"
-        f"👛 المحفظة — الرصيد والطلبات\n"
-        f"💬 الدعم — تواصل معنا"
+        f"{ce('vip','✦')} <b>AIX Store</b> {ce('verified','✓')}\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"أهلاً، <b>{name}</b>\n"
+        f"نورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n"
+        f"{ce('store','🛍')} <b>المتجر</b> — تصفح واشتري المنتجات\n"
+        f"{ce('wallet','💰')} <b>إيداع</b> — إضافة رصيد للمحفظة\n"
+        f"{ce('cart','🛒')} <b>الطلبات</b> — تسليم رقمي سريع\n"
+        f"{ce('support','🎧')} <b>الدعم</b> — مساعدة في أي وقت\n\n"
+        f"{ce('lightning','⚡')} تفعيل سريع • دفع آمن • خدمة موثوقة"
     )
 
 def product_list_text(lang: str):
     if lang == "en":
         return (
-            "🛍 Available Products\n━━━━━━━━━━━━━━\n\n"
-            "🤖 ChatGPT Plus Ready Account\n💰 $6 | 🛡 15 days\n\n"
-            "✨ ChatGPT Plus On Your Email\n💰 $5 | 🛡 15 days\n\n"
-            "💎 Gemini Pro Ready Account\n💰 $6 | 🛡 1 Year\n\n"
-            "👑 Gemini Pro On Your Email\n💰 $4 | 🛡 1 Year\n\n"
-            "Choose a product below:"
+            f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n"
+            f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n"
+            f"Price: $6 / 300 EGP | Warranty: 15 days\n\n"
+            f"{ce('chatgpt','🤖')} <b>ChatGPT Plus On Your Email</b>\n"
+            f"Price: $5 / 250 EGP | Warranty: 15 days\n\n"
+            f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n"
+            f"Price: $6 / 300 EGP | Warranty: 1 Year\n\n"
+            f"{ce('gemini','🟢')} <b>Gemini Pro On Your Email</b>\n"
+            f"Price: $4 / 200 EGP | Warranty: 1 Year\n\n"
+            f"Choose a product below:"
         )
     return (
-        "🛍 المنتجات المتاحة\n━━━━━━━━━━━━━━\n\n"
-        "🤖 ChatGPT Plus Ready Account\n💰 300 جنيه | 🛡 15 يوم\n\n"
-        "✨ ChatGPT Plus على إيميلك\n💰 250 جنيه | 🛡 15 يوم\n\n"
-        "💎 Gemini Pro Ready Account\n💰 300 جنيه | 🛡 سنة كاملة\n\n"
-        "👑 Gemini Pro على إيميلك\n💰 200 جنيه | 🛡 سنة كاملة\n\n"
-        "اختار المنتج:"
+        f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n"
+        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n"
+        f"السعر: 300 جنيه / $6 | الضمان: 15 يوم\n\n"
+        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus على إيميلك</b>\n"
+        f"السعر: 250 جنيه / $5 | الضمان: 15 يوم\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n"
+        f"السعر: 300 جنيه / $6 | الضمان: سنة كاملة\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini Pro على إيميلك</b>\n"
+        f"السعر: 200 جنيه / $4 | الضمان: سنة كاملة\n\n"
+        f"اختار المنتج من الأزرار:"
     )
 
 def deposit_intro_text(lang: str):
     if lang == "en":
         return (
-            "💳 Deposit Balance\n━━━━━━━━━━━━━━\n\n"
-            "Choose the currency you want to deposit.\n\n"
-            "🇪🇬 EGP: minimum 250 EGP\n"
-            "🟡 USDT: minimum 5 USDT"
+            f"{ce('wallet','💰')} <b>Deposit Balance</b>\n━━━━━━━━━━━━━━━━━━\n\n"
+            f"Choose the currency you want to deposit.\n\n"
+            f"EGP: minimum 250 EGP\n"
+            f"USDT: minimum 5 USDT"
         )
     return (
-        "💳 إيداع رصيد\n━━━━━━━━━━━━━━\n\n"
-        "اختار العملة اللي عايز تعمل بيها إيداع.\n\n"
-        "🇪🇬 المصري: أقل مبلغ 250 جنيه\n"
-        "🟡 الدولار USDT: أقل مبلغ 5 USDT"
+        f"{ce('wallet','💰')} <b>إيداع رصيد</b>\n━━━━━━━━━━━━━━━━━━\n\n"
+        f"اختار العملة اللي عايز تعمل بيها إيداع.\n\n"
+        f"المصري: أقل مبلغ 250 جنيه\n"
+        f"الدولار USDT: أقل مبلغ 5 USDT"
     )
 
 # ---------------- Home/UI Handlers ----------------
@@ -443,29 +489,71 @@ async def start(message: Message):
     lang = await get_lang(message.from_user.id)
     name = user_display_name(message.from_user)
     await message.answer_photo(
-        photo=URLInputFile(CHATGPT_IMAGE),
+        photo=URLInputFile(AIX_HEADER_IMAGE),
         caption=home_text(lang, name),
         reply_markup=home_keyboard(lang),
+        parse_mode="HTML",
     )
+
+
+@dp.message(Command("menu"))
+async def menu_command(message: Message):
+    await start(message)
+
+@dp.message(Command("products"))
+async def products_command(message: Message):
+    await ensure_user(message)
+    lang = await get_lang(message.from_user.id)
+    msg = await animate_message(message, f"{ce('store','🛍')} Loading products..." if lang == "en" else f"{ce('store','🛍')} جاري تحميل المنتجات...", "default")
+    counts = await product_counts()
+    await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
+
+@dp.message(Command("wallet"))
+async def wallet_command(message: Message):
+    await ensure_user(message)
+    lang = await get_lang(message.from_user.id)
+    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
+    msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Deposit / إيداع", callback_data="home_deposit")],
+        [InlineKeyboardButton(text="Main Menu / الرئيسية", callback_data="home_main")],
+    ])
+    text = (
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nUSDT Balance: {balance_usdt} USDT\nEGP Balance: {balance_egp} EGP"
+        if lang == "en" else
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nرصيد الدولار: {balance_usdt} USDT\nرصيد المصري: {balance_egp} جنيه"
+    )
+    await edit_or_answer(msg, text, reply_markup=kb)
+
+@dp.message(Command("support"))
+async def support_command(message: Message):
+    await ensure_user(message)
+    lang = await get_lang(message.from_user.id)
+    text = (
+        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}"
+        if lang == "en" else
+        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}"
+    )
+    await message.answer(text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
 
 @dp.callback_query(F.data == "home_main")
 async def home_main(call: CallbackQuery):
     await ensure_user_by_id(call.from_user.id, call.from_user.username, call.from_user.first_name)
     lang = await get_lang(call.from_user.id)
     name = user_display_name(call.from_user)
-    msg = await animate_message(call.message, "⚡ Loading AIX Store..." if lang == "en" else "⚡ جاري فتح AIX Store...", "default")
+    msg = await animate_message(call.message, f"{ce('lightning','⚡')} Loading AIX Store..." if lang == "en" else f"{ce('lightning','⚡')} جاري فتح AIX Store...", "default")
     await edit_or_answer(msg, home_text(lang, name), reply_markup=home_keyboard(lang))
     await call.answer()
 
 @dp.callback_query(F.data == "home_language")
 async def home_language(call: CallbackQuery):
-    await call.message.answer("🌐 اختر اللغة / Choose language:", reply_markup=language_keyboard())
+    await call.message.answer(f"{ce('language','🌐')} اختر اللغة / Choose language:", reply_markup=language_keyboard(), parse_mode="HTML")
     await call.answer()
 
 @dp.message(Command("language"))
 async def language_command(message: Message):
     await ensure_user(message)
-    await message.answer("🌐 اختر اللغة / Choose language:", reply_markup=language_keyboard())
+    await message.answer(f"{ce('language','🌐')} اختر اللغة / Choose language:", reply_markup=language_keyboard(), parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith("lang_"))
 async def set_language(call: CallbackQuery):
@@ -474,8 +562,9 @@ async def set_language(call: CallbackQuery):
     async with db_pool.acquire() as conn:
         await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
     await call.message.answer(
-        "✅ Language changed to English" if lang == "en" else "✅ تم تغيير اللغة للعربية",
+        f"{ce('success','✅')} Language changed to English" if lang == "en" else f"{ce('success','✅')} تم تغيير اللغة للعربية",
         reply_markup=home_keyboard(lang),
+        parse_mode="HTML",
     )
     await call.answer()
 
@@ -483,7 +572,7 @@ async def set_language(call: CallbackQuery):
 @dp.callback_query(F.data == "home_shop")
 async def shop_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...", "default")
+    msg = await animate_message(call.message, f"{ce('store','🛍')} Loading products..." if lang == "en" else f"{ce('store','🛍')} جاري تحميل المنتجات...", "default")
     counts = await product_counts()
     await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
     await call.answer()
@@ -492,14 +581,14 @@ async def shop_inline(call: CallbackQuery):
 async def products_message(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    msg = await animate_message(message, "🛍 Loading products..." if lang == "en" else "🛍 جاري تحميل المنتجات...", "default")
+    msg = await animate_message(message, f"{ce('store','🛍')} Loading products..." if lang == "en" else f"{ce('store','🛍')} جاري تحميل المنتجات...", "default")
     counts = await product_counts()
     await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
 
 @dp.callback_query(F.data == "refresh_products")
 async def refresh_products(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, "🔄 Updating products..." if lang == "en" else "🔄 جاري تحديث المنتجات...", "default")
+    msg = await animate_message(call.message, f"{ce('refresh','🔄')} Updating products..." if lang == "en" else f"{ce('refresh','🔄')} جاري تحديث المنتجات...", "default")
     counts = await product_counts()
     await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
     await call.answer("Updated ✅")
@@ -507,10 +596,10 @@ async def refresh_products(call: CallbackQuery):
 @dp.callback_query(F.data == "product_chatgpt")
 async def product_chatgpt(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, "🤖 Preparing product..." if lang == "en" else "🤖 جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('chatgpt','🤖')} Preparing product..." if lang == "en" else f"{ce('chatgpt','🤖')} جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("chatgpt")
     caption = (
-        f"🤖 ChatGPT Plus Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: 15 Days\n\n"
         f"📦 Product Type: Ready Account\n"
         f"🔐 Delivery Type: Email + Password\n"
@@ -519,7 +608,7 @@ async def product_chatgpt(call: CallbackQuery):
         f"💎 Premium account ready to login and use immediately"
         if lang == "en"
         else
-        f"🤖 ChatGPT Plus Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: 15 يوم\n\n"
         f"📦 نوع المنتج: حساب جاهز\n"
         f"🔐 نوع التسليم: إيميل + باسورد\n"
@@ -527,15 +616,15 @@ async def product_chatgpt(call: CallbackQuery):
         f"⚡ التسليم بعد تأكيد الدفع\n"
         f"💎 حساب بريميوم جاهز لتسجيل الدخول والاستخدام مباشرة"
     )
-    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt"))
+    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt"), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data == "product_chatgpt_email")
 async def product_chatgpt_email(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, "✨ Preparing product..." if lang == "en" else "✨ جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('vip','✦')} Preparing product..." if lang == "en" else f"{ce('vip','✦')} جاري تجهيز المنتج...", "checkout")
     caption = (
-        f"✨ ChatGPT Plus On Your Email\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus On Your Email</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $5\n🛡 Warranty: 15 Days\n\n"
         f"📧 Activation on your personal email\n"
         f"🔐 Your email stays with you\n"
@@ -548,16 +637,16 @@ async def product_chatgpt_email(call: CallbackQuery):
         f"🔐 الإيميل يفضل معاك\n"
         f"💬 بعد تأكيد الدفع، تواصل مع الأدمن لإتمام التفعيل."
     )
-    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt_email"))
+    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt_email"), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data == "product_gemini_ready")
 async def product_gemini_ready(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, "💎 Preparing product..." if lang == "en" else "💎 جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('gemini','🟢')} Preparing product..." if lang == "en" else f"{ce('gemini','🟢')} جاري تجهيز المنتج...", "checkout")
     count = await get_stock_count("gemini_ready")
     caption = (
-        f"💎 Gemini Pro Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: Full 12 Months\n\n"
         f"📦 Product Type: Ready Gemini Pro Account\n"
         f"🔐 Delivery Type: Email + Password + 2FA\n"
@@ -567,7 +656,7 @@ async def product_gemini_ready(call: CallbackQuery):
         f"⚡ Ready to login and use after delivery"
         if lang == "en"
         else
-        f"💎 Gemini Pro Ready Account\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: كامل لمدة 12 شهر\n\n"
         f"📦 نوع المنتج: حساب جيميناي برو جاهز\n"
         f"🔐 نوع التسليم: إيميل + باسورد + 2FA\n"
@@ -576,28 +665,28 @@ async def product_gemini_ready(call: CallbackQuery):
         f"🤖 Gemini Advanced مفعّل\n"
         f"⚡ جاهز لتسجيل الدخول والاستخدام بعد التسليم"
     )
-    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_ready"))
+    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_ready"), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data == "product_gemini_email")
 async def product_gemini_email(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, "👑 Preparing product..." if lang == "en" else "👑 جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('gemini','🟢')} Preparing product..." if lang == "en" else f"{ce('gemini','🟢')} جاري تجهيز المنتج...", "checkout")
     caption = (
-        f"👑 Gemini Pro On Your Email\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini Pro On Your Email</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $4\n🛡 Warranty: 1 Year\n\n"
         f"☁️ 5TB Storage\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 Monthly Credits\n"
         f"👥 Add 5 Family Members\n🔑 You Become The Owner\n\n"
         f"📧 Activated On Your Personal Email"
         if lang == "en"
         else
-        f"👑 Gemini على إيميلك الشخصي\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('gemini','🟢')} <b>Gemini على إيميلك الشخصي</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 السعر: 200 جنيه\n🛡 الضمان: سنة كاملة\n\n"
         f"☁️ مساحة 5 تيرا بايت\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 كريديت شهري\n"
         f"👥 إضافة 5 أشخاص\n🔑 تصبح المالك الأساسي\n\n"
         f"📧 التفعيل على إيميلك الشخصي"
     )
-    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_email"))
+    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_email"), parse_mode="HTML")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("buy_"))
@@ -610,7 +699,7 @@ async def buy_product(call: CallbackQuery):
         if count <= 0:
             await call.answer("Out of stock ❌" if lang == "en" else "المخزون غير متوفر ❌", show_alert=True)
             return
-    msg = await animate_message(call.message, "🚀 Preparing checkout..." if lang == "en" else "🚀 جاري تجهيز الدفع...", "checkout")
+    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing checkout..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز الدفع...", "checkout")
     text = (
         f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']} / {product['egp']} EGP\n\nChoose payment method:"
         if lang == "en"
@@ -624,7 +713,7 @@ async def buy_product(call: CallbackQuery):
 async def wallet_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     balance_usdt, balance_egp = await get_wallet_balance(call.from_user.id)
-    msg = await animate_message(call.message, "💳 Syncing Wallet..." if lang == "en" else "💳 مزامنة المحفظة...", "wallet")
+    msg = await animate_message(call.message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="🔄 Refresh / تحديث", callback_data="home_wallet")],
@@ -670,7 +759,7 @@ async def wallet_message(message: Message):
 @dp.callback_query(F.data == "home_deposit")
 async def deposit_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, "🔐 Opening Deposit Gateway..." if lang == "en" else "🔐 فتح بوابة الإيداع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('wallet','💰')} Opening Deposit Gateway..." if lang == "en" else f"{ce('wallet','💰')} فتح بوابة الإيداع...", "deposit")
     await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
     await call.answer()
 
@@ -678,7 +767,7 @@ async def deposit_inline(call: CallbackQuery):
 async def deposit_message(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    msg = await animate_message(message, "🔐 Opening Deposit Gateway..." if lang == "en" else "🔐 فتح بوابة الإيداع...", "deposit")
+    msg = await animate_message(message, f"{ce('wallet','💰')} Opening Deposit Gateway..." if lang == "en" else f"{ce('wallet','💰')} فتح بوابة الإيداع...", "deposit")
     await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
 
 @dp.callback_query(F.data.startswith("deposit_currency_"))
@@ -689,7 +778,7 @@ async def deposit_currency_selected(call: CallbackQuery):
         await call.answer("Invalid currency", show_alert=True)
         return
     deposit_waiting[call.from_user.id] = currency
-    msg = await animate_message(call.message, "✍️ Preparing amount input..." if lang == "en" else "✍️ تجهيز إدخال المبلغ...", "deposit")
+    msg = await animate_message(call.message, f"{ce('lightning','⚡')} Preparing amount input..." if lang == "en" else f"{ce('lightning','⚡')} تجهيز إدخال المبلغ...", "deposit")
     if currency == "EGP":
         text = (
             "🇪🇬 EGP Deposit\n━━━━━━━━━━━━━━\n\n"
@@ -736,7 +825,7 @@ async def receive_deposit_amount(message: Message):
         await message.answer("❌ أقل إيداع بالمصري هو 250 جنيه." if lang != "en" else "❌ Minimum EGP deposit is 250 EGP.")
         return
     deposit_waiting.pop(message.from_user.id, None)
-    msg = await animate_message(message, "🔐 Loading payment methods..." if lang == "en" else "🔐 جاري تجهيز طرق الدفع...", "deposit")
+    msg = await animate_message(message, f"{ce('payment','💳')} Loading payment methods..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز طرق الدفع...", "deposit")
     amount_txt = format_amount(amount)
     text = (
         f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n💰 Amount: {amount_txt} {currency}\n\nChoose payment method below:"
@@ -765,7 +854,7 @@ async def create_wallet_topup(call: CallbackQuery):
     if currency == "EGP" and amount < 250:
         await call.answer("Minimum is 250 EGP", show_alert=True)
         return
-    msg = await animate_message(call.message, "🔐 Preparing secure payment..." if lang == "en" else "🔐 جاري تجهيز بيانات الدفع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('payment','💳')} Preparing secure payment..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
     async with db_pool.acquire() as conn:
         dep_id = await conn.fetchval(
             """
@@ -804,7 +893,7 @@ async def pay_product(call: CallbackQuery):
     product_key = "_".join(parts[2:])
     lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
-    msg = await animate_message(call.message, "🔐 Securing payment details..." if lang == "en" else "🔐 جاري تجهيز بيانات الدفع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('payment','💳')} Securing payment details..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
     currency = "USDT" if method == "binance" else "EGP"
     amount = product["usd"] if method == "binance" else product["egp"]
     async with db_pool.acquire() as conn:
@@ -924,18 +1013,18 @@ async def payment_photo(message: Message):
 @dp.callback_query(F.data == "home_support")
 async def support_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, "💬 Opening Support..." if lang == "en" else "💬 فتح الدعم...", "default")
+    msg = await animate_message(call.message, f"{ce('support','🎧')} Opening Support..." if lang == "en" else f"{ce('support','🎧')} فتح الدعم...", "default")
     text = (
-        f"💬 Support Center\n━━━━━━━━━━━━━━\n\nTelegram: {SUPPORT}\n\nFast response • Trusted help"
+        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}\n\n{ce('success','✅')} Fast response\n{ce('verified','✓')} Trusted support"
         if lang == "en" else
-        f"💬 مركز الدعم\n━━━━━━━━━━━━━━\n\nتليجرام: {SUPPORT}\n\nرد سريع • مساعدة موثوقة"
+        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}\n\n{ce('success','✅')} رد سريع\n{ce('verified','✓')} دعم موثوق"
     )
     await edit_or_answer(msg, text, reply_markup=back_home_keyboard(lang))
     await call.answer()
 
 @dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
 async def support_message(message: Message):
-    await message.answer(f"💬 {SUPPORT}")
+    await message.answer(f"{ce('support','🎧')} {ce('telegram','✈')} {SUPPORT}", parse_mode="HTML")
 
 async def broadcast_stock_added(product_key: str, quantity: int, total: int):
     # إشعار تلقائي لكل المستخدمين عند إضافة مخزون جديد للحسابات الجاهزة
@@ -945,43 +1034,47 @@ async def broadcast_stock_added(product_key: str, quantity: int, total: int):
         users = await conn.fetch("SELECT telegram_id, lang FROM users")
 
     if product_key == "chatgpt":
-        product_name = "ChatGPT Plus"
+        product_name = "ChatGPT Plus — Ready Accounts"
+        product_icon = ce("chatgpt", "🤖")
     elif product_key == "gemini_ready":
-        product_name = "Gemini Pro"
+        product_name = "Gemini Pro — Ready Accounts"
+        product_icon = ce("gemini", "🟢")
     else:
         product_name = product["title_en"]
+        product_icon = ce("store", "🛍")
 
     for user in users:
         lang = user["lang"] or "ar"
 
         if lang == "en":
             text = (
-                "🎉 New Stock Available Now!\n"
-                "━━━━━━━━━━━━━━\n\n"
-                f"🛒 {product_name} — Ready Accounts\n"
-                f"✅ {quantity} account(s) added and ready for instant delivery.\n\n"
-                "⚡ Limited quantity — order now before stock runs out!"
+                f"{ce('fire','🔥')} <b>New stock available now!</b>\n"
+                f"━━━━━━━━━━━━━━━━━━\n\n"
+                f"{product_icon} <b>{product_name}</b>\n"
+                f"{ce('stock_add','+')} Added: <b>{quantity}</b>\n"
+                f"{ce('stock','📦')} Current stock: <b>{total}</b>\n\n"
+                f"{ce('lightning','⚡')} Limited quantity — order now before it runs out!"
             )
             btn = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🛒 Order Now", callback_data="refresh_products")]
+                [InlineKeyboardButton(text="Buy now", callback_data="refresh_products")]
             ])
         else:
             text = (
-                "🎉 وصل مخزون جديد الآن!\n"
-                "━━━━━━━━━━━━━━\n\n"
-                f"🛒 {product_name} — Ready Accounts\n"
-                f"✅ تمت إضافة {quantity} حساب جاهز للتسليم الفوري.\n\n"
-                "⚡ الكمية محدودة — اطلب الآن قبل النفاد!"
+                f"{ce('fire','🔥')} <b>وصل مخزون جديد الآن!</b>\n"
+                f"━━━━━━━━━━━━━━━━━━\n\n"
+                f"{product_icon} <b>{product_name}</b>\n"
+                f"{ce('stock_add','+')} تمت إضافة: <b>{quantity}</b>\n"
+                f"{ce('stock','📦')} المخزون الحالي: <b>{total}</b>\n\n"
+                f"{ce('lightning','⚡')} الكمية محدودة — اطلب الآن قبل النفاد!"
             )
             btn = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🛒 اطلب الآن", callback_data="refresh_products")]
+                [InlineKeyboardButton(text="اطلب الآن", callback_data="refresh_products")]
             ])
 
         try:
-            await bot.send_message(user["telegram_id"], text, reply_markup=btn)
+            await bot.send_message(user["telegram_id"], text, reply_markup=btn, parse_mode="HTML")
         except Exception:
             pass
-
 
 @dp.message(Command("getemoji"))
 async def get_emoji_id(message: Message):
@@ -1158,7 +1251,7 @@ async def broadcast(message: Message):
     sent = 0
     for user in users:
         try:
-            await bot.send_message(user["telegram_id"], f"📢 إشعار من {BOT_NAME}\n\n{text}")
+            await bot.send_message(user["telegram_id"], f"{ce('announcement','📢')} إشعار من {BOT_NAME}\n\n{esc(text)}", parse_mode="HTML")
             sent += 1
         except Exception:
             pass
@@ -1184,9 +1277,21 @@ async def broadcast_photo(message: Message):
             pass
     await message.answer(f"✅ تم إرسال الصورة إلى {sent} مستخدم")
 
+async def setup_bot_commands():
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Start and open the menu"),
+        BotCommand(command="menu", description="Open the main menu"),
+        BotCommand(command="products", description="Show products"),
+        BotCommand(command="wallet", description="Open wallet"),
+        BotCommand(command="support", description="Open support"),
+        BotCommand(command="language", description="Change language"),
+    ])
+
 async def main():
     await init_db()
+    await setup_bot_commands()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+
