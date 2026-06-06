@@ -37,6 +37,8 @@ EMOJI = {
     "store": "5373261557700509032",
     "verified": "5370941588165893740",
     "binance": "5319236736042149889",
+    "vodafone": "5352562482508481505",
+    "instapay": "5845899541571706084",
     "payment": "5364036341610858181",
     "gemini": "5875095634033250205",
     "wallet": "6267013757730296733",
@@ -63,6 +65,8 @@ SAFE_EMOJI_FALLBACK = {
     "store": "🛍",
     "verified": "✅",
     "binance": "🟡",
+    "vodafone": "🔴",
+    "instapay": "🟣",
     "payment": "💳",
     "gemini": "💎",
     "wallet": "💰",
@@ -446,15 +450,15 @@ def product_details_buttons(lang: str, product_key: str):
 def payment_buttons(lang: str, product_key: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Binance UID", callback_data=f"pay_binance_{product_key}")],
-            [InlineKeyboardButton(text="Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
-            [InlineKeyboardButton(text="InstaPay", callback_data=f"pay_instapay_{product_key}")],
+            [InlineKeyboardButton(text="🟡 Binance UID", callback_data=f"pay_binance_{product_key}")],
+            [InlineKeyboardButton(text="🔴 Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
+            [InlineKeyboardButton(text="🟣 InstaPay", callback_data=f"pay_instapay_{product_key}")],
             [InlineKeyboardButton(text="Back", callback_data=f"product_{product_key}")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="بينانس UID", callback_data=f"pay_binance_{product_key}")],
-        [InlineKeyboardButton(text="فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
-        [InlineKeyboardButton(text="انستا باي", callback_data=f"pay_instapay_{product_key}")],
+        [InlineKeyboardButton(text="🟡 بينانس UID", callback_data=f"pay_binance_{product_key}")],
+        [InlineKeyboardButton(text="🔴 فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
+        [InlineKeyboardButton(text="🟣 انستا باي", callback_data=f"pay_instapay_{product_key}")],
         [InlineKeyboardButton(text="رجوع", callback_data=f"product_{product_key}")],
     ])
 
@@ -477,22 +481,22 @@ def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
     if currency == "USDT":
         if lang == "en":
             return InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+                [InlineKeyboardButton(text=f"🟡 Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
                 [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_USDT")],
             ])
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+            [InlineKeyboardButton(text=f"🟡 بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
             [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_USDT")],
         ])
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-            [InlineKeyboardButton(text=f"InstaPay • {amount_txt} EGP", callback_data=f"topup_instapay_{amount_txt}_EGP")],
+            [InlineKeyboardButton(text=f"🔴 Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
+            [InlineKeyboardButton(text=f"🟣 InstaPay • {amount_txt} EGP", callback_data=f"topup_instapay_{amount_txt}_EGP")],
             [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_EGP")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"فودافون كاش • {amount_txt} جنيه", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-        [InlineKeyboardButton(text=f"انستا باي • {amount_txt} جنيه", callback_data=f"topup_instapay_{amount_txt}_EGP")],
+        [InlineKeyboardButton(text=f"🔴 فودافون كاش • {amount_txt} جنيه", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
+        [InlineKeyboardButton(text=f"🟣 انستا باي • {amount_txt} جنيه", callback_data=f"topup_instapay_{amount_txt}_EGP")],
         [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_EGP")],
     ])
 
@@ -919,12 +923,12 @@ async def deposit_currency_selected(call: CallbackQuery):
         )
     else:
         text = (
-            "🟡 USDT Deposit\n━━━━━━━━━━━━━━\n\n"
+            f"{ce('binance','🟡')} USDT Deposit\n━━━━━━━━━━━━━━\n\n"
             "Type the amount you want to add in USDT.\n"
             "Minimum: 5 USDT\n\n"
             "Example: 5 or 10"
             if lang == "en" else
-            "🟡 إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
+            f"{ce('binance','🟡')} إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
             "اكتب المبلغ اللي عايز تضيفه بالدولار.\n"
             "أقل مبلغ: 5 USDT\n\n"
             "مثال: 5 أو 10"
@@ -1072,11 +1076,11 @@ async def create_wallet_topup(call: CallbackQuery):
         reply_markup=kb,
     )
     if method == "binance":
-        pay_text = f"🟡 Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n`{BINANCE_UID}`\n\n💰 Amount: {format_amount(amount)} USDT"
+        pay_text = f"{ce('binance','🟡')} Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {format_amount(amount)} USDT"
     elif method == "vodafone":
-        pay_text = f"🔴 Vodafone Cash Deposit\n━━━━━━━━━━━━━━\n\n📱 Number:\n`{VODAFONE_CASH}`\n\n💰 Amount: {format_amount(amount)} EGP"
+        pay_text = f"{ce('vodafone','🔴')} Vodafone Cash Deposit\n━━━━━━━━━━━━━━\n\n📱 Number:\n<code>{VODAFONE_CASH}</code>\n\n💰 Amount: {format_amount(amount)} EGP"
     else:
-        pay_text = f"🟣 InstaPay Deposit\n━━━━━━━━━━━━━━\n\n🏦 InstaPay:\n`{INSTAPAY}`\n\n💰 Amount: {format_amount(amount)} EGP"
+        pay_text = f"{ce('instapay','🟣')} InstaPay Deposit\n━━━━━━━━━━━━━━\n\n🏦 InstaPay:\n<code>{INSTAPAY}</code>\n\n💰 Amount: {format_amount(amount)} EGP"
     await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Deposit ID: #{dep_id}")
     await call.answer()
 
@@ -1113,11 +1117,11 @@ async def pay_product(call: CallbackQuery):
         reply_markup=kb,
     )
     if method == "binance":
-        pay_text = f"🟡 Binance UID:\n`{BINANCE_UID}`\n\n💰 Amount: {amount} USDT"
+        pay_text = f"{ce('binance','🟡')} Binance UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {amount} USDT"
     elif method == "vodafone":
-        pay_text = f"🔴 Vodafone Cash:\n`{VODAFONE_CASH}`\n\n💰 Amount: {amount} EGP"
+        pay_text = f"{ce('vodafone','🔴')} Vodafone Cash:\n<code>{VODAFONE_CASH}</code>\n\n💰 Amount: {amount} EGP"
     else:
-        pay_text = f"🟣 InstaPay:\n`{INSTAPAY}`\n\n💰 Amount: {amount} EGP"
+        pay_text = f"{ce('instapay','🟣')} InstaPay:\n<code>{INSTAPAY}</code>\n\n💰 Amount: {amount} EGP"
     await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Order ID: #{dep_id}")
     await call.answer()
 
