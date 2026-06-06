@@ -1,15 +1,18 @@
 import asyncio
 import os
 import html
+import re
 import asyncpg
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     CallbackQuery,
     URLInputFile,
+    FSInputFile,
     BotCommand,
     ReplyKeyboardMarkup,
     KeyboardButton,
@@ -27,6 +30,7 @@ BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 
 # ضع رابط صورة الهيدر الخضراء هنا أو في Environment باسم AIX_HEADER_IMAGE
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
+AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
 
 EMOJI = {
     "chatgpt": "5359726582447487916",
@@ -50,15 +54,101 @@ EMOJI = {
     "success": "6179298314953956852",
     "error": "6181467651395558500",
     "vip": "6181731641560407212",
-    "language": "5447410659077661506",
+    "language": "6181573608238751317",
     "stock_add": "5397916757333654639",
 }
 
+SAFE_EMOJI_FALLBACK = {
+    "chatgpt": "🤖",
+    "store": "🛍",
+    "verified": "✅",
+    "binance": "🟡",
+    "payment": "💳",
+    "gemini": "💎",
+    "wallet": "💰",
+    "cart": "🛒",
+    "support": "🎧",
+    "telegram": "✈️",
+    "fire": "🔥",
+    "announcement": "📢",
+    "rocket": "🚀",
+    "shield": "🛡",
+    "lightning": "⚡",
+    "home": "🏠",
+    "refresh": "🔄",
+    "stock": "📦",
+    "success": "✅",
+    "error": "❌",
+    "vip": "⭐",
+    "language": "🌐",
+    "stock_add": "➕",
+}
+
 def ce(key: str, fallback: str = "") -> str:
-    return f'<tg-emoji emoji-id="{EMOJI[key]}">{fallback}</tg-emoji>'
+    emoji_id = EMOJI.get(key)
+    safe_fallback = SAFE_EMOJI_FALLBACK.get(key, fallback or "✅")
+    if not emoji_id or not str(emoji_id).isdigit():
+        return safe_fallback
+    return f'<tg-emoji emoji-id="{emoji_id}">{safe_fallback}</tg-emoji>'
 
 def esc(value) -> str:
     return html.escape(str(value), quote=False)
+
+def strip_custom_emoji(text: str) -> str:
+    return re.sub(r'<tg-emoji emoji-id="\d+">(.*?)</tg-emoji>', r'\1', text)
+
+async def safe_answer(message: Message, text: str, reply_markup=None):
+    try:
+        return await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup)
+
+async def safe_edit_or_answer(message, text: str, reply_markup=None):
+    try:
+        return await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except TelegramBadRequest:
+        try:
+            return await message.edit_text(strip_custom_emoji(text), reply_markup=reply_markup)
+        except Exception:
+            return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup)
+    except Exception:
+        return await safe_answer(message, text, reply_markup)
+
+async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
+    # الأفضل: ضع ملف aix_header.jpg في نفس مجلد bot.py على GitHub.
+    # لو مش موجود، سيحاول رابط AIX_HEADER_IMAGE، ولو فشل يرسل الرسالة بدون صورة.
+    try:
+        if os.path.exists(AIX_HEADER_FILE):
+            return await message.answer_photo(
+                photo=FSInputFile(AIX_HEADER_FILE),
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+            )
+        return await message.answer_photo(
+            photo=URLInputFile(AIX_HEADER_IMAGE),
+            caption=caption,
+            reply_markup=reply_markup,
+            parse_mode="HTML",
+        )
+    except TelegramBadRequest:
+        try:
+            if os.path.exists(AIX_HEADER_FILE):
+                return await message.answer_photo(
+                    photo=FSInputFile(AIX_HEADER_FILE),
+                    caption=strip_custom_emoji(caption),
+                    reply_markup=reply_markup,
+                )
+            return await message.answer_photo(
+                photo=URLInputFile(AIX_HEADER_IMAGE),
+                caption=strip_custom_emoji(caption),
+                reply_markup=reply_markup,
+            )
+        except Exception:
+            return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup)
+    except Exception:
+        return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup)
+
 
 CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
 GEMINI_IMAGE = "https://i.postimg.cc/0Qfr71mh/images-(1).jpg"
@@ -254,10 +344,7 @@ def product_label(product_key: str):
 
 # ---------------- Animations ----------------
 async def edit_or_answer(message, text: str, reply_markup=None):
-    try:
-        await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
-    except Exception:
-        await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
+    return await safe_edit_or_answer(message, text, reply_markup)
 
 async def animate_message(message, title: str, style: str = "default"):
     frames_map = {
@@ -448,7 +535,7 @@ def home_text(lang: str, name: str):
     name = esc(name)
     if lang == "en":
         return (
-            f"{ce('vip','✦')} <b>AIX Store</b> {ce('verified','✓')}\n"
+            f"{ce('vip','⭐')} <b>AIX Store</b> {ce('verified','✅')}\n"
             f"━━━━━━━━━━━━━━━━━━\n\n"
             f"Hey, <b>{name}</b>\n"
             f"Welcome to your premium AI subscriptions store.\n\n"
@@ -459,7 +546,7 @@ def home_text(lang: str, name: str):
             f"{ce('lightning','⚡')} Fast activation • Secure payments • Trusted service"
         )
     return (
-        f"{ce('vip','✦')} <b>AIX Store</b> {ce('verified','✓')}\n"
+        f"{ce('vip','⭐')} <b>AIX Store</b> {ce('verified','✅')}\n"
         f"━━━━━━━━━━━━━━━━━━\n\n"
         f"أهلاً، <b>{name}</b>\n"
         f"نورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n"
@@ -518,19 +605,11 @@ async def send_home(message: Message):
     lang = await get_lang(message.from_user.id)
     name = user_display_name(message.from_user)
 
-    try:
-        await message.answer_photo(
-            photo=URLInputFile(AIX_HEADER_IMAGE),
-            caption=home_text(lang, name),
-            reply_markup=home_keyboard(lang),
-            parse_mode="HTML",
-        )
-    except Exception:
-        await message.answer(
-            home_text(lang, name),
-            reply_markup=home_keyboard(lang),
-            parse_mode="HTML",
-        )
+    await safe_answer_photo(
+        message,
+        home_text(lang, name),
+        reply_markup=home_keyboard(lang),
+    )
 
     await message.answer(
         "Main Menu" if lang == "en" else "القائمة الرئيسية",
@@ -577,9 +656,9 @@ async def support_command(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
     text = (
-        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}"
+        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈️')} {SUPPORT}"
         if lang == "en" else
-        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}"
+        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈️')} {SUPPORT}"
     )
     await message.answer(text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
 
@@ -669,7 +748,7 @@ async def product_chatgpt(call: CallbackQuery):
 @dp.callback_query(F.data == "product_chatgpt_email")
 async def product_chatgpt_email(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, f"{ce('vip','✦')} Preparing product..." if lang == "en" else f"{ce('vip','✦')} جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('vip','⭐')} Preparing product..." if lang == "en" else f"{ce('vip','⭐')} جاري تجهيز المنتج...", "checkout")
     caption = (
         f"{ce('chatgpt','🤖')} <b>ChatGPT Plus On Your Email</b>\n━━━━━━━━━━━━━━\n\n"
         f"💰 Price: $5\n🛡 Warranty: 15 Days\n\n"
@@ -891,14 +970,14 @@ async def open_support_screen(message: Message):
     lang = await get_lang(message.from_user.id)
     text = (
         f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"{ce('telegram','✈')} {SUPPORT}\n\n"
+        f"{ce('telegram','✈️')} {SUPPORT}\n\n"
         f"{ce('success','✅')} Fast response\n"
-        f"{ce('verified','✓')} Trusted support"
+        f"{ce('verified','✅')} Trusted support"
         if lang == "en" else
         f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"{ce('telegram','✈')} {SUPPORT}\n\n"
+        f"{ce('telegram','✈️')} {SUPPORT}\n\n"
         f"{ce('success','✅')} رد سريع\n"
-        f"{ce('verified','✓')} دعم موثوق"
+        f"{ce('verified','✅')} دعم موثوق"
     )
     await message.answer(text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
 
@@ -1131,16 +1210,16 @@ async def support_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     msg = await animate_message(call.message, f"{ce('support','🎧')} Opening Support..." if lang == "en" else f"{ce('support','🎧')} فتح الدعم...", "default")
     text = (
-        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}\n\n{ce('success','✅')} Fast response\n{ce('verified','✓')} Trusted support"
+        f"{ce('support','🎧')} <b>Support Center</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈️')} {SUPPORT}\n\n{ce('success','✅')} Fast response\n{ce('verified','✅')} Trusted support"
         if lang == "en" else
-        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈')} {SUPPORT}\n\n{ce('success','✅')} رد سريع\n{ce('verified','✓')} دعم موثوق"
+        f"{ce('support','🎧')} <b>مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('telegram','✈️')} {SUPPORT}\n\n{ce('success','✅')} رد سريع\n{ce('verified','✅')} دعم موثوق"
     )
     await edit_or_answer(msg, text, reply_markup=back_home_keyboard(lang))
     await call.answer()
 
 @dp.message(F.text.in_(["💬 الدعم", "💬 Support"]))
 async def support_message(message: Message):
-    await message.answer(f"{ce('support','🎧')} {ce('telegram','✈')} {SUPPORT}", parse_mode="HTML")
+    await message.answer(f"{ce('support','🎧')} {ce('telegram','✈️')} {SUPPORT}", parse_mode="HTML")
 
 async def broadcast_stock_added(product_key: str, quantity: int, total: int):
     # إشعار تلقائي لكل المستخدمين عند إضافة مخزون جديد للحسابات الجاهزة
