@@ -982,6 +982,63 @@ async def broadcast_stock_added(product_key: str, quantity: int, total: int):
         except Exception:
             pass
 
+
+@dp.message(Command("getemoji"))
+async def get_emoji_id(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    target = message.reply_to_message
+    if not target:
+        await message.answer(
+            "اعمل Reply على رسالة فيها الإيموجي المتحرك واكتب:\n\n/getemoji\n\n"
+            "Send or forward the animated/custom emoji, reply to it, then type /getemoji"
+        )
+        return
+
+    entities = []
+    if target.entities:
+        entities.extend(target.entities)
+    if target.caption_entities:
+        entities.extend(target.caption_entities)
+
+    result = []
+    for entity in entities:
+        if entity.type == "custom_emoji" and entity.custom_emoji_id:
+            emoji_text = ""
+            try:
+                source_text = target.text or target.caption or ""
+                emoji_text = source_text[entity.offset: entity.offset + entity.length]
+            except Exception:
+                emoji_text = ""
+            result.append(
+                f"{emoji_text} Emoji ID:\n<code>{entity.custom_emoji_id}</code>"
+            )
+
+    if not result:
+        await message.answer(
+            "❌ مفيش Custom Emoji في الرسالة دي.\n\n"
+            "لازم تبعت إيموجي بريميوم/متحرك من تليجرام، وبعدين تعمل Reply عليه وتكتب /getemoji"
+        )
+        return
+
+    await message.answer(
+        "✅ Custom Emoji IDs Found:\n\n" + "\n\n".join(result),
+        parse_mode="HTML"
+    )
+
+@dp.message(Command("emojihelp"))
+async def emoji_help(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    await message.answer(
+        "طريقة استخراج ID الإيموجي المتحرك:\n\n"
+        "1) ابعت الإيموجي المتحرك في شات البوت.\n"
+        "2) اعمل Reply على رسالة الإيموجي.\n"
+        "3) اكتب /getemoji\n\n"
+        "بعدها ابعتلي الـ IDs وأنا أبدّل كل إيموجي عادي في البوت بإيموجي متحرك."
+    )
+
 @dp.message(Command("stock"))
 async def stock_count(message: Message):
     if message.from_user.id != ADMIN_ID:
