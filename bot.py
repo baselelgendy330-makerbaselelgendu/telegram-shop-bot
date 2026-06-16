@@ -23,12 +23,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 ADMIN_ID = 6728595587
 
 BINANCE_UID = "381880403"
-VODAFONE_CASH = "01063467929"
-INSTAPAY = "mahmoud2662000"
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 
-# ضع رابط صورة الهيدر الخضراء هنا أو في Environment باسم AIX_HEADER_IMAGE
+# رابط صورة الهيدر الخضراء
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
 
@@ -37,10 +35,7 @@ EMOJI = {
     "store": "5373261557700509032",
     "verified": "5370941588165893740",
     "binance": "5319236736042149889",
-    "vodafone": "5352562482508481505",
-    "instapay": "5845899541571706084",
     "payment": "5364036341610858181",
-    "gemini": "5875095634033250205",
     "wallet": "6267013757730296733",
     "cart": "5859297284029681680",
     "support": "6181322172263308706",
@@ -65,10 +60,7 @@ SAFE_EMOJI_FALLBACK = {
     "store": "🛍",
     "verified": "✅",
     "binance": "🟡",
-    "vodafone": "🔴",
-    "instapay": "🟣",
     "payment": "💳",
-    "gemini": "💎",
     "wallet": "💰",
     "cart": "🛒",
     "support": "🎧",
@@ -119,8 +111,6 @@ async def safe_edit_or_answer(message, text: str, reply_markup=None):
         return await safe_answer(message, text, reply_markup)
 
 async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
-    # الأفضل: ضع ملف aix_header.jpg في نفس مجلد bot.py على GitHub.
-    # لو مش موجود، سيحاول رابط AIX_HEADER_IMAGE، ولو فشل يرسل الرسالة بدون صورة.
     try:
         if os.path.exists(AIX_HEADER_FILE):
             return await message.answer_photo(
@@ -153,14 +143,8 @@ async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
     except Exception:
         return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup)
 
-
-CHATGPT_IMAGE = "https://i.postimg.cc/g0GQwy2V/f413a409aabc9c298e8b6b461affaa99.jpg"
-GEMINI_IMAGE = "https://i.postimg.cc/0Qfr71mh/images-(1).jpg"
-
-CHATGPT_PRODUCT = "ChatGPT Plus Ready Account"
-CHATGPT_EMAIL_PRODUCT = "ChatGPT Email Activation"
-GEMINI_READY_PRODUCT = "Gemini Pro Ready Account"
-GEMINI_EMAIL_PRODUCT = "Gemini Email Activation"
+# رابط الصورة الذي أرسلته
+CDK_IMAGE_FILE = "https://i.postimg.cc/Twx17x9S/IMG-20260616-190321.jpg"
 WALLET_DEPOSIT_KEY = "wallet_deposit"
 
 bot = Bot(token=BOT_TOKEN)
@@ -170,51 +154,18 @@ db_pool = None
 deposit_waiting: dict[int, str] = {}
 
 PRODUCTS = {
-    "chatgpt": {
-        "stock_name": CHATGPT_PRODUCT,
-        "title_en": "ChatGPT Plus Ready Account",
-        "title_ar": "ChatGPT Plus حساب جاهز",
-        "image": CHATGPT_IMAGE,
-        "usd": 6,
-        "egp": 300,
-        "type": "stock",
-        "warranty_ar": "15 يوم",
-        "warranty_en": "15 days",
-    },
-    "chatgpt_email": {
-        "stock_name": CHATGPT_EMAIL_PRODUCT,
-        "title_en": "ChatGPT Plus 1M On Your Email",
-        "title_ar": "ChatGPT Plus 1M تفعيل على إيميلك",
-        "image": CHATGPT_IMAGE,
-        "usd": 5,
-        "egp": 250,
-        "type": "activation",
-        "warranty_ar": "15 يوم",
-        "warranty_en": "15 days",
-    },
-    "gemini_ready": {
-        "stock_name": GEMINI_READY_PRODUCT,
-        "title_en": "Gemini Pro 12 Month Ready Account",
-        "title_ar": "Gemini Pro 12 شهر حساب جاهز",
-        "image": GEMINI_IMAGE,
-        "usd": 6,
-        "egp": 300,
+    "cdk_chatgpt": {
+        "stock_name": "CDK Activation Chatgpt 1Y",
+        "title_en": "CDK Activation Chatgpt For 1 year",
+        "title_ar": "CDK Activation Chatgpt For 1 year",
+        "image": CDK_IMAGE_FILE,
+        "usd": 9,
         "type": "stock",
         "warranty_ar": "سنة كاملة",
         "warranty_en": "1 Year",
-    },
-    "gemini_email": {
-        "stock_name": GEMINI_EMAIL_PRODUCT,
-        "title_en": "Gemini Pro 12M On Your Email",
-        "title_ar": "Gemini Pro 12M تفعيل على إيميلك",
-        "image": GEMINI_IMAGE,
-        "usd": 4,
-        "egp": 200,
-        "type": "activation",
-        "warranty_ar": "سنة كاملة",
-        "warranty_en": "1 Year",
-    },
+    }
 }
+
 # ---------------- Database ----------------
 async def init_db():
     global db_pool
@@ -227,13 +178,11 @@ async def init_db():
             first_name TEXT,
             lang TEXT DEFAULT 'ar',
             balance_usdt NUMERIC DEFAULT 0,
-            balance_egp NUMERIC DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         );
         """)
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usdt NUMERIC DEFAULT 0;")
-        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_egp NUMERIC DEFAULT 0;")
         await conn.execute("""
         CREATE TABLE IF NOT EXISTS deposits (
             id SERIAL PRIMARY KEY,
@@ -241,12 +190,12 @@ async def init_db():
             method TEXT,
             amount NUMERIC,
             currency TEXT,
-            product_key TEXT DEFAULT 'chatgpt',
+            product_key TEXT DEFAULT 'cdk_chatgpt',
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT NOW()
         );
         """)
-        await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS product_key TEXT DEFAULT 'chatgpt';")
+        await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS product_key TEXT DEFAULT 'cdk_chatgpt';")
         await conn.execute("""
         CREATE TABLE IF NOT EXISTS stock (
             id SERIAL PRIMARY KEY,
@@ -281,17 +230,15 @@ async def get_lang(user_id: int) -> str:
 async def get_wallet_balance(user_id: int):
     async with db_pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT balance_usdt, balance_egp FROM users WHERE telegram_id=$1",
+            "SELECT balance_usdt FROM users WHERE telegram_id=$1",
             user_id,
         )
     if not row:
-        return 0, 0
-    return row["balance_usdt"] or 0, row["balance_egp"] or 0
+        return 0
+    return row["balance_usdt"] or 0
 
-async def get_stock_count(product_key: str = "chatgpt"):
+async def get_stock_count(product_key: str = "cdk_chatgpt"):
     product = PRODUCTS[product_key]
-    if product["type"] == "activation":
-        return "∞"
     async with db_pool.acquire() as conn:
         return await conn.fetchval(
             "SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false",
@@ -300,10 +247,7 @@ async def get_stock_count(product_key: str = "chatgpt"):
 
 async def product_counts():
     return {
-        "chatgpt": await get_stock_count("chatgpt"),
-        "chatgpt_email": "∞",
-        "gemini_ready": await get_stock_count("gemini_ready"),
-        "gemini_email": "∞",
+        "cdk_chatgpt": await get_stock_count("cdk_chatgpt"),
     }
 
 # ---------------- Helpers ----------------
@@ -320,30 +264,13 @@ def format_amount(amount):
         return str(amount)
 
 def resolve_stock_product(product_type: str):
-    aliases = {
-        "chatgpt": "chatgpt",
-        "chat": "chatgpt",
-        "gpt": "chatgpt",
-        "chatgpt_ready": "chatgpt",
-        "chatgpt-ready": "chatgpt",
-        "gemini": "gemini_ready",
-        "gemini_ready": "gemini_ready",
-        "gemini-ready": "gemini_ready",
-    }
-    product_key = aliases.get(product_type.lower())
-    if not product_key:
-        return None, None
-    return product_key, PRODUCTS[product_key]["stock_name"]
+    if product_type.lower() in ["chatgpt", "cdk", "cdk_chatgpt"]:
+        return "cdk_chatgpt", PRODUCTS["cdk_chatgpt"]["stock_name"]
+    return None, None
 
 def product_label(product_key: str):
-    if product_key == "chatgpt":
-        return "ChatGPT Plus Ready Account"
-    if product_key == "chatgpt_email":
-        return "ChatGPT Email Activation"
-    if product_key == "gemini_ready":
-        return "Gemini Pro Ready Account"
-    if product_key == "gemini_email":
-        return "Gemini Email Activation"
+    if product_key == "cdk_chatgpt":
+        return "CDK Activation Chatgpt For 1 year"
     return product_key
 
 # ---------------- Animations ----------------
@@ -357,7 +284,7 @@ async def animate_message(message, title: str, style: str = "default"):
             "▰▰▱▱▱▱▱▱▱▱ 20%",
             "▰▰▰▰▱▱▱▱▱▱ 40%",
             "▰▰▰▰▰▰▱▱▱▱ 60%",
-            "▰▰▰▰▰▰▰▰▱▱ 80%",
+            "▰▰▰▰▰▰▰▰▰▱▱ 80%",
             "▰▰▰▰▰▰▰▰▰▰ 100%",
         ],
         "wallet": [
@@ -422,17 +349,11 @@ def back_home_keyboard(lang: str):
 def product_buttons(lang: str, counts: dict):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"ChatGPT Plus Ready Account | $6 | Stock {counts['chatgpt']}", callback_data="product_chatgpt")],
-            [InlineKeyboardButton(text="ChatGPT On Your Email | $5", callback_data="product_chatgpt_email")],
-            [InlineKeyboardButton(text=f"Gemini Pro Ready Account | $6 | Stock {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-            [InlineKeyboardButton(text="Gemini On Your Email | $4", callback_data="product_gemini_email")],
+            [InlineKeyboardButton(text=f"CDK Activation Chatgpt 1Y | $9 | Stock {counts['cdk_chatgpt']}", callback_data="product_cdk_chatgpt")],
             [InlineKeyboardButton(text="Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"ChatGPT Plus Ready Account | 300 جنيه | المتاح {counts['chatgpt']}", callback_data="product_chatgpt")],
-        [InlineKeyboardButton(text="ChatGPT على إيميلك | 250 جنيه", callback_data="product_chatgpt_email")],
-        [InlineKeyboardButton(text=f"Gemini Pro Ready Account | 300 جنيه | المتاح {counts['gemini_ready']}", callback_data="product_gemini_ready")],
-        [InlineKeyboardButton(text="Gemini على إيميلك | 200 جنيه", callback_data="product_gemini_email")],
+        [InlineKeyboardButton(text=f"CDK Activation Chatgpt 1Y | 9$ | المتاح {counts['cdk_chatgpt']}", callback_data="product_cdk_chatgpt")],
         [InlineKeyboardButton(text="تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="رجوع", callback_data="home_main")],
     ])
 
@@ -451,53 +372,34 @@ def payment_buttons(lang: str, product_key: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🟡 Binance UID", callback_data=f"pay_binance_{product_key}")],
-            [InlineKeyboardButton(text="🔴 Vodafone Cash", callback_data=f"pay_vodafone_{product_key}")],
-            [InlineKeyboardButton(text="🟣 InstaPay", callback_data=f"pay_instapay_{product_key}")],
             [InlineKeyboardButton(text="Back", callback_data=f"product_{product_key}")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟡 بينانس UID", callback_data=f"pay_binance_{product_key}")],
-        [InlineKeyboardButton(text="🔴 فودافون كاش", callback_data=f"pay_vodafone_{product_key}")],
-        [InlineKeyboardButton(text="🟣 انستا باي", callback_data=f"pay_instapay_{product_key}")],
         [InlineKeyboardButton(text="رجوع", callback_data=f"product_{product_key}")],
     ])
 
 def deposit_currency_buttons(lang: str):
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="EGP Deposit", callback_data="deposit_currency_EGP")],
             [InlineKeyboardButton(text="USDT Deposit", callback_data="deposit_currency_USDT")],
             [InlineKeyboardButton(text="Back", callback_data="home_main")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="إيداع بالمصري", callback_data="deposit_currency_EGP")],
         [InlineKeyboardButton(text="إيداع بالدولار USDT", callback_data="deposit_currency_USDT")],
         [InlineKeyboardButton(text="رجوع", callback_data="home_main")],
     ])
 
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str):
     amount_txt = format_amount(amount)
-    currency = currency.upper()
-    if currency == "USDT":
-        if lang == "en":
-            return InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"🟡 Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
-                [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_USDT")],
-            ])
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🟡 بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
-            [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_USDT")],
-        ])
     if lang == "en":
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"🔴 Vodafone Cash • {amount_txt} EGP", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-            [InlineKeyboardButton(text=f"🟣 InstaPay • {amount_txt} EGP", callback_data=f"topup_instapay_{amount_txt}_EGP")],
-            [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_EGP")],
+            [InlineKeyboardButton(text=f"🟡 Binance UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+            [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_USDT")],
         ])
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🔴 فودافون كاش • {amount_txt} جنيه", callback_data=f"topup_vodafone_{amount_txt}_EGP")],
-        [InlineKeyboardButton(text=f"🟣 انستا باي • {amount_txt} جنيه", callback_data=f"topup_instapay_{amount_txt}_EGP")],
-        [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_EGP")],
+        [InlineKeyboardButton(text=f"🟡 بينانس UID • {amount_txt} USDT", callback_data=f"topup_binance_{amount_txt}_USDT")],
+        [InlineKeyboardButton(text="تغيير المبلغ", callback_data="deposit_currency_USDT")],
     ])
 
 def language_keyboard():
@@ -565,26 +467,14 @@ def product_list_text(lang: str):
     if lang == "en":
         return (
             f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-            f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n"
-            f"Price: $6 / 300 EGP | Warranty: 15 days\n\n"
-            f"{ce('chatgpt','🤖')} <b>ChatGPT Plus On Your Email</b>\n"
-            f"Price: $5 / 250 EGP | Warranty: 15 days\n\n"
-            f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n"
-            f"Price: $6 / 300 EGP | Warranty: 1 Year\n\n"
-            f"{ce('gemini','🟢')} <b>Gemini Pro On Your Email</b>\n"
-            f"Price: $4 / 200 EGP | Warranty: 1 Year\n\n"
+            f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n"
+            f"Price: $9 | Warranty: 1 Year\n\n"
             f"Choose a product below:"
         )
     return (
         f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n"
-        f"السعر: 300 جنيه / $6 | الضمان: 15 يوم\n\n"
-        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus على إيميلك</b>\n"
-        f"السعر: 250 جنيه / $5 | الضمان: 15 يوم\n\n"
-        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n"
-        f"السعر: 300 جنيه / $6 | الضمان: سنة كاملة\n\n"
-        f"{ce('gemini','🟢')} <b>Gemini Pro على إيميلك</b>\n"
-        f"السعر: 200 جنيه / $4 | الضمان: سنة كاملة\n\n"
+        f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n"
+        f"السعر: 9$ | الضمان: سنة كاملة\n\n"
         f"اختار المنتج من الأزرار:"
     )
 
@@ -593,13 +483,11 @@ def deposit_intro_text(lang: str):
         return (
             f"{ce('wallet','💰')} <b>Deposit Balance</b>\n━━━━━━━━━━━━━━━━━━\n\n"
             f"Choose the currency you want to deposit.\n\n"
-            f"EGP: minimum 250 EGP\n"
             f"USDT: minimum 5 USDT"
         )
     return (
         f"{ce('wallet','💰')} <b>إيداع رصيد</b>\n━━━━━━━━━━━━━━━━━━\n\n"
         f"اختار العملة اللي عايز تعمل بيها إيداع.\n\n"
-        f"المصري: أقل مبلغ 250 جنيه\n"
         f"الدولار USDT: أقل مبلغ 5 USDT"
     )
 
@@ -625,7 +513,6 @@ async def start(message: Message):
     deposit_waiting.pop(message.from_user.id, None)
     await send_home(message)
 
-
 @dp.message(Command("menu"))
 async def menu_command(message: Message):
     await start(message)
@@ -642,16 +529,16 @@ async def products_command(message: Message):
 async def wallet_command(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
+    balance_usdt = await get_wallet_balance(message.from_user.id)
     msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="Main Menu / الرئيسية", callback_data="home_main")],
     ])
     text = (
-        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nUSDT Balance: {balance_usdt} USDT\nEGP Balance: {balance_egp} EGP"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nUSDT Balance: {balance_usdt} USDT"
         if lang == "en" else
-        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nرصيد الدولار: {balance_usdt} USDT\nرصيد المصري: {balance_egp} جنيه"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\nرصيد الدولار: {balance_usdt} USDT"
     )
     await edit_or_answer(msg, text, reply_markup=kb)
 
@@ -723,100 +610,46 @@ async def refresh_products(call: CallbackQuery):
     await edit_or_answer(msg, product_list_text(lang), reply_markup=product_buttons(lang, counts))
     await call.answer("Updated ✅")
 
-@dp.callback_query(F.data == "product_chatgpt")
-async def product_chatgpt(call: CallbackQuery):
+@dp.callback_query(F.data == "product_cdk_chatgpt")
+async def product_cdk_chatgpt(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     await animate_message(call.message, f"{ce('chatgpt','🤖')} Preparing product..." if lang == "en" else f"{ce('chatgpt','🤖')} جاري تجهيز المنتج...", "checkout")
-    count = await get_stock_count("chatgpt")
+    count = await get_stock_count("cdk_chatgpt")
+    
     caption = (
-        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: 15 Days\n\n"
-        f"📦 Product Type: Ready Account\n"
-        f"🔐 Delivery Type: Email + Password\n"
-        f"⏳ Subscription: 1 Month ChatGPT Plus\n"
-        f"⚡ Delivery after payment approval\n"
-        f"💎 Premium account ready to login and use immediately"
+        f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('wallet','💰')} Price: $9\n"
+        f"{ce('stock','📦')} Stock: {count}\n"
+        f"{ce('shield','🛡')} Warranty: 1 Year\n\n"
+        f"{ce('fire','🔥')} <b>K-12 Offer Activation for your personal account!</b>\n\n"
+        f"{ce('lightning','⚡')} <b>Redemption Link:</b> http://gpt.ddfafa.com\n\n"
+        f"{ce('verified','✅')} <b>How to activate:</b>\n"
+        f"1️⃣ Put the CDK code in the first field.\n"
+        f"2️⃣ Click 'Open AuthSession Page', copy the full Access Token, and paste it in the second field.\n"
+        f"3️⃣ Click 'Activate Now' and you are done!\n\n"
+        f"{ce('success','✅')} Instant delivery after payment."
         if lang == "en"
         else
-        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: 15 يوم\n\n"
-        f"📦 نوع المنتج: حساب جاهز\n"
-        f"🔐 نوع التسليم: إيميل + باسورد\n"
-        f"⏳ الاشتراك: ChatGPT Plus لمدة شهر\n"
-        f"⚡ التسليم بعد تأكيد الدفع\n"
-        f"💎 حساب بريميوم جاهز لتسجيل الدخول والاستخدام مباشرة"
+        f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('wallet','💰')} السعر: 9$\n"
+        f"{ce('stock','📦')} المتوفر: {count}\n"
+        f"{ce('shield','🛡')} الضمان: سنة كاملة\n\n"
+        f"{ce('fire','🔥')} <b>تفعيل عرض K-12 على حسابك الشخصي!</b>\n\n"
+        f"{ce('lightning','⚡')} <b>موقع التفعيل:</b> http://gpt.ddfafa.com\n\n"
+        f"{ce('verified','✅')} <b>طريقة التفعيل:</b>\n"
+        f"1️⃣ حط الكود (CDK) في الخانة الأولى.\n"
+        f"2️⃣ افتح 'Open AuthSession Page'، انسخ الاكسيس توكن بالكامل، واللصقه في الخانة التانية.\n"
+        f"3️⃣ دوس 'Activate Now' وبس كدا!\n\n"
+        f"{ce('success','✅')} تسليم فوري للكود بعد الدفع."
     )
-    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt"), parse_mode="HTML")
-    await call.answer()
-
-@dp.callback_query(F.data == "product_chatgpt_email")
-async def product_chatgpt_email(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, f"{ce('vip','⭐')} Preparing product..." if lang == "en" else f"{ce('vip','⭐')} جاري تجهيز المنتج...", "checkout")
-    caption = (
-        f"{ce('chatgpt','🤖')} <b>ChatGPT Plus On Your Email</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $5\n🛡 Warranty: 15 Days\n\n"
-        f"📧 Activation on your personal email\n"
-        f"🔐 Your email stays with you\n"
-        f"💬 After payment confirmation, contact admin to complete activation."
-        if lang == "en"
-        else
-        f"✨ ChatGPT Plus على إيميلك\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 250 جنيه\n🛡 الضمان: 15 يوم\n\n"
-        f"📧 التفعيل على إيميلك الشخصي\n"
-        f"🔐 الإيميل يفضل معاك\n"
-        f"💬 بعد تأكيد الدفع، تواصل مع الأدمن لإتمام التفعيل."
-    )
-    await call.message.answer_photo(URLInputFile(CHATGPT_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "chatgpt_email"), parse_mode="HTML")
-    await call.answer()
-
-@dp.callback_query(F.data == "product_gemini_ready")
-async def product_gemini_ready(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, f"{ce('gemini','🟢')} Preparing product..." if lang == "en" else f"{ce('gemini','🟢')} جاري تجهيز المنتج...", "checkout")
-    count = await get_stock_count("gemini_ready")
-    caption = (
-        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $6\n📦 Stock: {count}\n🛡 Warranty: Full 12 Months\n\n"
-        f"📦 Product Type: Ready Gemini Pro Account\n"
-        f"🔐 Delivery Type: Email + Password + 2FA\n"
-        f"⏳ Subscription: 12 Months\n"
-        f"☁️ 5TB Storage\n"
-        f"🤖 Gemini Advanced Included\n"
-        f"⚡ Ready to login and use after delivery"
-        if lang == "en"
-        else
-        f"{ce('gemini','🟢')} <b>Gemini Pro Ready Account</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 300 جنيه\n📦 المتوفر: {count}\n🛡 الضمان: كامل لمدة 12 شهر\n\n"
-        f"📦 نوع المنتج: حساب جيميناي برو جاهز\n"
-        f"🔐 نوع التسليم: إيميل + باسورد + 2FA\n"
-        f"⏳ مدة الاشتراك: 12 شهر\n"
-        f"☁️ مساحة 5 تيرا بايت\n"
-        f"🤖 Gemini Advanced مفعّل\n"
-        f"⚡ جاهز لتسجيل الدخول والاستخدام بعد التسليم"
-    )
-    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_ready"), parse_mode="HTML")
-    await call.answer()
-
-@dp.callback_query(F.data == "product_gemini_email")
-async def product_gemini_email(call: CallbackQuery):
-    lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, f"{ce('gemini','🟢')} Preparing product..." if lang == "en" else f"{ce('gemini','🟢')} جاري تجهيز المنتج...", "checkout")
-    caption = (
-        f"{ce('gemini','🟢')} <b>Gemini Pro On Your Email</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 Price: $4\n🛡 Warranty: 1 Year\n\n"
-        f"☁️ 5TB Storage\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 Monthly Credits\n"
-        f"👥 Add 5 Family Members\n🔑 You Become The Owner\n\n"
-        f"📧 Activated On Your Personal Email"
-        if lang == "en"
-        else
-        f"{ce('gemini','🟢')} <b>Gemini على إيميلك الشخصي</b>\n━━━━━━━━━━━━━━\n\n"
-        f"💰 السعر: 200 جنيه\n🛡 الضمان: سنة كاملة\n\n"
-        f"☁️ مساحة 5 تيرا بايت\n🤖 Gemini Advanced\n🎬 Google Flow\n💎 1000 كريديت شهري\n"
-        f"👥 إضافة 5 أشخاص\n🔑 تصبح المالك الأساسي\n\n"
-        f"📧 التفعيل على إيميلك الشخصي"
-    )
-    await call.message.answer_photo(URLInputFile(GEMINI_IMAGE), caption=caption, reply_markup=product_details_buttons(lang, "gemini_email"), parse_mode="HTML")
+    
+    try:
+        # قراءة الصورة من الرابط
+        await call.message.answer_photo(URLInputFile(CDK_IMAGE_FILE), caption=caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
+    except Exception:
+        # في حالة فشل قراءة الرابط يرسل النص فقط
+        await call.message.answer(caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
+        
     await call.answer()
 
 @dp.callback_query(F.data.startswith("buy_"))
@@ -831,9 +664,9 @@ async def buy_product(call: CallbackQuery):
             return
     msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing checkout..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز الدفع...", "checkout")
     text = (
-        f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']} / {product['egp']} EGP\n\nChoose payment method:"
+        f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']}\n\nChoose payment method:"
         if lang == "en"
-        else f"🛒 إتمام الشراء\n━━━━━━━━━━━━━━\n\n💰 السعر: {product['egp']} جنيه / {product['usd']} USDT\n\nاختار طريقة الدفع:"
+        else f"🛒 إتمام الشراء\n━━━━━━━━━━━━━━\n\n💰 السعر: {product['usd']}$\n\nاختار طريقة الدفع:"
     )
     await edit_or_answer(msg, text, reply_markup=payment_buttons(lang, product_key))
     await call.answer()
@@ -842,7 +675,7 @@ async def buy_product(call: CallbackQuery):
 @dp.callback_query(F.data == "home_wallet")
 async def wallet_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(call.from_user.id)
+    balance_usdt = await get_wallet_balance(call.from_user.id)
     msg = await animate_message(call.message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
@@ -851,17 +684,15 @@ async def wallet_inline(call: CallbackQuery):
     ])
     text = (
         f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
-        f"💵 USDT Balance: {balance_usdt} USDT\n"
-        f"🇪🇬 EGP Balance: {balance_egp} EGP\n\n"
+        f"💵 USDT Balance: {balance_usdt} USDT\n\n"
         f"💳 Deposit funds anytime.\n"
-        f"⚠️ Minimum: 5 USDT or 250 EGP"
+        f"⚠️ Minimum: 5 USDT"
         if lang == "en"
         else
         f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
-        f"💵 رصيد الدولار: {balance_usdt} USDT\n"
-        f"🇪🇬 رصيد المصري: {balance_egp} جنيه\n\n"
+        f"💵 رصيد الدولار: {balance_usdt} USDT\n\n"
         f"💳 تقدر تضيف رصيد في أي وقت.\n"
-        f"⚠️ أقل إيداع: 5 USDT أو 250 جنيه"
+        f"⚠️ أقل إيداع: 5 USDT"
     )
     await edit_or_answer(msg, text, reply_markup=kb)
     await call.answer()
@@ -870,19 +701,17 @@ async def wallet_inline(call: CallbackQuery):
 async def wallet_message(message: Message):
     await ensure_user(message)
     fake = await message.answer("...")
-    class Obj: pass
-    # simpler: send new wallet with same function logic
     lang = await get_lang(message.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
+    balance_usdt = await get_wallet_balance(message.from_user.id)
     await fake.edit_text("💳 Syncing Wallet...\n\n◉◉◉◉◉ 100%")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="⬅️ Main Menu / الرئيسية", callback_data="home_main")],
     ])
     text = (
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 USDT Balance: {balance_usdt} USDT\n🇪🇬 EGP Balance: {balance_egp} EGP"
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 USDT Balance: {balance_usdt} USDT"
         if lang == "en" else
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 رصيد الدولار: {balance_usdt} USDT\n🇪🇬 رصيد المصري: {balance_egp} جنيه"
+        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 رصيد الدولار: {balance_usdt} USDT"
     )
     await fake.edit_text(text, reply_markup=kb)
 
@@ -904,35 +733,22 @@ async def deposit_message(message: Message):
 async def deposit_currency_selected(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     currency = call.data.replace("deposit_currency_", "").upper()
-    if currency not in ["EGP", "USDT"]:
+    if currency != "USDT":
         await call.answer("Invalid currency", show_alert=True)
         return
     deposit_waiting[call.from_user.id] = currency
     msg = await animate_message(call.message, f"{ce('lightning','⚡')} Preparing amount input..." if lang == "en" else f"{ce('lightning','⚡')} تجهيز إدخال المبلغ...", "deposit")
-    if currency == "EGP":
-        text = (
-            "🇪🇬 EGP Deposit\n━━━━━━━━━━━━━━\n\n"
-            "Type the amount you want to add in EGP.\n"
-            "Minimum: 250 EGP\n\n"
-            "Example: 250 or 500"
-            if lang == "en" else
-            "🇪🇬 إيداع بالمصري\n━━━━━━━━━━━━━━\n\n"
-            "اكتب المبلغ اللي عايز تضيفه بالجنيه.\n"
-            "أقل مبلغ: 250 جنيه\n\n"
-            "مثال: 250 أو 500"
-        )
-    else:
-        text = (
-            f"{ce('binance','🟡')} USDT Deposit\n━━━━━━━━━━━━━━\n\n"
-            "Type the amount you want to add in USDT.\n"
-            "Minimum: 5 USDT\n\n"
-            "Example: 5 or 10"
-            if lang == "en" else
-            f"{ce('binance','🟡')} إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
-            "اكتب المبلغ اللي عايز تضيفه بالدولار.\n"
-            "أقل مبلغ: 5 USDT\n\n"
-            "مثال: 5 أو 10"
-        )
+    text = (
+        f"{ce('binance','🟡')} USDT Deposit\n━━━━━━━━━━━━━━\n\n"
+        "Type the amount you want to add in USDT.\n"
+        "Minimum: 5 USDT\n\n"
+        "Example: 5 or 10"
+        if lang == "en" else
+        f"{ce('binance','🟡')} إيداع بالدولار USDT\n━━━━━━━━━━━━━━\n\n"
+        "اكتب المبلغ اللي عايز تضيفه بالدولار.\n"
+        "أقل مبلغ: 5 USDT\n\n"
+        "مثال: 5 أو 10"
+    )
     await edit_or_answer(msg, text, reply_markup=back_home_keyboard(lang))
     await call.answer()
 
@@ -947,7 +763,7 @@ async def open_products_screen(message: Message):
 async def open_wallet_screen(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    balance_usdt, balance_egp = await get_wallet_balance(message.from_user.id)
+    balance_usdt = await get_wallet_balance(message.from_user.id)
     msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Deposit / إيداع", callback_data="home_deposit")],
@@ -956,16 +772,14 @@ async def open_wallet_screen(message: Message):
     ])
     text = (
         f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"USDT Balance: <b>{balance_usdt}</b> USDT\n"
-        f"EGP Balance: <b>{balance_egp}</b> EGP\n\n"
+        f"USDT Balance: <b>{balance_usdt}</b> USDT\n\n"
         f"{ce('payment','💳')} Deposit funds anytime.\n"
-        f"{ce('lightning','⚡')} Minimum: 5 USDT or 250 EGP"
+        f"{ce('lightning','⚡')} Minimum: 5 USDT"
         if lang == "en" else
         f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"رصيد الدولار: <b>{balance_usdt}</b> USDT\n"
-        f"رصيد المصري: <b>{balance_egp}</b> جنيه\n\n"
+        f"رصيد الدولار: <b>{balance_usdt}</b> USDT\n\n"
         f"{ce('payment','💳')} تقدر تضيف رصيد في أي وقت.\n"
-        f"{ce('lightning','⚡')} أقل إيداع: 5 USDT أو 250 جنيه"
+        f"{ce('lightning','⚡')} أقل إيداع: 5 USDT"
     )
     await edit_or_answer(msg, text, reply_markup=kb)
 
@@ -1015,49 +829,28 @@ async def receive_deposit_amount(message: Message):
     try:
         amount = float(message.text.strip().replace(",", "."))
     except ValueError:
-        await message.answer("❌ اكتب المبلغ رقم فقط مثل: 250 أو 5")
+        await message.answer("❌ اكتب المبلغ رقم فقط مثل: 5 أو 10")
         return
     if currency == "USDT" and amount < 5:
         await message.answer("❌ أقل إيداع للدولار هو 5 USDT." if lang != "en" else "❌ Minimum USDT deposit is 5 USDT.")
         return
-    if currency == "EGP" and amount < 250:
-        await message.answer("❌ أقل إيداع بالمصري هو 250 جنيه." if lang != "en" else "❌ Minimum EGP deposit is 250 EGP.")
-        return
     deposit_waiting.pop(message.from_user.id, None)
     msg = await animate_message(message, f"{ce('payment','💳')} Loading payment methods..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز طرق الدفع...", "deposit")
     amount_txt = format_amount(amount)
-    if currency == "USDT":
-        text = (
-            f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
-            f"💰 Amount: {amount_txt} {currency}\n\n"
-            f"{ce('binance','🟡')} <b>Binance UID</b>\n"
-            f"<code>{BINANCE_UID}</code>\n\n"
-            f"Choose payment method below:"
-            if lang == "en" else
-            f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
-            f"💰 المبلغ: {amount_txt} {currency}\n\n"
-            f"{ce('binance','🟡')} <b>بينانس UID</b>\n"
-            f"<code>{BINANCE_UID}</code>\n\n"
-            f"اختار طريقة الدفع من الأزرار:"
-        )
-    else:
-        text = (
-            f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
-            f"💰 Amount: {amount_txt} {currency}\n\n"
-            f"{ce('vodafone','🔴')} <b>Vodafone Cash</b>\n"
-            f"<code>{VODAFONE_CASH}</code>\n\n"
-            f"{ce('instapay','🟣')} <b>InstaPay</b>\n"
-            f"<code>{INSTAPAY}</code>\n\n"
-            f"Choose payment method below:"
-            if lang == "en" else
-            f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
-            f"💰 المبلغ: {amount_txt} {currency}\n\n"
-            f"{ce('vodafone','🔴')} <b>فودافون كاش</b>\n"
-            f"<code>{VODAFONE_CASH}</code>\n\n"
-            f"{ce('instapay','🟣')} <b>انستا باي</b>\n"
-            f"<code>{INSTAPAY}</code>\n\n"
-            f"اختار طريقة الدفع من الأزرار:"
-        )
+    
+    text = (
+        f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
+        f"💰 Amount: {amount_txt} {currency}\n\n"
+        f"{ce('binance','🟡')} <b>Binance UID</b>\n"
+        f"<code>{BINANCE_UID}</code>\n\n"
+        f"Choose payment method below:"
+        if lang == "en" else
+        f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
+        f"💰 المبلغ: {amount_txt} {currency}\n\n"
+        f"{ce('binance','🟡')} <b>بينانس UID</b>\n"
+        f"<code>{BINANCE_UID}</code>\n\n"
+        f"اختار طريقة الدفع من الأزرار:"
+    )
     await edit_or_answer(msg, text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency))
 
 @dp.callback_query(F.data.startswith("topup_"))
@@ -1077,9 +870,7 @@ async def create_wallet_topup(call: CallbackQuery):
     if currency == "USDT" and amount < 5:
         await call.answer("Minimum is 5 USDT", show_alert=True)
         return
-    if currency == "EGP" and amount < 250:
-        await call.answer("Minimum is 250 EGP", show_alert=True)
-        return
+        
     msg = await animate_message(call.message, f"{ce('payment','💳')} Preparing secure payment..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
     async with db_pool.acquire() as conn:
         dep_id = await conn.fetchval(
@@ -1102,12 +893,8 @@ async def create_wallet_topup(call: CallbackQuery):
         f"💳 Wallet Deposit Request #{dep_id}\nUser: @{call.from_user.username}\nID: {call.from_user.id}\nMethod: {method}\nAmount: {format_amount(amount)} {currency}\n\nبعد التأكد اضغط Approve Deposit.",
         reply_markup=kb,
     )
-    if method == "binance":
-        pay_text = f"{ce('binance','🟡')} Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {format_amount(amount)} USDT"
-    elif method == "vodafone":
-        pay_text = f"{ce('vodafone','🔴')} Vodafone Cash Deposit\n━━━━━━━━━━━━━━\n\n📱 Number:\n<code>{VODAFONE_CASH}</code>\n\n💰 Amount: {format_amount(amount)} EGP"
-    else:
-        pay_text = f"{ce('instapay','🟣')} InstaPay Deposit\n━━━━━━━━━━━━━━\n\n🏦 InstaPay:\n<code>{INSTAPAY}</code>\n\n💰 Amount: {format_amount(amount)} EGP"
+    
+    pay_text = f"{ce('binance','🟡')} Binance UID Deposit\n━━━━━━━━━━━━━━\n\n🆔 UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {format_amount(amount)} USDT"
     await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Deposit ID: #{dep_id}")
     await call.answer()
 
@@ -1120,8 +907,9 @@ async def pay_product(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
     msg = await animate_message(call.message, f"{ce('payment','💳')} Securing payment details..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
-    currency = "USDT" if method == "binance" else "EGP"
-    amount = product["usd"] if method == "binance" else product["egp"]
+    currency = "USDT"
+    amount = product["usd"]
+    
     async with db_pool.acquire() as conn:
         dep_id = await conn.fetchval(
             """
@@ -1143,12 +931,8 @@ async def pay_product(call: CallbackQuery):
         f"🛒 New Order #{dep_id}\nUser: @{call.from_user.username}\nID: {call.from_user.id}\nProduct: {product['title_en']}\nMethod: {method}\nAmount: {amount} {currency}",
         reply_markup=kb,
     )
-    if method == "binance":
-        pay_text = f"{ce('binance','🟡')} Binance UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {amount} USDT"
-    elif method == "vodafone":
-        pay_text = f"{ce('vodafone','🔴')} Vodafone Cash:\n<code>{VODAFONE_CASH}</code>\n\n💰 Amount: {amount} EGP"
-    else:
-        pay_text = f"{ce('instapay','🟣')} InstaPay:\n<code>{INSTAPAY}</code>\n\n💰 Amount: {amount} EGP"
+    
+    pay_text = f"{ce('binance','🟡')} Binance UID:\n<code>{BINANCE_UID}</code>\n\n💰 Amount: {amount} USDT"
     await edit_or_answer(msg, f"{pay_text}\n\n📸 بعد الدفع ابعت صورة إثبات الدفع هنا.\n🧾 Order ID: #{dep_id}")
     await call.answer()
 
@@ -1164,53 +948,34 @@ async def approve(call: CallbackQuery):
             return
         product_key = dep["product_key"]
         if product_key == WALLET_DEPOSIT_KEY:
-            if str(dep["currency"]).upper() == "USDT":
-                await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
-            else:
-                await conn.execute("UPDATE users SET balance_egp = balance_egp + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
+            await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
             await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
             await bot.send_message(dep["telegram_id"], f"✅ تم قبول الإيداع وإضافة الرصيد\n━━━━━━━━━━━━━━\n\n💰 Amount: {dep['amount']} {dep['currency']}\n\nشكراً لثقتك ❤️")
             await call.message.edit_text(f"✅ Wallet Deposit #{dep_id} Approved")
             await call.answer()
             return
+            
         product = PRODUCTS[product_key]
-        if product["type"] == "activation":
-            if product_key == "chatgpt_email":
-                activation_text = (
-                    f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
-                    f"✨ تفعيل ChatGPT Plus على إيميلك الشخصي\n\n"
-                    f"يرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\n"
-                    f"شكراً لثقتك ❤️"
-                )
-            else:
-                activation_text = (
-                    f"✅ تم تأكيد الدفع بنجاح\n━━━━━━━━━━━━━━\n\n"
-                    f"📧 تفعيل Gemini Pro على إيميلك الشخصي\n\n"
-                    f"يرجى التواصل مع الأدمن لإتمام التفعيل:\n{SUPPORT}\n\n"
-                    f"شكراً لثقتك ❤️"
-                )
-            await bot.send_message(dep["telegram_id"], activation_text)
-        else:
-            item = await conn.fetchrow(
-                """
-                SELECT id, item_data FROM stock
-                WHERE product=$1 AND sold=false
-                ORDER BY id ASC
-                LIMIT 1
-                """,
-                product["stock_name"],
-            )
-            if not item:
-                await call.message.edit_text("❌ لا يوجد مخزون متاح حاليًا")
-                await bot.send_message(dep["telegram_id"], "❌ لا يوجد مخزون حاليًا. تواصل مع الدعم.")
-                return
-            await conn.execute("UPDATE stock SET sold=true WHERE id=$1", item["id"])
-            remaining = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", product["stock_name"])
-            await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 بيانات الحساب:\n\n{item['item_data']}\n\nشكراً لشرائك ❤️")
-            if remaining == 0:
-                await bot.send_message(ADMIN_ID, f"🚨 OUT OF STOCK\n\nProduct: {product['stock_name']}")
-            elif remaining <= 3:
-                await bot.send_message(ADMIN_ID, f"⚠️ Low Stock Alert\n\nProduct: {product['stock_name']}\nRemaining: {remaining}")
+        item = await conn.fetchrow(
+            """
+            SELECT id, item_data FROM stock
+            WHERE product=$1 AND sold=false
+            ORDER BY id ASC
+            LIMIT 1
+            """,
+            product["stock_name"],
+        )
+        if not item:
+            await call.message.edit_text("❌ لا يوجد مخزون متاح حاليًا")
+            await bot.send_message(dep["telegram_id"], "❌ لا يوجد مخزون حاليًا. تواصل مع الدعم.")
+            return
+        await conn.execute("UPDATE stock SET sold=true WHERE id=$1", item["id"])
+        remaining = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", product["stock_name"])
+        await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 الكود الخاص بك (CDK):\n\n<code>{item['item_data']}</code>\n\n{ce('lightning','⚡')} رابط التفعيل: http://gpt.ddfafa.com\n\nشكراً لشرائك ❤️")
+        if remaining == 0:
+            await bot.send_message(ADMIN_ID, f"🚨 OUT OF STOCK\n\nProduct: {product['stock_name']}")
+        elif remaining <= 3:
+            await bot.send_message(ADMIN_ID, f"⚠️ Low Stock Alert\n\nProduct: {product['stock_name']}\nRemaining: {remaining}")
         await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
     await call.message.edit_text(f"✅ Order #{dep_id} Approved")
     await call.answer()
@@ -1253,28 +1018,20 @@ async def support_message(message: Message):
     await message.answer(f"{ce('support','🎧')} {ce('telegram','✈️')} {SUPPORT}", parse_mode="HTML")
 
 async def broadcast_stock_added(product_key: str, quantity: int, total: int):
-    # إشعار تلقائي لكل المستخدمين عند إضافة مخزون جديد للحسابات الجاهزة
     product = PRODUCTS[product_key]
 
     async with db_pool.acquire() as conn:
         users = await conn.fetch("SELECT telegram_id, lang FROM users")
 
-    if product_key == "chatgpt":
-        product_name = "ChatGPT Plus — Ready Accounts"
-        product_icon = ce("chatgpt", "🤖")
-    elif product_key == "gemini_ready":
-        product_name = "Gemini Pro — Ready Accounts"
-        product_icon = ce("gemini", "🟢")
-    else:
-        product_name = product["title_en"]
-        product_icon = ce("store", "🛍")
+    product_name = product["title_en"]
+    product_icon = ce("chatgpt", "🤖")
 
     for user in users:
         lang = user["lang"] or "ar"
 
         if lang == "en":
             text = (
-                f"{ce('fire','🔥')} <b>New stock available now!</b>\n"
+                f"{ce('fire','🔥')} <b>New CDK stock available now!</b>\n"
                 f"━━━━━━━━━━━━━━━━━━\n\n"
                 f"{product_icon} <b>{product_name}</b>\n"
                 f"{ce('stock_add','+')} Added: <b>{quantity}</b>\n"
@@ -1286,7 +1043,7 @@ async def broadcast_stock_added(product_key: str, quantity: int, total: int):
             ])
         else:
             text = (
-                f"{ce('fire','🔥')} <b>وصل مخزون جديد الآن!</b>\n"
+                f"{ce('fire','🔥')} <b>وصل مخزون جديد من أكواد التفعيل!</b>\n"
                 f"━━━━━━━━━━━━━━━━━━\n\n"
                 f"{product_icon} <b>{product_name}</b>\n"
                 f"{ce('stock_add','+')} تمت إضافة: <b>{quantity}</b>\n"
@@ -1362,11 +1119,10 @@ async def emoji_help(message: Message):
 async def stock_count(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
-    chatgpt = await get_stock_count("chatgpt")
-    gemini = await get_stock_count("gemini_ready")
+    cdk = await get_stock_count("cdk_chatgpt")
     await message.answer(
-        f"📦 Stock Report\n\n🤖 ChatGPT Plus Ready Account Stock: {chatgpt}\n💎 Gemini Pro Ready Account Stock: {gemini}\n\n"
-        f"/liststock chatgpt\n/liststock gemini\n/delstock chatgpt ID\n/delstock gemini ID\n/clearstock chatgpt\n/clearstock gemini"
+        f"📦 Stock Report\n\n🤖 CDK Activation Chatgpt Stock: {cdk}\n\n"
+        f"/liststock cdk\n/delstock cdk ID\n/clearstock cdk"
     )
 
 @dp.message(Command("addstock"))
@@ -1375,23 +1131,23 @@ async def add_stock(message: Message):
         return
     text = message.text.replace("/addstock", "").strip()
     if not text:
-        await message.answer("📦 إضافة استوك:\n\n/addstock chatgpt\nemail1:pass1\nemail2:pass2\n\n/addstock gemini\nemail1:pass1\nemail2:pass2")
+        await message.answer("📦 إضافة استوك لكود التفعيل:\n\n/addstock cdk\nCODE1\nCODE2\nCODE3")
         return
     lines = [x.strip() for x in text.splitlines() if x.strip()]
     product_key, stock_name = resolve_stock_product(lines[0])
     if not product_key:
-        await message.answer("❌ نوع المنتج غير صحيح. استخدم chatgpt أو gemini")
+        await message.answer("❌ نوع المنتج غير صحيح. استخدم cdk")
         return
     items = lines[1:]
     if not items:
-        await message.answer("❌ اكتب الحسابات تحت اسم المنتج، كل حساب في سطر.")
+        await message.answer("❌ اكتب الأكواد تحت اسم المنتج، كل كود في سطر.")
         return
     async with db_pool.acquire() as conn:
         for item in items:
             await conn.execute("INSERT INTO stock(product,item_data) VALUES($1,$2)", stock_name, item)
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
     label = product_label(product_key)
-    await message.answer(f"✅ تم إضافة {len(items)} حساب إلى {label}\n📦 المخزون الحالي: {total}")
+    await message.answer(f"✅ تم إضافة {len(items)} كود إلى {label}\n📦 المخزون الحالي: {total}")
     await bot.send_message(ADMIN_ID, f"📦 Stock Added\n\nProduct: {label}\nQuantity Added: {len(items)}\nCurrent Stock: {total}")
     await broadcast_stock_added(product_key, len(items), total)
 
@@ -1401,11 +1157,11 @@ async def list_stock(message: Message):
         return
     parts = message.text.split()
     if len(parts) < 2:
-        await message.answer("استخدم:\n/liststock chatgpt\n/liststock gemini")
+        await message.answer("استخدم:\n/liststock cdk")
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم chatgpt أو gemini")
+        await message.answer("❌ استخدم cdk")
         return
     async with db_pool.acquire() as conn:
         rows = await conn.fetch("SELECT id, item_data FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT 50", stock_name)
@@ -1427,11 +1183,11 @@ async def delete_stock(message: Message):
         return
     parts = message.text.split()
     if len(parts) < 3:
-        await message.answer("استخدم:\n/delstock chatgpt 5\n/delstock gemini 7")
+        await message.answer("استخدم:\n/delstock cdk 5")
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم chatgpt أو gemini")
+        await message.answer("❌ استخدم cdk")
         return
     try:
         item_id = int(parts[2])
@@ -1453,16 +1209,16 @@ async def clear_stock(message: Message):
         return
     parts = message.text.split()
     if len(parts) < 2:
-        await message.answer("استخدم:\n/clearstock chatgpt\n/clearstock gemini")
+        await message.answer("استخدم:\n/clearstock cdk")
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم chatgpt أو gemini")
+        await message.answer("❌ استخدم cdk")
         return
     async with db_pool.acquire() as conn:
         deleted = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
         await conn.execute("DELETE FROM stock WHERE product=$1 AND sold=false", stock_name)
-    await message.answer(f"🗑 تم مسح {deleted} عنصر من استوك {product_label(product_key)}")
+    await message.answer(f"🗑 تم مسح {deleted} كود من استوك {product_label(product_key)}")
 
 @dp.message(Command("broadcast"))
 async def broadcast(message: Message):
