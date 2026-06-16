@@ -30,54 +30,46 @@ BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
 
+# --- قائمة الإيموجيات المتحركة الخرافية ---
 EMOJI = {
-    "chatgpt": "5359726582447487916",
-    "store": "5373261557700509032",
-    "verified": "5370941588165893740",
-    "binance": "5319236736042149889",
-    "payment": "5364036341610858181",
-    "wallet": "6267013757730296733",
-    "cart": "5859297284029681680",
-    "support": "6181322172263308706",
-    "telegram": "6089099509202164251",
-    "fire": "6179353385024626225",
-    "announcement": "6181594486074777254",
-    "rocket": "6181682949516173646",
-    "shield": "6179259084722675328",
-    "lightning": "6179411633371095707",
-    "home": "5195140682590722632",
-    "refresh": "5292226786229236118",
-    "stock": "6181284483925286789",
-    "success": "6179298314953956852",
-    "error": "6181467651395558500",
-    "vip": "6181731641560407212",
-    "language": "6181573608238751317",
-    "stock_add": "5397916757333654639",
+    "store": "5859297284029681680",       # شنطة تسوق متجر
+    "wallet": "6088990159334808217",      # محفظة
+    "support": "6181322172263308706",     # سماعة دعم
+    "telegram": "6089099509202164251",    # تليجرام
+    "language": "5447410659077661506",    # كرة أرضية
+    "home": "5195140682590722632",        # الرئيسية
+    "chatgpt": "5864127571754489150",     # روبوت / ذكاء اصطناعي
+    "stock": "6089247294731852091",       # صندوق المخزون
+    "shield": "5251203410396458957",      # درع الحماية / الضمان
+    "link": "5282843764451195532",        # رابط
+    "step": "5397782960512444700",        # نجمة / دبوس خطوات التفعيل
+    "rocket": "6181682949516173646",      # صاروخ تحميل
+    "success": "6179298314953956852",     # صح خضراء
+    "refresh": "5341715473882955310",     # ترس بيلف / تحديث
+    "lightning": "6181421841274379029",   # برق السرعة
+    "payment": "5352662091390008496",     # كارت فيزا / دفع
+    "binance": "6222208096257712941",     # عملة صفراء / بينانس
+    "fire": "6266887773454603583",        # نار الاستوك الجديد
+    "announcement": "6181594486074777254",# مكبر صوت إشعارات
+    "stock_add": "5397916757333654639",   # زائد للمخزون
+    "trash": "5445267414562389170",       # سلة مهملات
+    "error": "6181467651395558500",       # علامة X
+    "arrows_up": "5449683594425410231",   # أسهم لأعلى
+    "arrows_down": "5447183459602669338", # أسهم لأسفل
+    "bell": "5458603043203327669",        # جرس
+    "hundred": "6181303849932823189",     # 100%
+    "vip": "6181731641560407212",         # نجمة VIP
+    "verified": "5370941588165893740",    # علامة توثيق
 }
 
 SAFE_EMOJI_FALLBACK = {
-    "chatgpt": "🤖",
-    "store": "🛍",
-    "verified": "✅",
-    "binance": "🟡",
-    "payment": "💳",
-    "wallet": "💰",
-    "cart": "🛒",
-    "support": "🎧",
-    "telegram": "✈️",
-    "fire": "🔥",
-    "announcement": "📢",
-    "rocket": "🚀",
-    "shield": "🛡",
-    "lightning": "⚡",
-    "home": "🏠",
-    "refresh": "🔄",
-    "stock": "📦",
-    "success": "✅",
-    "error": "❌",
-    "vip": "⭐",
-    "language": "🌐",
-    "stock_add": "➕",
+    "store": "🛍", "wallet": "💰", "support": "🎧", "telegram": "✈️",
+    "language": "🌐", "home": "🏠", "chatgpt": "🤖", "stock": "📦",
+    "shield": "🛡", "link": "🔗", "step": "🔹", "rocket": "🚀",
+    "success": "✅", "refresh": "🔄", "lightning": "⚡", "payment": "💳",
+    "binance": "🟡", "fire": "🔥", "announcement": "📢", "stock_add": "➕",
+    "trash": "🗑", "error": "❌", "arrows_up": "⬆️", "arrows_down": "⬇️",
+    "bell": "🔔", "hundred": "💯", "vip": "⭐", "verified": "☑️",
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -161,8 +153,8 @@ PRODUCTS = {
         "image": CDK_IMAGE_FILE,
         "usd": 9,
         "type": "stock",
-        "warranty_ar": "سنة كاملة",
-        "warranty_en": "1 Year",
+        "warranty_ar": "الاشتراك سنه ، no warranty",
+        "warranty_en": "1 Year, no warranty",
     }
 }
 
@@ -284,31 +276,8 @@ async def animate_message(message, title: str, style: str = "default"):
             "▰▰▱▱▱▱▱▱▱▱ 20%",
             "▰▰▰▰▱▱▱▱▱▱ 40%",
             "▰▰▰▰▰▰▱▱▱▱ 60%",
-            "▰▰▰▰▰▰▰▰▰▱▱ 80%",
+            "▰▰▰▰▰▰▰▰▱▱ 80%",
             "▰▰▰▰▰▰▰▰▰▰ 100%",
-        ],
-        "wallet": [
-            "◇◇◇◇◇◇◇◇◇◇ 0%",
-            "◆◆◇◇◇◇◇◇◇◇ 20%",
-            "◆◆◆◆◇◇◇◇◇◇ 40%",
-            "◆◆◆◆◆◆◇◇◇◇ 60%",
-            "◆◆◆◆◆◆◆◆◇◇ 80%",
-            "◆◆◆◆◆◆◆◆◆◆ 100%",
-        ],
-        "deposit": [
-            "⬡⬡⬡⬡⬡⬡⬡⬡⬡⬡ 0%",
-            "⬢⬢⬡⬡⬡⬡⬡⬡⬡⬡ 20%",
-            "⬢⬢⬢⬢⬡⬡⬡⬡⬡⬡ 40%",
-            "⬢⬢⬢⬢⬢⬢⬡⬡⬡⬡ 60%",
-            "⬢⬢⬢⬢⬢⬢⬢⬢⬡⬡ 80%",
-            "⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢ 100%",
-        ],
-        "checkout": [
-            "▰▱▱▱▱ 20%",
-            "▰▰▱▱▱ 40%",
-            "▰▰▰▱▱ 60%",
-            "▰▰▰▰▱ 80%",
-            "▰▰▰▰▰ 100%",
         ],
     }
     frames = frames_map.get(style, frames_map["default"])
@@ -408,7 +377,6 @@ def language_keyboard():
         [InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")],
     ])
 
-
 def main_reply_keyboard(lang: str):
     if lang == "en":
         return ReplyKeyboardMarkup(
@@ -447,7 +415,6 @@ def home_text(lang: str, name: str):
             f"Welcome to your premium AI subscriptions store.\n\n"
             f"{ce('store','🛍')} <b>Shop</b> — Browse & buy products\n"
             f"{ce('wallet','💰')} <b>Deposit</b> — Add funds to your wallet\n"
-            f"{ce('cart','🛒')} <b>Orders</b> — Fast digital delivery\n"
             f"{ce('support','🎧')} <b>Support</b> — Get help anytime\n\n"
             f"{ce('lightning','⚡')} Fast activation • Secure payments • Trusted service"
         )
@@ -458,7 +425,6 @@ def home_text(lang: str, name: str):
         f"نورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n"
         f"{ce('store','🛍')} <b>المتجر</b> — تصفح واشتري المنتجات\n"
         f"{ce('wallet','💰')} <b>إيداع</b> — إضافة رصيد للمحفظة\n"
-        f"{ce('cart','🛒')} <b>الطلبات</b> — تسليم رقمي سريع\n"
         f"{ce('support','🎧')} <b>الدعم</b> — مساعدة في أي وقت\n\n"
         f"{ce('lightning','⚡')} تفعيل سريع • دفع آمن • خدمة موثوقة"
     )
@@ -467,15 +433,15 @@ def product_list_text(lang: str):
     if lang == "en":
         return (
             f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-            f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n"
-            f"Price: $9 | Warranty: 1 Year\n\n"
-            f"Choose a product below:"
+            f"{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\n"
+            f"Price: $9 | Subscription: 1 Year, no warranty {ce('error','❌')}\n\n"
+            f"{ce('arrows_down','⬇️')} Choose a product below:"
         )
     return (
         f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n"
-        f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n"
-        f"السعر: 9$ | الضمان: سنة كاملة\n\n"
-        f"اختار المنتج من الأزرار:"
+        f"{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\n"
+        f"السعر: 9$ | الاشتراك سنه ، no warranty {ce('error','❌')}\n\n"
+        f"{ce('arrows_down','⬇️')} اختار المنتج من الأزرار:"
     )
 
 def deposit_intro_text(lang: str):
@@ -530,7 +496,7 @@ async def wallet_command(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
     balance_usdt = await get_wallet_balance(message.from_user.id)
-    msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
+    msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('refresh','🔄')} مزامنة المحفظة...", "default")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="Main Menu / الرئيسية", callback_data="home_main")],
@@ -558,7 +524,7 @@ async def home_main(call: CallbackQuery):
     await ensure_user_by_id(call.from_user.id, call.from_user.username, call.from_user.first_name)
     lang = await get_lang(call.from_user.id)
     name = user_display_name(call.from_user)
-    msg = await animate_message(call.message, f"{ce('lightning','⚡')} Loading AIX Store..." if lang == "en" else f"{ce('lightning','⚡')} جاري فتح AIX Store...", "default")
+    msg = await animate_message(call.message, f"{ce('home','🏠')} Loading AIX Store..." if lang == "en" else f"{ce('home','🏠')} جاري فتح القائمة...", "default")
     await edit_or_answer(msg, home_text(lang, name), reply_markup=home_keyboard(lang))
     await call.answer()
 
@@ -613,41 +579,39 @@ async def refresh_products(call: CallbackQuery):
 @dp.callback_query(F.data == "product_cdk_chatgpt")
 async def product_cdk_chatgpt(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    await animate_message(call.message, f"{ce('chatgpt','🤖')} Preparing product..." if lang == "en" else f"{ce('chatgpt','🤖')} جاري تجهيز المنتج...", "checkout")
+    await animate_message(call.message, f"{ce('chatgpt','🤖')} Preparing product..." if lang == "en" else f"{ce('chatgpt','🤖')} جاري تجهيز المنتج...", "default")
     count = await get_stock_count("cdk_chatgpt")
     
     caption = (
         f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n━━━━━━━━━━━━━━\n\n"
         f"{ce('wallet','💰')} Price: $9\n"
         f"{ce('stock','📦')} Stock: {count}\n"
-        f"{ce('shield','🛡')} Warranty: 1 Year\n\n"
+        f"{ce('shield','🛡')} Subscription: 1 Year, no warranty {ce('error','❌')}\n\n"
         f"{ce('fire','🔥')} <b>K-12 Offer Activation for your personal account!</b>\n\n"
-        f"{ce('lightning','⚡')} <b>Redemption Link:</b> http://gpt.ddfafa.com\n\n"
-        f"{ce('verified','✅')} <b>How to activate:</b>\n"
-        f"1️⃣ Put the CDK code in the first field.\n"
-        f"2️⃣ Click 'Open AuthSession Page', copy the full Access Token, and paste it in the second field.\n"
-        f"3️⃣ Click 'Activate Now' and you are done!\n\n"
-        f"{ce('success','✅')} Instant delivery after payment."
+        f"{ce('link','🔗')} <b>Redemption Link:</b> http://gpt.ddfafa.com\n\n"
+        f"{ce('bell','🔔')} <b>How to activate:</b>\n"
+        f"{ce('step','🔹')} Put the CDK code in the first field.\n"
+        f"{ce('step','🔹')} Click 'Open AuthSession Page', copy the full Access Token, and paste it in the second field.\n"
+        f"{ce('step','🔹')} Click 'Activate Now' and you are done!\n\n"
+        f"{ce('lightning','⚡')} Instant delivery after payment."
         if lang == "en"
         else
         f"{ce('chatgpt','🤖')} <b>CDK Activation Chatgpt For 1 year</b>\n━━━━━━━━━━━━━━\n\n"
         f"{ce('wallet','💰')} السعر: 9$\n"
         f"{ce('stock','📦')} المتوفر: {count}\n"
-        f"{ce('shield','🛡')} الضمان: سنة كاملة\n\n"
+        f"{ce('shield','🛡')} الاشتراك سنه ، no warranty {ce('error','❌')}\n\n"
         f"{ce('fire','🔥')} <b>تفعيل عرض K-12 على حسابك الشخصي!</b>\n\n"
-        f"{ce('lightning','⚡')} <b>موقع التفعيل:</b> http://gpt.ddfafa.com\n\n"
-        f"{ce('verified','✅')} <b>طريقة التفعيل:</b>\n"
-        f"1️⃣ حط الكود (CDK) في الخانة الأولى.\n"
-        f"2️⃣ افتح 'Open AuthSession Page'، انسخ الاكسيس توكن بالكامل، واللصقه في الخانة التانية.\n"
-        f"3️⃣ دوس 'Activate Now' وبس كدا!\n\n"
-        f"{ce('success','✅')} تسليم فوري للكود بعد الدفع."
+        f"{ce('link','🔗')} <b>موقع التفعيل:</b> http://gpt.ddfafa.com\n\n"
+        f"{ce('bell','🔔')} <b>طريقة التفعيل:</b>\n"
+        f"{ce('step','🔹')} حط الكود (CDK) في الخانة الأولى.\n"
+        f"{ce('step','🔹')} افتح 'Open AuthSession Page'، انسخ الاكسيس توكن بالكامل، واللصقه في الخانة التانية.\n"
+        f"{ce('step','🔹')} دوس 'Activate Now' وبس كدا!\n\n"
+        f"{ce('lightning','⚡')} تسليم فوري للكود بعد الدفع."
     )
     
     try:
-        # قراءة الصورة من الرابط
         await call.message.answer_photo(URLInputFile(CDK_IMAGE_FILE), caption=caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
     except Exception:
-        # في حالة فشل قراءة الرابط يرسل النص فقط
         await call.message.answer(caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
         
     await call.answer()
@@ -662,11 +626,11 @@ async def buy_product(call: CallbackQuery):
         if count <= 0:
             await call.answer("Out of stock ❌" if lang == "en" else "المخزون غير متوفر ❌", show_alert=True)
             return
-    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing checkout..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز الدفع...", "checkout")
+    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing checkout..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز الدفع...", "default")
     text = (
-        f"🛒 Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']}\n\nChoose payment method:"
+        f"{ce('payment','💳')} Checkout\n━━━━━━━━━━━━━━\n\n💰 Price: ${product['usd']}\n\n{ce('arrows_down','⬇️')} Choose payment method:"
         if lang == "en"
-        else f"🛒 إتمام الشراء\n━━━━━━━━━━━━━━\n\n💰 السعر: {product['usd']}$\n\nاختار طريقة الدفع:"
+        else f"{ce('payment','💳')} إتمام الشراء\n━━━━━━━━━━━━━━\n\n💰 السعر: {product['usd']}$\n\n{ce('arrows_down','⬇️')} اختار طريقة الدفع:"
     )
     await edit_or_answer(msg, text, reply_markup=payment_buttons(lang, product_key))
     await call.answer()
@@ -676,49 +640,49 @@ async def buy_product(call: CallbackQuery):
 async def wallet_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     balance_usdt = await get_wallet_balance(call.from_user.id)
-    msg = await animate_message(call.message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
+    msg = await animate_message(call.message, f"{ce('refresh','🔄')} Syncing Wallet..." if lang == "en" else f"{ce('refresh','🔄')} مزامنة المحفظة...", "default")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="🔄 Refresh / تحديث", callback_data="home_wallet")],
         [InlineKeyboardButton(text="⬅️ Main Menu / الرئيسية", callback_data="home_main")],
     ])
     text = (
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━\n\n"
         f"💵 USDT Balance: {balance_usdt} USDT\n\n"
-        f"💳 Deposit funds anytime.\n"
+        f"{ce('payment','💳')} Deposit funds anytime.\n"
         f"⚠️ Minimum: 5 USDT"
         if lang == "en"
         else
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━\n\n"
         f"💵 رصيد الدولار: {balance_usdt} USDT\n\n"
-        f"💳 تقدر تضيف رصيد في أي وقت.\n"
+        f"{ce('payment','💳')} تقدر تضيف رصيد في أي وقت.\n"
         f"⚠️ أقل إيداع: 5 USDT"
     )
     await edit_or_answer(msg, text, reply_markup=kb)
     await call.answer()
 
-@dp.message(F.text.in_(["👛 المحفظة", "👛 Wallet"]))
+@dp.message(F.text.in_(["👛 المحفظة", "👛 Wallet", "💰 المحفظة", "💰 Wallet"]))
 async def wallet_message(message: Message):
     await ensure_user(message)
     fake = await message.answer("...")
     lang = await get_lang(message.from_user.id)
     balance_usdt = await get_wallet_balance(message.from_user.id)
-    await fake.edit_text("💳 Syncing Wallet...\n\n◉◉◉◉◉ 100%")
+    await fake.edit_text(f"{ce('refresh','🔄')} Syncing Wallet...\n\n◉◉◉◉◉ 100%")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="⬅️ Main Menu / الرئيسية", callback_data="home_main")],
     ])
     text = (
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 USDT Balance: {balance_usdt} USDT"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━\n\n💵 USDT Balance: {balance_usdt} USDT"
         if lang == "en" else
-        f"👛 AIX WALLET\n━━━━━━━━━━━━━━\n\n💵 رصيد الدولار: {balance_usdt} USDT"
+        f"{ce('wallet','💰')} <b>AIX WALLET</b>\n━━━━━━━━━━━━━━\n\n💵 رصيد الدولار: {balance_usdt} USDT"
     )
     await fake.edit_text(text, reply_markup=kb)
 
 @dp.callback_query(F.data == "home_deposit")
 async def deposit_inline(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, f"{ce('wallet','💰')} Opening Deposit Gateway..." if lang == "en" else f"{ce('wallet','💰')} فتح بوابة الإيداع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('payment','💳')} Opening Deposit Gateway..." if lang == "en" else f"{ce('payment','💳')} فتح بوابة الإيداع...", "default")
     await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
     await call.answer()
 
@@ -726,7 +690,7 @@ async def deposit_inline(call: CallbackQuery):
 async def deposit_message(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
-    msg = await animate_message(message, f"{ce('wallet','💰')} Opening Deposit Gateway..." if lang == "en" else f"{ce('wallet','💰')} فتح بوابة الإيداع...", "deposit")
+    msg = await animate_message(message, f"{ce('payment','💳')} Opening Deposit Gateway..." if lang == "en" else f"{ce('payment','💳')} فتح بوابة الإيداع...", "default")
     await edit_or_answer(msg, deposit_intro_text(lang), reply_markup=deposit_currency_buttons(lang))
 
 @dp.callback_query(F.data.startswith("deposit_currency_"))
@@ -737,7 +701,7 @@ async def deposit_currency_selected(call: CallbackQuery):
         await call.answer("Invalid currency", show_alert=True)
         return
     deposit_waiting[call.from_user.id] = currency
-    msg = await animate_message(call.message, f"{ce('lightning','⚡')} Preparing amount input..." if lang == "en" else f"{ce('lightning','⚡')} تجهيز إدخال المبلغ...", "deposit")
+    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing amount input..." if lang == "en" else f"{ce('rocket','🚀')} تجهيز إدخال المبلغ...", "default")
     text = (
         f"{ce('binance','🟡')} USDT Deposit\n━━━━━━━━━━━━━━\n\n"
         "Type the amount you want to add in USDT.\n"
@@ -764,7 +728,7 @@ async def open_wallet_screen(message: Message):
     await ensure_user(message)
     lang = await get_lang(message.from_user.id)
     balance_usdt = await get_wallet_balance(message.from_user.id)
-    msg = await animate_message(message, f"{ce('wallet','💰')} Syncing Wallet..." if lang == "en" else f"{ce('wallet','💰')} مزامنة المحفظة...", "wallet")
+    msg = await animate_message(message, f"{ce('refresh','🔄')} Syncing Wallet..." if lang == "en" else f"{ce('refresh','🔄')} مزامنة المحفظة...", "default")
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Deposit / إيداع", callback_data="home_deposit")],
         [InlineKeyboardButton(text="Refresh / تحديث", callback_data="home_wallet")],
@@ -829,27 +793,27 @@ async def receive_deposit_amount(message: Message):
     try:
         amount = float(message.text.strip().replace(",", "."))
     except ValueError:
-        await message.answer("❌ اكتب المبلغ رقم فقط مثل: 5 أو 10")
+        await message.answer(f"{ce('error','❌')} اكتب المبلغ رقم فقط مثل: 5 أو 10")
         return
     if currency == "USDT" and amount < 5:
-        await message.answer("❌ أقل إيداع للدولار هو 5 USDT." if lang != "en" else "❌ Minimum USDT deposit is 5 USDT.")
+        await message.answer(f"{ce('error','❌')} أقل إيداع للدولار هو 5 USDT." if lang != "en" else f"{ce('error','❌')} Minimum USDT deposit is 5 USDT.")
         return
     deposit_waiting.pop(message.from_user.id, None)
-    msg = await animate_message(message, f"{ce('payment','💳')} Loading payment methods..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز طرق الدفع...", "deposit")
+    msg = await animate_message(message, f"{ce('rocket','🚀')} Loading payment methods..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز طرق الدفع...", "default")
     amount_txt = format_amount(amount)
     
     text = (
-        f"💳 Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('payment','💳')} Deposit Amount Selected\n━━━━━━━━━━━━━━\n\n"
         f"💰 Amount: {amount_txt} {currency}\n\n"
         f"{ce('binance','🟡')} <b>Binance UID</b>\n"
         f"<code>{BINANCE_UID}</code>\n\n"
-        f"Choose payment method below:"
+        f"{ce('arrows_down','⬇️')} Choose payment method below:"
         if lang == "en" else
-        f"💳 تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
+        f"{ce('payment','💳')} تم تحديد مبلغ الإيداع\n━━━━━━━━━━━━━━\n\n"
         f"💰 المبلغ: {amount_txt} {currency}\n\n"
         f"{ce('binance','🟡')} <b>بينانس UID</b>\n"
         f"<code>{BINANCE_UID}</code>\n\n"
-        f"اختار طريقة الدفع من الأزرار:"
+        f"{ce('arrows_down','⬇️')} اختار طريقة الدفع من الأزرار:"
     )
     await edit_or_answer(msg, text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency))
 
@@ -871,7 +835,7 @@ async def create_wallet_topup(call: CallbackQuery):
         await call.answer("Minimum is 5 USDT", show_alert=True)
         return
         
-    msg = await animate_message(call.message, f"{ce('payment','💳')} Preparing secure payment..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Preparing secure payment..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز بيانات الدفع...", "default")
     async with db_pool.acquire() as conn:
         dep_id = await conn.fetchval(
             """
@@ -906,7 +870,7 @@ async def pay_product(call: CallbackQuery):
     product_key = "_".join(parts[2:])
     lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
-    msg = await animate_message(call.message, f"{ce('payment','💳')} Securing payment details..." if lang == "en" else f"{ce('payment','💳')} جاري تجهيز بيانات الدفع...", "deposit")
+    msg = await animate_message(call.message, f"{ce('rocket','🚀')} Securing payment details..." if lang == "en" else f"{ce('rocket','🚀')} جاري تجهيز بيانات الدفع...", "default")
     currency = "USDT"
     amount = product["usd"]
     
@@ -950,8 +914,8 @@ async def approve(call: CallbackQuery):
         if product_key == WALLET_DEPOSIT_KEY:
             await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", dep["amount"], dep["telegram_id"])
             await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
-            await bot.send_message(dep["telegram_id"], f"✅ تم قبول الإيداع وإضافة الرصيد\n━━━━━━━━━━━━━━\n\n💰 Amount: {dep['amount']} {dep['currency']}\n\nشكراً لثقتك ❤️")
-            await call.message.edit_text(f"✅ Wallet Deposit #{dep_id} Approved")
+            await bot.send_message(dep["telegram_id"], f"{ce('success','✅')} تم قبول الإيداع وإضافة الرصيد\n━━━━━━━━━━━━━━\n\n💰 Amount: {dep['amount']} {dep['currency']}\n\nشكراً لثقتك ❤️")
+            await call.message.edit_text(f"{ce('success','✅')} Wallet Deposit #{dep_id} Approved")
             await call.answer()
             return
             
@@ -966,18 +930,18 @@ async def approve(call: CallbackQuery):
             product["stock_name"],
         )
         if not item:
-            await call.message.edit_text("❌ لا يوجد مخزون متاح حاليًا")
-            await bot.send_message(dep["telegram_id"], "❌ لا يوجد مخزون حاليًا. تواصل مع الدعم.")
+            await call.message.edit_text(f"{ce('error','❌')} لا يوجد مخزون متاح حاليًا")
+            await bot.send_message(dep["telegram_id"], f"{ce('error','❌')} لا يوجد مخزون حاليًا. تواصل مع الدعم.")
             return
         await conn.execute("UPDATE stock SET sold=true WHERE id=$1", item["id"])
         remaining = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", product["stock_name"])
-        await bot.send_message(dep["telegram_id"], f"✅ تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 الكود الخاص بك (CDK):\n\n<code>{item['item_data']}</code>\n\n{ce('lightning','⚡')} رابط التفعيل: http://gpt.ddfafa.com\n\nشكراً لشرائك ❤️")
+        await bot.send_message(dep["telegram_id"], f"{ce('success','✅')} تم تأكيد الدفع\n━━━━━━━━━━━━━━\n\n📦 الكود الخاص بك (CDK):\n\n<code>{item['item_data']}</code>\n\n{ce('link','🔗')} رابط التفعيل: http://gpt.ddfafa.com\n\nشكراً لشرائك ❤️")
         if remaining == 0:
             await bot.send_message(ADMIN_ID, f"🚨 OUT OF STOCK\n\nProduct: {product['stock_name']}")
         elif remaining <= 3:
             await bot.send_message(ADMIN_ID, f"⚠️ Low Stock Alert\n\nProduct: {product['stock_name']}\nRemaining: {remaining}")
         await conn.execute("UPDATE deposits SET status='approved' WHERE id=$1", dep_id)
-    await call.message.edit_text(f"✅ Order #{dep_id} Approved")
+    await call.message.edit_text(f"{ce('success','✅')} Order #{dep_id} Approved")
     await call.answer()
 
 @dp.callback_query(F.data.startswith("reject_"))
@@ -989,8 +953,8 @@ async def reject(call: CallbackQuery):
         dep = await conn.fetchrow("SELECT * FROM deposits WHERE id=$1", dep_id)
         if dep:
             await conn.execute("UPDATE deposits SET status='rejected' WHERE id=$1", dep_id)
-            await bot.send_message(dep["telegram_id"], "❌ تم رفض الطلب. تواصل مع الدعم.")
-    await call.message.edit_text(f"❌ Order #{dep_id} Rejected")
+            await bot.send_message(dep["telegram_id"], f"{ce('error','❌')} تم رفض الطلب. تواصل مع الدعم.")
+    await call.message.edit_text(f"{ce('error','❌')} Order #{dep_id} Rejected")
     await call.answer()
 
 @dp.message(F.photo)
@@ -1093,13 +1057,13 @@ async def get_emoji_id(message: Message):
 
     if not result:
         await message.answer(
-            "❌ مفيش Custom Emoji في الرسالة دي.\n\n"
+            f"{ce('error','❌')} مفيش Custom Emoji في الرسالة دي.\n\n"
             "لازم تبعت إيموجي بريميوم/متحرك من تليجرام، وبعدين تعمل Reply عليه وتكتب /getemoji"
         )
         return
 
     await message.answer(
-        "✅ Custom Emoji IDs Found:\n\n" + "\n\n".join(result),
+        f"{ce('success','✅')} Custom Emoji IDs Found:\n\n" + "\n\n".join(result),
         parse_mode="HTML"
     )
 
@@ -1121,7 +1085,7 @@ async def stock_count(message: Message):
         return
     cdk = await get_stock_count("cdk_chatgpt")
     await message.answer(
-        f"📦 Stock Report\n\n🤖 CDK Activation Chatgpt Stock: {cdk}\n\n"
+        f"{ce('stock','📦')} Stock Report\n\n{ce('chatgpt','🤖')} CDK Activation Chatgpt Stock: {cdk}\n\n"
         f"/liststock cdk\n/delstock cdk ID\n/clearstock cdk"
     )
 
@@ -1131,24 +1095,24 @@ async def add_stock(message: Message):
         return
     text = message.text.replace("/addstock", "").strip()
     if not text:
-        await message.answer("📦 إضافة استوك لكود التفعيل:\n\n/addstock cdk\nCODE1\nCODE2\nCODE3")
+        await message.answer(f"{ce('stock_add','➕')} إضافة استوك لكود التفعيل:\n\n/addstock cdk\nCODE1\nCODE2\nCODE3")
         return
     lines = [x.strip() for x in text.splitlines() if x.strip()]
     product_key, stock_name = resolve_stock_product(lines[0])
     if not product_key:
-        await message.answer("❌ نوع المنتج غير صحيح. استخدم cdk")
+        await message.answer(f"{ce('error','❌')} نوع المنتج غير صحيح. استخدم cdk")
         return
     items = lines[1:]
     if not items:
-        await message.answer("❌ اكتب الأكواد تحت اسم المنتج، كل كود في سطر.")
+        await message.answer(f"{ce('error','❌')} اكتب الأكواد تحت اسم المنتج، كل كود في سطر.")
         return
     async with db_pool.acquire() as conn:
         for item in items:
             await conn.execute("INSERT INTO stock(product,item_data) VALUES($1,$2)", stock_name, item)
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
     label = product_label(product_key)
-    await message.answer(f"✅ تم إضافة {len(items)} كود إلى {label}\n📦 المخزون الحالي: {total}")
-    await bot.send_message(ADMIN_ID, f"📦 Stock Added\n\nProduct: {label}\nQuantity Added: {len(items)}\nCurrent Stock: {total}")
+    await message.answer(f"{ce('success','✅')} تم إضافة {len(items)} كود إلى {label}\n{ce('stock','📦')} المخزون الحالي: {total}")
+    await bot.send_message(ADMIN_ID, f"{ce('stock','📦')} Stock Added\n\nProduct: {label}\nQuantity Added: {len(items)}\nCurrent Stock: {total}")
     await broadcast_stock_added(product_key, len(items), total)
 
 @dp.message(Command("liststock"))
@@ -1161,7 +1125,7 @@ async def list_stock(message: Message):
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم cdk")
+        await message.answer(f"{ce('error','❌')} استخدم cdk")
         return
     async with db_pool.acquire() as conn:
         rows = await conn.fetch("SELECT id, item_data FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT 50", stock_name)
@@ -1169,7 +1133,7 @@ async def list_stock(message: Message):
     if not rows:
         await message.answer(f"📭 لا يوجد استوك متاح في {label}")
         return
-    lines = [f"📦 {label} Stock", "━━━━━━━━━━━━━━"]
+    lines = [f"{ce('stock','📦')} {label} Stock", "━━━━━━━━━━━━━━"]
     for row in rows:
         item = row["item_data"]
         if len(item) > 80:
@@ -1187,21 +1151,21 @@ async def delete_stock(message: Message):
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم cdk")
+        await message.answer(f"{ce('error','❌')} استخدم cdk")
         return
     try:
         item_id = int(parts[2])
     except ValueError:
-        await message.answer("❌ رقم ID غير صحيح")
+        await message.answer(f"{ce('error','❌')} رقم ID غير صحيح")
         return
     async with db_pool.acquire() as conn:
         row = await conn.fetchrow("SELECT id FROM stock WHERE id=$1 AND product=$2 AND sold=false", item_id, stock_name)
         if not row:
-            await message.answer("❌ العنصر غير موجود أو مباع بالفعل")
+            await message.answer(f"{ce('error','❌')} العنصر غير موجود أو مباع بالفعل")
             return
         await conn.execute("DELETE FROM stock WHERE id=$1", item_id)
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
-    await message.answer(f"🗑 تم حذف العنصر ID {item_id} من {product_label(product_key)}\n📦 المتبقي: {total}")
+    await message.answer(f"{ce('trash','🗑')} تم حذف العنصر ID {item_id} من {product_label(product_key)}\n{ce('stock','📦')} المتبقي: {total}")
 
 @dp.message(Command("clearstock"))
 async def clear_stock(message: Message):
@@ -1213,12 +1177,12 @@ async def clear_stock(message: Message):
         return
     product_key, stock_name = resolve_stock_product(parts[1])
     if not product_key:
-        await message.answer("❌ استخدم cdk")
+        await message.answer(f"{ce('error','❌')} استخدم cdk")
         return
     async with db_pool.acquire() as conn:
         deleted = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
         await conn.execute("DELETE FROM stock WHERE product=$1 AND sold=false", stock_name)
-    await message.answer(f"🗑 تم مسح {deleted} كود من استوك {product_label(product_key)}")
+    await message.answer(f"{ce('trash','🗑')} تم مسح {deleted} كود من استوك {product_label(product_key)}")
 
 @dp.message(Command("broadcast"))
 async def broadcast(message: Message):
@@ -1226,7 +1190,7 @@ async def broadcast(message: Message):
         return
     text = message.text.replace("/broadcast", "").strip()
     if not text:
-        await message.answer("استخدم:\n/broadcast رسالتك")
+        await message.answer(f"استخدم:\n/broadcast رسالتك")
         return
     async with db_pool.acquire() as conn:
         users = await conn.fetch("SELECT telegram_id FROM users")
@@ -1237,14 +1201,14 @@ async def broadcast(message: Message):
             sent += 1
         except Exception:
             pass
-    await message.answer(f"✅ تم الإرسال إلى {sent} مستخدم")
+    await message.answer(f"{ce('success','✅')} تم الإرسال إلى {sent} مستخدم")
 
 @dp.message(Command("broadcastphoto"))
 async def broadcast_photo(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
     if not message.reply_to_message or not message.reply_to_message.photo:
-        await message.answer("اعمل Reply على الصورة واكتب /broadcastphoto")
+        await message.answer(f"اعمل Reply على الصورة واكتب /broadcastphoto")
         return
     photo = message.reply_to_message.photo[-1].file_id
     caption = message.reply_to_message.caption or ""
@@ -1257,7 +1221,7 @@ async def broadcast_photo(message: Message):
             sent += 1
         except Exception:
             pass
-    await message.answer(f"✅ تم إرسال الصورة إلى {sent} مستخدم")
+    await message.answer(f"{ce('success','✅')} تم إرسال الصورة إلى {sent} مستخدم")
 
 async def setup_bot_commands():
     await bot.set_my_commands([
