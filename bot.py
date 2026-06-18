@@ -3,7 +3,7 @@ import os
 import html
 import re
 import asyncpg
-import aiohttp  # المكتبة الجديدة للاتصال بـ API صديقك
+import aiohttp  
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
@@ -659,4 +659,103 @@ async def wallet_inline(call: CallbackQuery):
     if lang == "en":
         text = f"""{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n👥 Total Invited Users: <b>{total_ref} friends</b>\n{ce('share')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."""
     else:
-        text =
+        text = f"""{ce('wallet')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n👥 إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n{ce('share')} أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} تقدر تشحن محفظتك يدوياً أو تستخدم أرباح إحالاتك للشراء الفوري مباشرةً."""
+    await safe_edit_or_answer(msg, text, reply_markup=wallet_kb(lang))
+
+@dp.callback_query(F.data == "home_main")
+async def home_main(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    msg = await animate_message(call.message, lang)
+    await safe_edit_or_answer(msg, home_text(lang, call.from_user.first_name or "User"), reply_markup=home_keyboard(lang))
+
+@dp.callback_query(F.data == "home_language")
+async def home_language(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    await safe_edit_or_answer(call.message, f"{ce('language')} Choose language:" if lang == "en" else f"{ce('language')} اختر اللغة:", reply_markup=language_keyboard())
+
+@dp.callback_query(F.data.startswith("lang_"))
+async def set_language(call: CallbackQuery):
+    await call.answer()
+    lang = call.data.replace("lang_", "")
+    async with db_pool.acquire() as conn:
+        await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
+    await safe_edit_or_answer(call.message, f"{ce('success')} Language changed to English" if lang == "en" else f"{ce('success')} تم تغيير اللغة للعربية", reply_markup=home_keyboard(lang))
+
+@dp.callback_query(F.data == "home_shop")
+async def shop_inline_callback(call: CallbackQuery):
+    await call.answer()
+    msg = await animate_message(call.message, await get_lang(call.from_user.id))
+    await handle_shop_action(msg, await get_lang(call.from_user.id))
+
+@dp.callback_query(F.data == "refresh_products")
+async def refresh_products(call: CallbackQuery):
+    await call.answer("Updated ✅")
+    msg = await animate_message(call.message, await get_lang(call.from_user.id))
+    await handle_shop_action(msg, await get_lang(call.from_user.id))
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_order(call: CallbackQuery):
+    if call.from_user.id != ADMIN_ID: return
+    await call.answer()
+    dep_id = int(call.data.split("_")[1])
+    async with db_pool.acquire() as conn:
+        dep = await conn.fetchrow("SELECT * FROM deposits WHERE id=$1", dep_id)
+        if dep:
+            await conn.execute("UPDATE deposits SET status='rejected' WHERE id=$1", dep_id)
+            await bot.send_message(dep["telegram_id"], f"{ce('error')} Order rejected." if await get_lang(dep["telegram_id"])=="en" else f"{ce('error')} تم رفض طلبك.")
+    await safe_edit_or_answer(call.message, f"{ce('error')} Order #{dep_id} Rejected")
+
+@dp.message(F.photo)
+async def payment_photo(message: Message):
+    if message.from_user.id == ADMIN_ID: return
+    await bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
+    await message.answer("📤 Sent for review." if await get_lang(message.from_user.id)=="en" else "📤 تم إرسال الإثبات للمراجعة.")
+
+@dp.callback_query()
+async def catch_all_callbacks(call: CallbackQuery): await call.answer()
+
+# ━━━━━ مستقبل الرسايل النصية العامة والزراير ━━━━━
+@dp.message(F.text)
+async def handle_text_messages(message: Message):
+    user_id = message.from_user.id
+    
+    if user_id in buy_waiting:
+        await receive_custom_quantity(message)
+        return
+        
+    if user_id in deposit_waiting:
+        await receive_deposit_amount(message)
+        return
+        
+    text_value = message.text.strip()
+    if text_value in ["🛍 Products", "🛍 المنتجات"]:
+        lang = await get_lang(user_id)
+        msg = await animate_message(message, lang)
+        await handle_shop_action(msg, lang)
+    elif text_value in ["🎧 Support", "🎧 الدعم"]:
+        lang = await get_lang(user_id)
+        await message.answer(f"{ce('support')} <b>Support Center / مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('telegram')} {SUPPORT}", reply_markup=back_home_keyboard(lang), parse_mode="HTML")
+    elif text_value in ["💰 Wallet", "💰 المحفظة"]:
+        class FakeCall:
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user
+            async def answer(self, *args, **kwargs): pass
+        await wallet_inline(FakeCall(message, message.from_user))
+    elif text_value in ["🌐 Language", "🌐 اللغة"]:
+        await message.answer(f"{ce('language')} Choose language / اختر اللغة:", reply_markup=language_keyboard(), parse_mode="HTML")
+    elif text_value in ["🎁 Share & Earn", "🎁 الإحالات"]:
+        class FakeCall:
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user
+            async def answer(self, *args, **kwargs): pass
+        await referral_screen(FakeCall(message, message.from_user))
+    else:
+        await send_home(message)
+
+async def setup_bot_commands(): await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
+async def main():
+    await init_db()
+    await setup_bot_commands()
+    await dp.start_polling(bot)
+
+if __name__ == "__main__": asyncio.run(main())
