@@ -371,20 +371,24 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
     await call.answer()
     lang = await get_lang(call.from_user.id)
     count = await get_stock_count("cdk_chatgpt")
+    sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"]) # العداد التلقائي
     product = PRODUCTS["cdk_chatgpt"]
-    desc = product["desc_en"] if lang == "en" else product["desc_ar"]
+    
+    # هنا التعديل: استبدال الإيموجي القديم بالجديد في الديسكربشن أوتوماتيك
+    desc = product["desc_en"].replace("✅", ce("check")) if lang == "en" else product["desc_ar"].replace("✅", ce("check"))
     
     caption = (
         f"🤖 <b>{product['title_en']}</b>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"💵 Price: <b>${product['usd']}.00</b>\n"
-        f"🔋 Stock: <b>{count} accounts</b>\n"
-        f"📊 Sold: <b>176 accounts</b>\n\n"
-        f"{ce('quotes', '💬')} <b>Description:</b>\n"
+        f"{ce('price')} Price: <b>${product['usd']}.00</b>\n"
+        f"{ce('stock')} Stock: <b>{count} accounts</b>\n"
+        f"{ce('sold')} Sold: <b>{sold_count} accounts</b>\n\n"
+        f"{ce('quotes')} <b>Description:</b>\n"
         f"<blockquote>{desc}</blockquote>"
     )
     try: await call.message.answer_photo(URLInputFile(CDK_IMAGE_FILE), caption=caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
     except Exception: await call.message.answer(caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
+
 
 # ━━━━━ طلب الكمية بالكيبورد السفلي ━━━━━
 @dp.callback_query(F.data.startswith("buy_"))
