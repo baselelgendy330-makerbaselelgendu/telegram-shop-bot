@@ -363,7 +363,7 @@ async def add_stock(message: Message):
     if message.from_user.id != ADMIN_ID: return
     lines = [x.strip() for x in message.text.replace("/addstock", "").strip().splitlines() if x.strip()]
     if len(lines) < 2: 
-        await message.answer(f"{ce('error')} <b>خطأ! استخدم الصيغة دي:</b>\n\n<code>/addstock CDK</code>\n<code>الكود_الأول</code>", parse_mode="HTML")
+        await message.answer(f"{ce('error')} <b>خطأ! استخدم الصيغة دي (في رسالة واحدة):</b>\n\n<code>/addstock CDK</code>\n<code>الكود_الأول</code>\n<code>الكود_الثاني</code>", parse_mode="HTML")
         return
         
     product_key, stock_name = resolve_stock_product(lines[0])
@@ -730,6 +730,11 @@ async def handle_text_messages(message: Message):
         return
         
     text_value = message.text.strip()
+    
+    # التعديل الجديد: تخطي أي أمر نصي يبدأ بـ / عشان يسيبه يشتغل في الدوال المخصصة وميفتحش المنيو
+    if text_value.startswith("/"):
+        return
+
     if text_value in ["🛍 Products", "🛍 المنتجات"]:
         lang = await get_lang(user_id)
         msg = await animate_message(message, lang)
