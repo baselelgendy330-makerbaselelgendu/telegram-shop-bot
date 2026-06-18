@@ -365,17 +365,31 @@ async def cmd_broadcastphoto(message: Message):
     await message.answer(f"✅ تم إرسال الصورة إلى {sent} مستخدم.")
 
 # ━━━━━ عرض المنتج بتنسيق كوبي بيست بوكس الاقتباس والإيموجي المتحرك ━━━━━
+# أضف هذه الـ IDs الجديدة في قاموس EMOJI
+EMOJI = {
+    "price": "6088990159334808217",
+    "stock": "5397916757333654639",
+    "sold": "5231200819986047254",
+    "check": "6088893844693195262",
+    "quotes": "6181467651395558500"
+}
+
+# ━━━━━ دالة عرض المنتج المحدثة (العداد التلقائي) ━━━━━
+async def get_total_sold(product_name):
+    # بيعد الأكواد اللي تم تغيير حالتها لـ sold=true
+    return await db_pool.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=true", product_name)
+
 @dp.callback_query(F.data == "product_cdk_chatgpt")
 @dp.callback_query(F.data.startswith("back_to_prod_"))
 async def product_cdk_chatgpt_callback(call: CallbackQuery):
     await call.answer()
     lang = await get_lang(call.from_user.id)
     count = await get_stock_count("cdk_chatgpt")
-    sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"]) # العداد التلقائي
+    sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"]) # بيجيب العدد الحقيقي من الداتا
     product = PRODUCTS["cdk_chatgpt"]
     
-    # هنا التعديل: استبدال الإيموجي القديم بالجديد في الديسكربشن أوتوماتيك
-    desc = product["desc_en"].replace("✅", ce("check")) if lang == "en" else product["desc_ar"].replace("✅", ce("check"))
+    # تنسيق الديسكربشن باستخدام علامة الصح الجديدة
+    desc = product["desc_en"].replace("✅", ce("check"))
     
     caption = (
         f"🤖 <b>{product['title_en']}</b>\n"
