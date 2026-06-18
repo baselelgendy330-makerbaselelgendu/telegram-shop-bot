@@ -208,8 +208,20 @@ def home_keyboard(lang: str):
 def back_home_keyboard(lang: str): return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main")]])
 
 def product_buttons(lang: str, counts: dict):
-    if lang == "en": return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $9 | Stock {counts.get('cdk_chatgpt', 0)}", callback_data="product_cdk_chatgpt")], [InlineKeyboardButton(text="Refresh", callback_data="refresh_products"), InlineKeyboardButton(text="Back", callback_data="home_main")]])
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 9$ | المتاح {counts.get('cdk_chatgpt', 0)}", callback_data="product_cdk_chatgpt")], [InlineKeyboardButton(text="تحديث", callback_data="refresh_products"), InlineKeyboardButton(text="رجوع", callback_data="home_main")]])
+    stock_count = counts.get('cdk_chatgpt', 0)
+    
+    # اللوجيك: لو الاستوك صفر هيعرض ❌، لو فيه استوك هيعرض الإيموجي المتحرك اللي إنت نسخته
+    status_icon = "❌" if stock_count == 0 else "📱"  
+    
+    if lang == "en": 
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=f"{status_icon} CDK GPT Plus 1Y | $6.00 | 📦 {stock_count}", callback_data="product_cdk_chatgpt")], 
+            [InlineKeyboardButton(text="🔄 Refresh products", callback_data="refresh_products"), InlineKeyboardButton(text="Back", callback_data="home_main")]
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"{status_icon} CDK GPT Plus 1Y | 6.00$ | 📦 {stock_count}", callback_data="product_cdk_chatgpt")], 
+        [InlineKeyboardButton(text="🔄 تحديث المنتجات", callback_data="refresh_products"), InlineKeyboardButton(text="رجوع", callback_data="home_main")]
+    ])
 
 def product_details_buttons(lang: str, product_key: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
