@@ -432,13 +432,45 @@ async def proceed_to_checkout(call_obj, product_key: str, qty: int):
         await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(lang, product_key, qty))
 
 # ━━━━━ الدفع الفوري من المحفظة (خصم المخزون والتحويل للأدمن) ━━━━━
+# ━━━━━ 🚀 الدالة المتصلحة جذرياً للدفع بالمحفظة 🚀 ━━━━━
 @dp.callback_query(F.data.startswith("pay_wallet_"))
 async def pay_wallet_product(call: CallbackQuery):
-    await call.answer()
-    product_key, qty = call.data.replace("pay_wallet_", "").rsplit("_", 1)
-    qty, lang = int(qty), await get_lang(call.from_user.id)
+    await call.answer("Processing...") # رسالة تظهر للعميل فوراً عشان يحس إن فيه أكشن
+    data = call.data.replace("pay_wallet_", "")
+    product_key, qty = data.rsplit("_", 1)
+    qty = int(qty)
+    lang = await get_lang(call.from_user.id)
     product = PRODUCTS[product_key]
     total_price = float(product["usd"]) * qty
+
+    async with db_pool.acquire() as conn:
+        # جلب الرصيد والتأكد منه
+        user_balance = await conn.fetchval("SELECT balance_usdt FROM users WHERE telegram_id=$1", call.from_user.id)
+        if not user_balance or float(user_balance) < total_price:
+            await safe_edit_or_answer(call.message, "❌ رصيدك غير كافي!" if lang=="ar" else "❌ Insufficient balance!")
+            return
+        
+        # خصم الرصيد
+        await conn.execute("UPDATE users SET balance_usdt = balance_usdt - $1 WHERE telegram_id=$2", total_price, call.from_user.id)
+        
+        # حجز الأكواد "الوهمية" من المخزون
+        items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
+        if len(items) < qty: 
+            # لو المخزون خلص فجأة، نرجع الفلوس للعميل
+            await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", total_price, call.from_user.id)
+            await safe_edit_or_answer(call.message, "❌ المخزون نفذ حالياً - تم إرجاع رصيدك." if lang=="ar" else "❌ Out of stock - Balance refunded.")
+            return
+            
+        await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
+        
+        # إرسال رسالة الاستلام الفخمة
+        await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
+        await bot.send_message(ADMIN_ID, f"🛒 <b>Wallet Sale!</b>\nUser: @{call.from_user.username}\nProduct: {product['title_en']}\nQty: {qty}\nTotal: {total_price} USDT\n\n⚠️ العميل دفع بنجاح وهيراسل لك خاص للاستلام.", parse_mode="HTML")
+        
+        # حذف الفاتورة القديمة عشان ميبقاش فيه زحمة
+        try: await call.message.delete()
+        except: pass
+
 
     async with db_pool.acquire() as conn:
         balance = await get_wallet_balance(call.from_user.id)
