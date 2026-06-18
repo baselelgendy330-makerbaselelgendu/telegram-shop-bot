@@ -25,23 +25,21 @@ ADMIN_ID = 6728595587
 BINANCE_UID = "381880403"
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
-REFERRAL_REWARD = 0.10  # عمولة الإحالة 10 سنت
+REFERRAL_REWARD = 0.10  
 
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
 
-# ━━━━━ الإيموجيات الفخمة والـ IDs الصحيحة ━━━━━
 EMOJI = {
-    "announcement": "5424818078833715060",  # التنبيه
-    "vip": "6088920147072915408",           # التاج
-    "verified": "5976653524476368012",       # الصح
-    "lightning": "5440621591387980068",      # السرعة
-    "heart": "5364201435858744869",          # القلب المتحرك
-    "wallet": "6088990159334808217",         # المحفظة
-    "telegram": "6089099509202164251",       # التليجرام
-    "arrows_down": "5443038326535759644",    # سهم متحرك
-    "pencil": "5395444784611480792",         # القلم المتحرك
-    
+    "announcement": "5424818078833715060",  
+    "vip": "6088920147072915408",           
+    "verified": "5976653524476368012",       
+    "lightning": "5440621591387980068",      
+    "heart": "5364201435858744869",          
+    "wallet": "6088990159334808217",         
+    "telegram": "6089099509202164251",       
+    "arrows_down": "5443038326535759644",    
+    "pencil": "5395444784611480792",         
     "store": "5859297284029681680", "support": "6181322172263308706",
     "language": "5447410659077661506", "home": "5195140682590722632",
     "chatgpt": "5864127571754489150", "stock": "6089247294731852091", 
@@ -77,20 +75,25 @@ def strip_custom_emoji(text: str) -> str: return re.sub(r'<tg-emoji emoji-id="\d
 
 async def safe_answer(message: Message, text: str, reply_markup=None):
     try: return await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
-    except TelegramBadRequest: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup)
+    except TelegramBadRequest: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
 
 async def safe_edit_or_answer(message, text: str, reply_markup=None):
     try: return await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
     except TelegramBadRequest:
-        try: return await message.edit_text(strip_custom_emoji(text), reply_markup=reply_markup)
-        except Exception: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup)
+        try: return await message.edit_text(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
+        except Exception: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
     except Exception: return await safe_answer(message, text, reply_markup)
 
 async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
     try:
         if os.path.exists(AIX_HEADER_FILE): return await message.answer_photo(photo=FSInputFile(AIX_HEADER_FILE), caption=caption, reply_markup=reply_markup, parse_mode="HTML")
         return await message.answer_photo(photo=URLInputFile(AIX_HEADER_IMAGE), caption=caption, reply_markup=reply_markup, parse_mode="HTML")
-    except Exception: return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup)
+    except TelegramBadRequest:
+        try:
+            if os.path.exists(AIX_HEADER_FILE): return await message.answer_photo(photo=FSInputFile(AIX_HEADER_FILE), caption=strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
+            return await message.answer_photo(photo=URLInputFile(AIX_HEADER_IMAGE), caption=strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
+        except Exception: return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
+    except Exception: return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
 
 CDK_IMAGE_FILE = "https://i.postimg.cc/Twx17x9S/IMG-20260616-190321.jpg"
 WALLET_DEPOSIT_KEY = "wallet_deposit"
@@ -205,7 +208,6 @@ def get_delivery_text(lang: str, product: dict, codes: list):
 ━━━━━━━━━━━━━━━━━━━━━
 {ce('heart','❤️')} <b>شكراً لثقتك في AIX Store!</b>"""
 
-# ━━━━━ الكيبوردات ━━━━━
 def home_keyboard(lang: str):
     kb = [
         [InlineKeyboardButton(text="Browse Products" if lang=="en" else "تصفح المنتجات", callback_data="home_shop")],
@@ -261,6 +263,15 @@ def home_text(lang: str, name: str):
 def product_list_text(lang: str):
     if lang == "en": return f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nPrice: $9 | Subscription: 1 Year, no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} Choose a product below:"
     return f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nالسعر: 9$ | الاشتراك سنه ، no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} اختار المنتج من الأزرار:"
+
+async def animate_message(message: Message, lang: str):
+    text = f"{ce('loading', '⏳')} <b>Loading...</b>" if lang == "en" else f"{ce('loading', '⏳')} <b>جاري التحميل...</b>"
+    try:
+        if getattr(message, "from_user", None) and message.from_user.is_bot: msg = await message.edit_text(text, parse_mode="HTML")
+        else: msg = await message.answer(text, parse_mode="HTML")
+    except Exception: msg = await message.answer(text, parse_mode="HTML")
+    await asyncio.sleep(0.3)
+    return msg or message
 
 async def send_home(message: Message):
     lang = await get_lang(message.from_user.id)
@@ -327,11 +338,12 @@ async def wallet_inline(call: CallbackQuery):
     stats = await get_user_stats(call.from_user.id)
     balance = stats["balance_usdt"] if stats else 0.0
     total_ref = stats["total_ref"] if stats else 0
+    msg = await animate_message(call.message, lang)
     if lang == "en":
         text = f"""{ce('wallet','💰')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 Name: <b>{esc(call.from_user.first_name)}</b>\n💵 Wallet Balance: <b>{balance} USDT</b>\n\n👥 Total Invited Users: <b>{total_ref} friends</b>\n🎁 Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('payment','💳')} You can deposit funds or use your referral balance to purchase instantly."""
     else:
         text = f"""{ce('wallet','💰')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 الحساب: <b>{esc(call.from_user.first_name)}</b>\n💵 رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n👥 إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n🎁 أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('payment','💳')} تقدر تشحن محفظتك يدوياً أو تستخدم أرباح إحالاتك للشراء الفوري مباشرةً."""
-    await safe_edit_or_answer(call.message, text, reply_markup=wallet_kb(lang))
+    await safe_edit_or_answer(msg, text, reply_markup=wallet_kb(lang))
     await call.answer()
 
 @dp.message(F.text)
@@ -357,7 +369,9 @@ async def handle_text_messages(message: Message):
         return
     text_value = message.text.strip()
     if text_value in ["🛍 Products", "🛍 المنتجات"]:
-        await handle_shop_action(message, await get_lang(user_id))
+        lang = await get_lang(user_id)
+        msg = await animate_message(message, lang)
+        await handle_shop_action(msg, lang)
     elif text_value in ["🎧 Support", "🎧 الدعم"]:
         lang = await get_lang(user_id)
         await message.answer(f"{ce('support','🎧')} <b>Support Center / مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('telegram','✈️')} {SUPPORT}", reply_markup=back_home_keyboard(lang), parse_mode="HTML")
@@ -373,8 +387,15 @@ async def handle_text_messages(message: Message):
 
 @dp.callback_query(F.data == "home_shop")
 async def shop_inline_callback(call: CallbackQuery):
-    await handle_shop_action(call.message, await get_lang(call.from_user.id))
+    msg = await animate_message(call.message, await get_lang(call.from_user.id))
+    await handle_shop_action(msg, await get_lang(call.from_user.id))
     await call.answer()
+
+@dp.callback_query(F.data == "refresh_products")
+async def refresh_products(call: CallbackQuery):
+    msg = await animate_message(call.message, await get_lang(call.from_user.id))
+    await handle_shop_action(msg, await get_lang(call.from_user.id))
+    await call.answer("Updated ✅")
 
 @dp.callback_query(F.data == "buy_cdk_chatgpt")
 async def buy_product_screen(call: CallbackQuery): await buy_product(call)
