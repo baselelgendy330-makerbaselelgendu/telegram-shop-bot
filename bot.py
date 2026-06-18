@@ -44,10 +44,10 @@ EMOJI = {
     "pencil": "5395444784611480792",         
     "store": "5859297284029681680", "support": "6181322172263308706",
     "language": "5447410659077661506", "home": "5195140682590722632",
-    "chatgpt": "5864127571754489150", "stock_icon": "6089247294731852091", 
+    "chatgpt": "5359726582447487916", "stock_icon": "6089247294731852091", 
     "shield": "5251203410396458957", "link": "5282843764451195532", 
     "step": "5397782960512444700", "rocket": "6181682949516173646",
-    "success": "5976653524476368012", "refresh": "5341715473882955310", 
+    "success": "5976653524476368012", "refresh": "5386367538735104399", 
     "payment": "5352662091390008496", "binance": "6222208096257712941", 
     "fire": "6266887773454603583", "stock_add": "5397916757333654639", 
     "trash": "5445267414562389170", "error": "6181467651395558500", 
@@ -119,7 +119,7 @@ PRODUCTS = {
         "title_en": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
         "title_ar": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
         "image": CDK_IMAGE_FILE,
-        "usd": 9,
+        "usd": 6,  
         "type": "stock",
         "desc_en": "✅ ChatGPT K12 Edu 1 year package.\nFull of latest languages like Plus\n✅ Can activate any account owner. Only applies to Gmail or hotmail, outlook\n✅ After ordering, you will receive a code\n✅ Account is on free plan\n✅ Recommended to use an account without an active subscription or a newly created account to register.\n✅ Web upgrade CDK: http://gpt.ddfafa.com",
         "desc_ar": "✅ باقة ChatGPT K12 المخصصة للتعليم لمدة سنة كاملة.\nتحتوي على أحدث المميزات واللغات مثل حسابات بلس تماماً.\n✅ تقبل التفعيل على أي حساب، وتطبق على إيميلات جيمل، هوتميل، وأوتلوك.\n✅ بعد الطلب والدفع، ستتلقى كود التفعيل فوراً.\n✅ الحساب يجب أن يكون على الخطة المجانية الحالية.\n✅ يوصى باستخدام حساب ليس به اشتراك نشط أو حساب جديد تماماً للتسجيل.\n✅ موقع ترقية وتفعيل الكود: http://gpt.ddfafa.com"
@@ -172,6 +172,7 @@ async def get_total_sold(product_name):
     return await db_pool.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=true", product_name)
 
 async def product_counts(): return {"cdk_chatgpt": await get_stock_count("cdk_chatgpt")}
+
 def format_amount(amount):
     try: return str(int(amount)) if float(amount).is_integer() else str(amount).rstrip("0").rstrip(".")
     except Exception: return str(amount)
@@ -188,7 +189,7 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
     if lang == "en":
         return f"""{ce('verified','✅')} <b>Payment Confirmed Successfully!</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('vip','👑')} <b>{product['title_en']}</b>\n\n📦 <b>Quantity:</b> {qty}\n\n{ce('announcement','📢')} <b>How to receive your codes:</b>\nPlease contact the admin directly to receive your keys instantly! Send a screenshot of this message to the admin below.\n💬 <b>Contact Admin:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n{ce('heart','❤️')} <b>Thank you for trusting AIX Store!</b>"""
     else:
-        return f"""{ce('verified','✅')} <b>تم تأكيد الدفع وتسليم طلبك بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('vip','👑')} <b>{product['title_ar']}</b>\n\n📦 <b>الكمية المطلوبة:</b> {qty}\n\n{ce('announcement','📢')} <b>لاستلام الأكواد الخاصة بك:</b>\nبرجاء التواصل مع الإدارة لاستلام الأكواد فوراً. يرجى إرسال سكرين شوت لهذه الرسالة كإثبات لطلبك!\n💬 <b>تواصل مع الإدارة:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n{ce('heart','❤️')} <b>شكراً لثقتك في AIX Store!</b>"""
+        return f"""{ce('verified','✅')} <b>تم تأكيد الدفع وتسليم طلب بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('vip','👑')} <b>{product['title_ar']}</b>\n\n📦 <b>الكمية المطلوبة:</b> {qty}\n\n{ce('announcement','📢')} <b>لاستلام الأكواد الخاصة بك:</b>\nبرجاء التواصل مع الإدارة لاستلام الأكواد فوراً. يرجى إرسال سكرين شوت لهذه الرسالة كإثبات لطلبك!\n💬 <b>تواصل مع الإدارة:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n{ce('heart','❤️')} <b>شكراً لثقتك في AIX Store!</b>"""
 
 def reply_quantity_keyboard():
     return ReplyKeyboardMarkup(keyboard=[
@@ -207,21 +208,33 @@ def home_keyboard(lang: str):
 
 def back_home_keyboard(lang: str): return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main")]])
 
+
+# ━━━━━ 🚀 الزراير الشفافة بالميزة الجديدة (icon_custom_emoji_id) 🚀 ━━━━━
 def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
-    
-    # اللوجيك: لو الاستوك صفر هيعرض ❌، لو فيه استوك هيعرض الإيموجي المتحرك اللي إنت نسخته
-    status_icon = "❌" if stock_count == 0 else "📱"  
+    chatgpt_icon_id = "5359726582447487916" 
+    refresh_icon_id = "5386367538735104399"
     
     if lang == "en": 
+        if stock_count == 0:
+            btn_product = InlineKeyboardButton(text=f"❌ CDK GPT Plus 1Y | $6.00 | 📦 0", callback_data="product_cdk_chatgpt")
+        else:
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $6.00 | 📦 {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+            
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"{status_icon} CDK GPT Plus 1Y | $6.00 | 📦 {stock_count}", callback_data="product_cdk_chatgpt")], 
-            [InlineKeyboardButton(text="🔄 Refresh products", callback_data="refresh_products"), InlineKeyboardButton(text="Back", callback_data="home_main")]
+            [btn_product], 
+            [InlineKeyboardButton(text="Refresh products", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="Back", callback_data="home_main")]
         ])
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"{status_icon} CDK GPT Plus 1Y | 6.00$ | 📦 {stock_count}", callback_data="product_cdk_chatgpt")], 
-        [InlineKeyboardButton(text="🔄 تحديث المنتجات", callback_data="refresh_products"), InlineKeyboardButton(text="رجوع", callback_data="home_main")]
-    ])
+    else:
+        if stock_count == 0:
+            btn_product = InlineKeyboardButton(text=f"❌ CDK GPT Plus 1Y | 6.00$ | 📦 0", callback_data="product_cdk_chatgpt")
+        else:
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 6.00$ | 📦 {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+            
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [btn_product], 
+            [InlineKeyboardButton(text="تحديث المنتجات", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="رجوع", callback_data="home_main")]
+        ])
 
 def product_details_buttons(lang: str, product_key: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -255,8 +268,8 @@ def home_text(lang: str, name: str):
     return f"{ce('vip','⭐')} <b>AIX Store</b> {ce('verified','✅')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b>\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store','🛍')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet','💰')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support','🎧')} <b>الدعم</b> — مساعدة في أي وقت\n\n{ce('lightning','⚡')} تفعيل سريع • دفع آمن • خدمة موثوقة"
 
 def product_list_text(lang: str):
-    if lang == "en": return f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nPrice: $9 | Subscription: 1 Year, no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} Choose a product below:"
-    return f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nالسعر: 9$ | الاشتراك سنه ، no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} اختار المنتج من الأزرار:"
+    if lang == "en": return f"{ce('store','🛍')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nPrice: $6 | Subscription: 1 Year, no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} Choose a product below:"
+    return f"{ce('store','🛍')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('hundred','💯')} <b>CDK Activation Chatgpt For 1 year</b>\nالسعر: 6$ | الاشتراك سنه ، no warranty {ce('error','❌')}\n\n{ce('arrows_down','⬇️')} اختار المنتج من الأزرار:"
 
 async def animate_message(message: Message, lang: str):
     text = f"{ce('loading', '⏳')} <b>Loading...</b>" if lang == "en" else f"{ce('loading', '⏳')} <b>جاري التحميل...</b>"
@@ -293,25 +306,36 @@ async def add_stock(message: Message):
     if message.from_user.id != ADMIN_ID: return
     lines = [x.strip() for x in message.text.replace("/addstock", "").strip().splitlines() if x.strip()]
     if len(lines) < 2: 
-        await message.answer("❌ <b>خطأ! استخدم الصيغة دي:</b>\n<code>/addstock CDK\nالكود_الأول</code>", parse_mode="HTML")
+        await message.answer("❌ <b>خطأ! استخدم الصيغة دي (في رسالة واحدة):</b>\n\n<code>/addstock CDK</code>\n<code>الكود_الأول</code>\n<code>الكود_الثاني</code>", parse_mode="HTML")
         return
+        
     product_key, stock_name = resolve_stock_product(lines[0])
-    if not stock_name: return await message.answer("❌ الكود غير معروف. استخدم `CDK`.", parse_mode="HTML")
+    if not stock_name:
+        await message.answer("❌ الكود غير معروف. استخدم `CDK`.", parse_mode="HTML")
+        return
 
     added_count = 0
     items = lines[1:]
+    
     async with db_pool.acquire() as conn:
         for item in items: 
             await conn.execute("INSERT INTO stock(product,item_data) VALUES($1,$2)", stock_name, item)
             added_count += 1
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
         
-        broadcast_text = f"📢 <b>Stock Alert!</b>\n━━━━━━━━━━━━━━━━━━━━━\n🔥 New keys have been added!\n\n📦 Available Stock: <b>{total}</b>\n⚡ Hurry up and grab yours now!"
+        product_info = PRODUCTS[product_key]
+        broadcast_text = f"📢 <b>Stock Alert!</b>\n━━━━━━━━━━━━━━━━━━━━━\n🔥 New keys have been added for: <b>{product_info['title_en']}</b>\n\n📦 Available Stock: <b>{total}</b>\n⚡ Hurry up and grab yours now before it runs out!"
+        
         users = await conn.fetch("SELECT telegram_id FROM users")
         sent_count = 0
         for u in users:
             try:
-                await bot.send_message(u["telegram_id"], broadcast_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Buy Now", callback_data=f"buy_{product_key}")]]))
+                await bot.send_message(
+                    u["telegram_id"], 
+                    broadcast_text, 
+                    parse_mode="HTML", 
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Buy Now", callback_data=f"buy_{product_key}")]])
+                )
                 sent_count += 1
             except Exception: pass
 
@@ -372,7 +396,7 @@ async def cmd_broadcastphoto(message: Message):
         except Exception: pass
     await message.answer(f"✅ تم إرسال الصورة إلى {sent} مستخدم.")
 
-# ━━━━━ عرض المنتج بتنسيق الإيموجي والعداد ━━━━━
+# ━━━━━ 🚀 دالة عرض المنتج بالإيموجي الصحيح 🚀 ━━━━━
 @dp.callback_query(F.data == "product_cdk_chatgpt")
 @dp.callback_query(F.data.startswith("back_to_prod_"))
 async def product_cdk_chatgpt_callback(call: CallbackQuery):
@@ -382,10 +406,11 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
     sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"])
     product = PRODUCTS["cdk_chatgpt"]
     
+    # رجعنا دالة ce عشان الإيموجي الفخم يطلع مضبوط في الرسالة (بدون موبايلات 📱)
     desc = product["desc_en"].replace("✅", ce("check")) if lang == "en" else product["desc_ar"].replace("✅", ce("check"))
     
     caption = (
-        f"🤖 <b>{product['title_en']}</b>\n"
+        f"{ce('chatgpt')} <b>{product['title_en']}</b>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"{ce('price')} Price: <b>${product['usd']}.00</b>\n"
         f"{ce('stock')} Stock: <b>{count} accounts</b>\n"
@@ -393,6 +418,10 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
         f"{ce('quotes')} <b>Description:</b>\n"
         f"<blockquote>{desc}</blockquote>"
     )
+    
+    try: await call.message.delete()
+    except: pass
+    
     try: await call.message.answer_photo(URLInputFile(CDK_IMAGE_FILE), caption=caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
     except Exception: await call.message.answer(caption, reply_markup=product_details_buttons(lang, "cdk_chatgpt"), parse_mode="HTML")
 
@@ -402,7 +431,9 @@ async def buy_product(call: CallbackQuery):
     await call.answer()
     product_key = call.data.replace("buy_", "")
     lang = await get_lang(call.from_user.id)
+    
     buy_waiting[call.from_user.id] = product_key
+    
     text = f"{ce('pencil')} Enter quantity to buy (1-5):" if lang == "en" else f"{ce('pencil')} أدخل الكمية المراد شراؤها (1-5):"
     await call.message.answer(text, reply_markup=reply_quantity_keyboard(), parse_mode="HTML")
 
@@ -433,10 +464,13 @@ async def proceed_to_checkout(call_obj, product_key: str, qty: int):
     product = PRODUCTS[product_key]
     total_price = float(product["usd"]) * qty
     text = (f"💳 <b>Checkout</b>\n━━━━━━━━━━━━━━\n\n📦 Quantity: <b>{qty}</b>\n💰 Total Price: <b>${total_price}</b>\n\nChoose payment method:" if lang == "en" else f"💳 <b>إتمام الشراء</b>\n━━━━━━━━━━━━━━\n\n📦 الكمية: <b>{qty}</b>\n💰 الإجمالي: <b>{total_price}$</b>\n\nاختار طريقة الدفع:")
-    if isinstance(call_obj, Message): await call_obj.answer(text, reply_markup=checkout_payment_buttons(lang, product_key, qty), parse_mode="HTML")
-    else: await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(lang, product_key, qty))
+    
+    if isinstance(call_obj, Message):
+        await call_obj.answer(text, reply_markup=checkout_payment_buttons(lang, product_key, qty), parse_mode="HTML")
+    else:
+        await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(lang, product_key, qty))
 
-# ━━━━━ الدفع بالمحفظة (مصحح) ━━━━━
+# ━━━━━ الدفع من المحفظة ━━━━━
 @dp.callback_query(F.data.startswith("pay_wallet_"))
 async def pay_wallet_product(call: CallbackQuery):
     await call.answer("Processing...")
@@ -454,6 +488,7 @@ async def pay_wallet_product(call: CallbackQuery):
             return
         
         await conn.execute("UPDATE users SET balance_usdt = balance_usdt - $1 WHERE telegram_id=$2", total_price, call.from_user.id)
+        
         items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
         if len(items) < qty: 
             await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", total_price, call.from_user.id)
@@ -461,8 +496,10 @@ async def pay_wallet_product(call: CallbackQuery):
             return
             
         await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
+        
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
         await bot.send_message(ADMIN_ID, f"🛒 <b>Wallet Sale!</b>\nUser: @{call.from_user.username}\nProduct: {product['title_en']}\nQty: {qty}\nTotal: {total_price} USDT\n\n⚠️ العميل دفع بنجاح وهيراسل لك خاص للاستلام.", parse_mode="HTML")
+        
         try: await call.message.delete()
         except: pass
 
@@ -504,7 +541,7 @@ async def approve(call: CallbackQuery):
         await bot.send_message(dep["telegram_id"], get_delivery_text(user_lang, product, qty, SUPPORT), parse_mode="HTML")
     await safe_edit_or_answer(call.message, f"✅ Order #{dep_id} Approved")
 
-# ━━━━━ باقي الخدمات المساعدة ━━━━━
+# ━━━━━ باقي الخدمات ━━━━━
 @dp.callback_query(F.data == "home_deposit")
 async def deposit_inline_screen(call: CallbackQuery):
     await call.answer()
@@ -666,3 +703,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__": asyncio.run(main())
+
