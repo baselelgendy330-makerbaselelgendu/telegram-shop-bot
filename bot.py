@@ -272,4 +272,4 @@ async def edit_or_answer(message, text: str, reply_markup=None):
     return await safe_edit_or_answer(message, text, reply_markup)
 
 async def animate_message(message: Message, lang: str):
-    text = f"{ce('loading', '⏳')} <b>Loading...</b>" if lang == "en"
+    text = f"{ce('loading', '⏳')} <b>Loading...</b>" if lang == "en" else f"{ce('loading', '⏳')} <b>جاري التحميل...</b>"
