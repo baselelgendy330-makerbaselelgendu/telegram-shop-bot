@@ -619,8 +619,31 @@ async def referral_screen(call: CallbackQuery):
         text = f"""{ce('share')} <b>انشر البوت وابني أرباح مجانية!</b>\n━━━━━━━━━━━━━━━━━━━━━\nانسخ رابط الإحالة الخاص بك وانشره؛ لكل شخص يدخل البوت عن طريقك هتكسب <b>{REFERRAL_REWARD} USDT</b> فوراً جوه محفظتك تقدر تشتري بيها أي منتج!\n\n{ce('user')} عدد إحالاتك الحالي: <b>{total_ref} عضو</b>\n{ce('price')} إجمالي ما كسبته: <b>{format_amount(earnings)} USDT</b>\n\n🔗 <b>رابط الإحالة الحصري الخاص بك:</b>\n<code>{ref_link}</code>\n\n<i>اضغط على الرابط لنسخه وانشره في الجروبات لتبدأ الأرباح!</i>"""
     await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard(lang))
 
+@dp.callback_query(F.data == "home_share")
+async def referral_screen(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    bot_info = await bot.get_me()
+    ref_link = f"https://t.me/{bot_info.username}?start={call.from_user.id}"
+    stats = await get_user_stats(call.from_user.id)
+    total_ref = stats["total_ref"] if stats else 0
+    earnings = total_ref * REFERRAL_REWARD
+    if lang == "en":
+        text = f"""{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\nInvite your friends to use the bot and earn <b>{REFERRAL_REWARD} USDT</b> instantly inside your wallet for every successful invite!\n\n{ce('user')} Your Total Invites: <b>{total_ref} users</b>\n{ce('price')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n🔗 <b>Your Exclusive Referral Link:</b>\n<code>{ref_link}</code>\n\n<i>Copy the link and share it in groups to start earning!</i>"""
+    else:
+        text = f"""{ce('share')} <b>انشر البوت وابني أرباح مجانية!</b>\n━━━━━━━━━━━━━━━━━━━━━\nانسخ رابط الإحالة الخاص بك وانشره؛ لكل شخص يدخل البوت عن طريقك هتكسب <b>{REFERRAL_REWARD} USDT</b> فوراً جوه محفظتك تقدر تشتري بيها أي منتج!\n\n{ce('user')} عدد إحالاتك الحالي: <b>{total_ref} عضو</b>\n{ce('price')} إجمالي ما كسبته: <b>{format_amount(earnings)} USDT</b>\n\n🔗 <b>رابط الإحالة الحصري الخاص بك:</b>\n<code>{ref_link}</code>\n\n<i>اضغط على الرابط لنسخه وانشره في الجروبات لتبدأ الأرباح!</i>"""
+    await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard(lang))
+
 @dp.callback_query(F.data == "home_wallet")
 async def wallet_inline(call: CallbackQuery):
     await call.answer()
     lang = await get_lang(call.from_user.id)
-    stats = await get_user_stats(call.
+    stats = await get_user_stats(call.from_user.id)
+    balance = stats["balance_usdt"] if stats else 0.0
+    total_ref = stats["total_ref"] if stats else 0
+    msg = await animate_message(call.message, lang)
+    if lang == "en":
+        text = f"""{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n👥 Total Invited Users: <b>{total_ref} friends</b>\n{ce('share')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."""
+    else:
+        text = f"""{ce('wallet')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n👥 إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n{ce('share')} أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} تقدر تشحن محفظتك يدوياً أو تستخدم أرباح إحالاتك للشراء الفوري مباشرةً."""
+    await safe_edit_or_answer(msg, text, reply_markup=wallet_kb(lang))
