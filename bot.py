@@ -38,7 +38,7 @@ CANBOSO_API_URL = "https://canboso.com/api/telegram-buyer"
 
 # ━━━━━ قواميس الإيموجيات الفخمة ━━━━━
 EMOJI = {
-    "cart": "5312361253610475399",        # سلة (تم التعديل)
+    "cart": "5312361253610475399",        # سلة
     "back": "6181245923708903693",        # سهم رجوع
     "wallet": "6088990159334808217",      # محفظة
     "binance": "5354924237779909158",     # بينانس / عملة
@@ -47,7 +47,7 @@ EMOJI = {
     "language": "5447410659077661506",    # لغة
     "checkout": "5352662091390008496",    # فيزا دفع
     "quantity": "5411271889421086677",    # صندوق / كمية
-    "price": "5879991085001871624",       # السعر (تم التعديل)
+    "price": "5879991085001871624",       # السعر
     "pencil": "5395444784611480792",      # قلم
     "loading": "5341715473882955310",     # ترس تحميل
     "user": "6183624639806185325",        # بروفايل يوزر
@@ -59,11 +59,14 @@ EMOJI = {
     "store": "5859297284029681680",
     "vip": "6088920147072915408",           
     "verified": "5976653524476368012",       
-    "stock": "5397916757333654639",       # المخزون (تم التعديل)
-    "sold": "5429651785352501917",        # المباع (تم التعديل)
+    "stock": "5397916757333654639",       # المخزون
+    "sold": "5429651785352501917",        # المباع
     "announcement": "5424818078833715060",
     "heart": "5364201435858744869",
-    "quotes": "6181467651395558500"
+    "quotes": "6181467651395558500",
+    "support_msg": "5443038326535759644", # رسائل الدعم
+    "telegram": "6089099509202164251",    # تيليجرام
+    "arrow_right": "6181560401214314708"  # سهم يمين
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -71,7 +74,8 @@ SAFE_EMOJI_FALLBACK = {
     "share": "🎁", "support": "🎧", "language": "🌐", "checkout": "💳",
     "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
     "user": "👤", "camera": "📸", "success": "✅", "error": "❌",
-    "chatgpt": "🤖", "refresh": "🔄", "store": "🛍", "stock": "➕", "sold": "↗️"
+    "chatgpt": "🤖", "refresh": "🔄", "store": "🛍", "stock": "➕", "sold": "↗️",
+    "support_msg": "💬", "telegram": "⚡", "arrow_right": "👉"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -747,7 +751,11 @@ async def handle_text_messages(message: Message):
         await handle_shop_action(msg, lang)
     elif text_value in ["🎧 Support", "🎧 الدعم"]:
         lang = await get_lang(user_id)
-        await message.answer(f"{ce('support')} <b>Support Center / مركز الدعم</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('telegram')} {SUPPORT}", reply_markup=back_home_keyboard(lang), parse_mode="HTML")
+        if lang == "en":
+            support_text = f"{ce('support_msg')} <b>Quick support:</b>\n\n{ce('telegram')} <b>Telegram:</b> {ce('arrow_right')} {SUPPORT}\n\nContact us for faster help and issue handling."
+        else:
+            support_text = f"{ce('support_msg')} <b>الدعم السريع:</b>\n\n{ce('telegram')} <b>تليجرام:</b> {ce('arrow_right')} {SUPPORT}\n\nتواصل معنا للحصول على مساعدة أسرع وحل المشاكل."
+        await message.answer(support_text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
     elif text_value in ["💰 Wallet", "💰 المحفظة"]:
         class FakeCall:
             def __init__(self, message, from_user): self.message, self.from_user = message, from_user
