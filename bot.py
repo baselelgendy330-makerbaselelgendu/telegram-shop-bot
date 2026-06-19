@@ -224,23 +224,29 @@ def product_buttons(lang: str, counts: dict):
     
     if lang == "en": 
         if stock_count == 0:
-            btn_product = InlineKeyboardButton(text=f"❌ CDK GPT Plus 1Y | $6.00 | 📦 0", callback_data="product_cdk_chatgpt")
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $6.00 | 0", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=EMOJI["error"])
         else:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $6.00 | 📦 {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $6.00 | {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
             
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
-            [InlineKeyboardButton(text="Refresh products", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="Back", callback_data="home_main")]
+            [
+                InlineKeyboardButton(text="Refresh products", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), 
+                InlineKeyboardButton(text="Back", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])
+            ]
         ])
     else:
         if stock_count == 0:
-            btn_product = InlineKeyboardButton(text=f"❌ CDK GPT Plus 1Y | 6.00$ | 📦 0", callback_data="product_cdk_chatgpt")
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 6.00$ | 0", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=EMOJI["error"])
         else:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 6.00$ | 📦 {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 6.00$ | {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
             
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
-            [InlineKeyboardButton(text="تحديث المنتجات", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="رجوع", callback_data="home_main")]
+            [
+                InlineKeyboardButton(text="تحديث المنتجات", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), 
+                InlineKeyboardButton(text="رجوع", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])
+            ]
         ])
 
 def product_details_buttons(lang: str, product_key: str): 
