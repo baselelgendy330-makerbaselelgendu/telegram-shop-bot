@@ -8,6 +8,7 @@ import hmac
 import hashlib
 import time
 import aiohttp
+import base64
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
@@ -19,18 +20,16 @@ from aiogram.types import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 ADMIN_ID = 6728595587
-BINANCE_UID = "381880403"
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
-# مفاتيح بينانس من السيرفر
-BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
-BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
+# مفاتيح Cryptomus الجديدة
+CRYPTOMUS_API_KEY = os.getenv("CRYPTOMUS_API_KEY")
+CRYPTOMUS_MERCHANT_ID = os.getenv("CRYPTOMUS_MERCHANT_ID")
 
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
-
 CDK_IMAGE_FILE = "https://i.postimg.cc/dQ7m0g1R/IMG-20260620-151545-816.jpg"
 
 EMOJI = {
@@ -126,7 +125,6 @@ db_pool = None
 
 deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
-binance_waiting: dict[int, dict] = {} 
 
 CDK_DESC_EN = (
     "✅ ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
@@ -161,32 +159,54 @@ PRODUCTS = {
     }
 }
 
-async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> bool:
-    if not BINANCE_API_KEY or not BINANCE_API_SECRET:
-        return False
+# ━━━━━ 🟢 دوال Cryptomus الأوتوماتيكية للدفع والتحقق 🟢 ━━━━━
+async def create_cryptomus_payment(amount: float, order_id: str):
+    if not CRYPTOMUS_API_KEY or not CRYPTOMUS_MERCHANT_ID:
+        return None
+    url = "https://api.cryptomus.com/v1/payment"
+    payload = {"amount": str(amount), "currency": "USDT", "order_id": order_id}
     
-    url = "https://api.binance.com/sapi/v1/pay/transactions"
-    timestamp = int(time.time() * 1000)
-    query_string = f"timestamp={timestamp}"
-    signature = hmac.new(BINANCE_API_SECRET.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
-    headers = {"X-MBX-APIKEY": BINANCE_API_KEY}
+    data_str = json.dumps(payload)
+    encoded_data = base64.b64encode(data_str.encode('utf-8')).decode('utf-8')
+    sign = hashlib.md5((encoded_data + CRYPTOMUS_API_KEY).encode('utf-8')).hexdigest()
+    
+    headers = {"merchant": CRYPTOMUS_MERCHANT_ID, "sign": sign, "Content-Type": "application/json"}
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{url}?{query_string}&signature={signature}", headers=headers) as resp:
+            async with session.post(url, json=payload, headers=headers) as resp:
                 if resp.status == 200:
-                    data = await resp.json()
-                    transactions = data.get("data", [])
-                    for tx in transactions:
-                        if str(tx.get("orderId")) == str(pay_id) or str(tx.get("transactionId")) == str(pay_id):
-                            amount = float(tx.get("amount", 0))
-                            status = tx.get("status") 
-                            if status == "SUCCESS" and abs(amount - expected_amount) < 0.01:
-                                return True
-        return False
-    except Exception:
-        return False
+                    res = await resp.json()
+                    return res.get("result", {}).get("url")
+    except Exception as e:
+        print(e)
+    return None
 
+async def check_cryptomus_payment(order_id: str) -> bool:
+    if not CRYPTOMUS_API_KEY or not CRYPTOMUS_MERCHANT_ID:
+        return False
+    url = "https://api.cryptomus.com/v1/payment/info"
+    payload = {"order_id": order_id}
+    
+    data_str = json.dumps(payload)
+    encoded_data = base64.b64encode(data_str.encode('utf-8')).decode('utf-8')
+    sign = hashlib.md5((encoded_data + CRYPTOMUS_API_KEY).encode('utf-8')).hexdigest()
+    
+    headers = {"merchant": CRYPTOMUS_MERCHANT_ID, "sign": sign, "Content-Type": "application/json"}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as resp:
+                if resp.status == 200:
+                    res = await resp.json()
+                    status = res.get("result", {}).get("status")
+                    if status in ["paid", "paid_over"]:
+                        return True
+    except Exception:
+        pass
+    return False
+
+# ━━━━━ دالات قاعدة البيانات ━━━━━
 async def init_db():
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
@@ -309,7 +329,7 @@ def product_details_buttons(lang: str, product_key: str):
 def checkout_payment_buttons(lang: str, product_key: str, qty: int):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Pay from Wallet" if lang=="en" else "الدفع من المحفظة", callback_data=f"pay_wallet_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["wallet"])],
-        [InlineKeyboardButton(text="Pay via Binance UID" if lang=="en" else "الدفع عبر بينانس UID", callback_data=f"pay_binance_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["binance"])],
+        [InlineKeyboardButton(text="Auto Crypto Pay" if lang=="en" else "دفع أوتوماتيك (كريبتو)", callback_data=f"pay_crypto_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["binance"])],
         [InlineKeyboardButton(text="Back" if lang=="en" else "رجوع", callback_data=f"back_to_prod_{product_key}", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
@@ -321,7 +341,7 @@ def deposit_currency_buttons(lang: str):
 
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"Binance UID • {format_amount(amount)} USDT", callback_data=f"topup_binance_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
+        [InlineKeyboardButton(text=f"Auto Crypto Pay • {format_amount(amount)} USDT" if lang == "en" else f"دفع أوتوماتيك • {format_amount(amount)} USDT", callback_data=f"topup_crypto_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
         [InlineKeyboardButton(text="Change Amount" if lang == "en" else "تغيير المبلغ", callback_data="deposit_currency_USDT", icon_custom_emoji_id=EMOJI["pencil"])]
     ])
 
@@ -372,7 +392,6 @@ async def send_home(message: Message):
 async def start(message: Message):
     deposit_waiting.pop(message.from_user.id, None)
     buy_waiting.pop(message.from_user.id, None)
-    binance_waiting.pop(message.from_user.id, None)
     referrer_id = None
     args = message.text.split()
     if len(args) > 1 and args[1].isdigit(): referrer_id = int(args[1])
@@ -449,19 +468,9 @@ async def receive_custom_quantity(message: Message):
         qty = int(message.text.strip())
         if qty < 10:
             if lang == "ar":
-                error_text = (
-                    f"{ce('error')} <b>عذراً، لا يمكن إتمام الطلب!</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"<blockquote>{ce('announcement')} <b>الحد الأدنى لشراء هذا المنتج هو 10 أكواد.</b>\n"
-                    f"يرجى كتابة رقم 10 أو أكثر للاستمرار.</blockquote>"
-                )
+                error_text = f"{ce('error')} <b>عذراً، لا يمكن إتمام الطلب!</b>\n━━━━━━━━━━━━━━━━━━\n<blockquote>{ce('announcement')} <b>الحد الأدنى لشراء هذا المنتج هو 10 أكواد.</b>\nيرجى كتابة رقم 10 أو أكثر للاستمرار.</blockquote>"
             else:
-                error_text = (
-                    f"{ce('error')} <b>Order Cannot Be Processed!</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"<blockquote>{ce('announcement')} <b>The minimum order quantity is 10 codes.</b>\n"
-                    f"Please enter 10 or more to continue.</blockquote>"
-                )
+                error_text = f"{ce('error')} <b>Order Cannot Be Processed!</b>\n━━━━━━━━━━━━━━━━━━\n<blockquote>{ce('announcement')} <b>The minimum order quantity is 10 codes.</b>\nPlease enter 10 or more to continue.</blockquote>"
             await message.answer(error_text, parse_mode="HTML")
             return
     except ValueError:
@@ -511,36 +520,79 @@ async def pay_wallet_product(call: CallbackQuery):
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
         await bot.send_message(ADMIN_ID, f"🛒 <b>شراء ناجح من المحفظة!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ المخصوم: {total_price} USDT", parse_mode="HTML")
 
-@dp.callback_query(F.data.startswith("pay_binance_"))
-async def pay_binance_product(call: CallbackQuery):
+# ━━━━━ 🚀 الدفع الأوتوماتيكي للمنتجات عبر Cryptomus 🚀 ━━━━━
+@dp.callback_query(F.data.startswith("pay_crypto_"))
+async def pay_crypto_product(call: CallbackQuery):
     await call.answer()
-    product_key, qty = call.data.replace("pay_binance_", "").rsplit("_", 1)
-    qty, lang = int(qty), await get_lang(call.from_user.id)
+    parts = call.data.replace("pay_crypto_", "").rsplit("_", 1)
+    product_key = parts[0]
+    qty = int(parts[1])
+    user_id = call.from_user.id
+    lang = await get_lang(user_id)
+    
     total_price = float(PRODUCTS[product_key]["usd"]) * qty
+    order_id = f"buy-{user_id}-{int(time.time())}"
     
-    binance_waiting[call.from_user.id] = {"product_key": product_key, "qty": qty, "amount": total_price}
+    msg = await call.message.answer(f"{ce('loading')} <b>جاري إنشاء الفاتورة الآمنة... / Generating secure invoice...</b>", parse_mode="HTML")
+    pay_url = await create_cryptomus_payment(total_price, order_id)
     
-    if lang == "en":
-        text = (
-            f"Binance ID (tap to copy): <code>{BINANCE_UID}</code>\n"
-            f"Amount to transfer: <b>${total_price:.2f}</b>\n"
-            f"Please send the order ID or off-chain transaction reference after payment for verification."
-        )
-        btn_text = "Back to main menu"
+    if pay_url:
+        if lang == "en":
+            text = f"{ce('checkout')} <b>Invoice Created</b>\n━━━━━━━━━━━━━━\n{ce('price')} <b>Amount:</b> ${total_price:.2f}\n{ce('quantity')} <b>Quantity:</b> {qty}\n\n{ce('loading')} <b>Status:</b> Waiting for payment...\n\n{ce('money_fly')} <i>Pay via the secure link below, then click 'Verify Payment' to receive your order.</i>"
+            btn_pay, btn_verify, btn_cancel = "🚀 Pay Now", "✅ Verify Payment", "❌ Cancel"
+        else:
+            text = f"{ce('checkout')} <b>فاتورة دفع جديدة</b>\n━━━━━━━━━━━━━━\n{ce('price')} <b>المبلغ المطلوب:</b> {total_price:.2f}$\n{ce('quantity')} <b>الكمية:</b> {qty}\n\n{ce('loading')} <b>الحالة:</b> في انتظار الدفع...\n\n{ce('money_fly')} <i>ادفع عبر الرابط الآمن بالأسفل، ثم اضغط 'تحقق من الدفع' للاستلام الفوري.</i>"
+            btn_pay, btn_verify, btn_cancel = "🚀 ادفع الآن", "✅ تحقق من الدفع", "❌ إلغاء"
+            
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=btn_pay, url=pay_url)],
+            [InlineKeyboardButton(text=btn_verify, callback_data=f"verify_{order_id}_{product_key}_{qty}")],
+            [InlineKeyboardButton(text=btn_cancel, callback_data="home_main")]
+        ])
+        await safe_edit_or_answer(msg, text, reply_markup=kb)
     else:
-        text = (
-            f"معرف بينانس (اضغط للنسخ): <code>{BINANCE_UID}</code>\n"
-            f"المبلغ المطلوب تحويله: <b>${total_price:.2f}</b>\n"
-            f"يرجى إرسال رقم المعاملة (Pay ID) أو مرجع المعاملة (Off-chain) بعد الدفع للتحقق."
-        )
-        btn_text = "العودة للقائمة الرئيسية"
+        err = "Error creating invoice. Contact Admin." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة. تواصل مع الدعم."
+        await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
-    ])
+@dp.callback_query(F.data.startswith("verify_buy-"))
+async def verify_crypto_payment(call: CallbackQuery):
+    await call.answer()
+    parts = call.data.split("_") 
+    order_id = parts[1]
+    product_key = parts[2]
+    qty = int(parts[3])
+    user_id = call.from_user.id
+    lang = await get_lang(user_id)
+    
+    is_paid = await check_cryptomus_payment(order_id)
+    if not is_paid:
+        msg = "Payment not received yet! Please complete payment or wait a moment." if lang == "en" else "لم يكتمل الدفع بعد! يرجى الدفع أو الانتظار قليلاً لتحديث الشبكة."
+        await call.answer(msg, show_alert=True)
+        return
+        
+    async with db_pool.acquire() as conn:
+        duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", order_id)
+        if duplicate:
+            await call.answer("Order already claimed!" if lang=="en" else "تم استلام هذا الطلب مسبقاً!", show_alert=True)
+            return
+            
+        product = PRODUCTS[product_key]
+        items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
+        
+        if len(items) < qty:
+            err_msg = "<b>Out of stock! Please contact support.</b>" if lang == "en" else "<b>نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم!</b>"
+            await safe_edit_or_answer(call.message, f"{ce('error')} {err_msg}")
+            return
+            
+        await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
+        total_price = float(product["usd"]) * qty
+        await conn.execute("INSERT INTO deposits (telegram_id, method, amount, currency, product_key, quantity, txid, status) VALUES($1,$2,$3,$4,$5,$6,$7,'approved')", user_id, "cryptomus_auto", total_price, "USDT", product_key, qty, order_id)
+        
+        await call.message.delete()
+        await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
+        await bot.send_message(ADMIN_ID, f"⚡ <b>بيع أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
 
-    await call.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
-
+# ━━━━━ 🟢 الشحن وإيداع الأموال 🟢 ━━━━━
 @dp.callback_query(F.data == "deposit_currency_USDT")
 async def deposit_currency_chosen(call: CallbackQuery):
     await call.answer()
@@ -562,116 +614,69 @@ async def receive_deposit_amount(message: Message):
         return
 
     deposit_waiting.pop(user_id, None)
-    text = f"💳 <b>Deposit via Binance Pay</b>\n\nAmount: <b>{amount} {currency}</b>\n\nPlease transfer to:" if lang == "en" else f"💳 <b>إيداع عبر بينانس Pay</b>\n\nالمبلغ: <b>{amount} {currency}</b>\n\nيرجى التحويل إلى:"
+    text = f"💳 <b>Deposit via Crypto</b>\n\nAmount: <b>{amount} {currency}</b>" if lang == "en" else f"💳 <b>إيداع عبر الكريبتو</b>\n\nالمبلغ: <b>{amount} {currency}</b>"
     await message.answer(text, reply_markup=deposit_amount_payment_buttons(lang, amount, currency), parse_mode="HTML")
 
-@dp.callback_query(F.data.startswith("topup_binance_"))
-async def topup_binance_callback(call: CallbackQuery):
+@dp.callback_query(F.data.startswith("topup_crypto_"))
+async def topup_crypto_callback(call: CallbackQuery):
     await call.answer()
     parts = call.data.split("_")
     amount = float(parts[2])
     currency = parts[3]
-    lang = await get_lang(call.from_user.id)
-
-    binance_waiting[call.from_user.id] = {"product_key": "topup", "qty": 1, "amount": amount}
-
-    if lang == "en":
-        text = (
-            f"Binance ID (tap to copy): <code>{BINANCE_UID}</code>\n"
-            f"Amount to transfer: <b>{amount} {currency}</b>\n"
-            f"Please send your Binance Pay ID after payment for automatic verification."
-        )
-        btn_text = "Back to main menu"
-    else:
-        text = (
-            f"معرف بينانس (اضغط للنسخ): <code>{BINANCE_UID}</code>\n"
-            f"المبلغ المطلوب تحويله: <b>{amount} {currency}</b>\n"
-            f"يرجى إرسال رقم المعاملة (Pay ID) هنا بعد الدفع ليتم شحن محفظتك تلقائياً."
-        )
-        btn_text = "العودة للقائمة الرئيسية"
-
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
-    ])
-    await call.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
-
-async def receive_binance_pay_id(message: Message):
-    user_id = message.from_user.id
+    user_id = call.from_user.id
     lang = await get_lang(user_id)
-    info = binance_waiting.get(user_id)
+
+    order_id = f"top-{user_id}-{int(time.time())}"
+    msg = await call.message.answer(f"{ce('loading')} <b>جاري إنشاء الفاتورة... / Generating invoice...</b>", parse_mode="HTML")
     
-    if not info: return
-    pay_id = message.text.strip()
+    pay_url = await create_cryptomus_payment(amount, order_id)
     
-    if not pay_id.isdigit() or len(pay_id) < 6:
-        err_msg = "<b>Invalid ID, please enter a valid Pay ID (Numbers only)!</b>" if lang == "en" else "<b>معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!</b>"
-        await message.answer(f"{ce('error')} {err_msg}", parse_mode="HTML")
+    if pay_url:
+        if lang == "en":
+            text = f"{ce('checkout')} <b>Deposit Invoice</b>\n━━━━━━━━━━━━━━\n{ce('price')} <b>Amount:</b> {amount} {currency}\n\n{ce('loading')} <b>Status:</b> Waiting for payment...\n\n{ce('money_fly')} <i>Pay via the link below, then click 'Verify Payment'.</i>"
+            btn_pay, btn_verify, btn_cancel = "🚀 Pay Now", "✅ Verify Payment", "❌ Cancel"
+        else:
+            text = f"{ce('checkout')} <b>فاتورة إيداع رصيد</b>\n━━━━━━━━━━━━━━\n{ce('price')} <b>المبلغ المطلوب:</b> {amount} {currency}\n\n{ce('loading')} <b>الحالة:</b> في انتظار الدفع...\n\n{ce('money_fly')} <i>ادفع عبر الرابط بالأسفل، ثم اضغط 'تحقق من الدفع' لشحن محفظتك.</i>"
+            btn_pay, btn_verify, btn_cancel = "🚀 ادفع الآن", "✅ تحقق من الدفع", "❌ إلغاء"
+            
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=btn_pay, url=pay_url)],
+            [InlineKeyboardButton(text=btn_verify, callback_data=f"vtop_{order_id}_{amount}")],
+            [InlineKeyboardButton(text=btn_cancel, callback_data="home_main")]
+        ])
+        await safe_edit_or_answer(msg, text, reply_markup=kb)
+    else:
+        err = "Error creating invoice." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة."
+        await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
+
+@dp.callback_query(F.data.startswith("vtop_top-"))
+async def verify_topup_payment(call: CallbackQuery):
+    await call.answer()
+    parts = call.data.split("_") 
+    order_id = parts[1]
+    amount = float(parts[2])
+    user_id = call.from_user.id
+    lang = await get_lang(user_id)
+    
+    is_paid = await check_cryptomus_payment(order_id)
+    if not is_paid:
+        msg = "Payment not received yet! Please complete payment." if lang == "en" else "لم يكتمل الدفع بعد! يرجى الدفع أو الانتظار لتحديث الشبكة."
+        await call.answer(msg, show_alert=True)
         return
         
-    loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً عبر بينانس...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction via Binance...</b>", parse_mode="HTML")
-    
     async with db_pool.acquire() as conn:
-        duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", pay_id)
+        duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", order_id)
         if duplicate:
-            err_msg = "<b>This transaction ID has already been used!</b>" if lang == "en" else "<b>معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!</b>"
-            await loading_msg.edit_text(f"{ce('error')} {err_msg}", parse_mode="HTML")
+            await call.answer("Already claimed!" if lang=="en" else "تم شحن هذا الطلب مسبقاً!", show_alert=True)
             return
             
-        success = await check_binance_payment_via_api(pay_id, info["amount"])
+        await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", amount, user_id)
+        await conn.execute("INSERT INTO deposits (telegram_id, method, amount, currency, product_key, quantity, txid, status) VALUES($1,$2,$3,$4,$5,$6,$7,'approved')", user_id, "cryptomus_topup", amount, "USDT", "topup", 1, order_id)
         
-        if success:
-            if info.get("product_key") == "topup":
-                await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", info["amount"], user_id)
-                await conn.execute("INSERT INTO deposits (telegram_id, method, amount, currency, product_key, quantity, txid, status) VALUES($1,$2,$3,$4,$5,$6,$7,'approved')", user_id, "binance_topup", info["amount"], "USDT", "topup", 1, pay_id)
-                binance_waiting.pop(user_id, None)
-                await loading_msg.delete()
-                await message.answer(f"{ce('success')} <b>تم شحن المحفظة بنجاح بمبلغ {info['amount']} USDT!</b>" if lang == "ar" else f"{ce('success')} <b>Wallet successfully topped up with {info['amount']} USDT!</b>", parse_mode="HTML")
-                await bot.send_message(ADMIN_ID, f"💰 <b>شحن محفظة تلقائي ناجح!</b>\nالمستخدم: @{message.from_user.username}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
-            else:
-                product = PRODUCTS[info["product_key"]]
-                qty = info["qty"]
-                items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
-                
-                if len(items) < qty:
-                    err_msg = "<b>Out of stock! Please contact support to charge your wallet.</b>" if lang == "en" else "<b>نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!</b>"
-                    await loading_msg.edit_text(f"{ce('error')} {err_msg}", parse_mode="HTML")
-                    return
-                    
-                await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
-                await conn.execute("INSERT INTO deposits (telegram_id, method, amount, currency, product_key, quantity, txid, status) VALUES($1,$2,$3,$4,$5,$6,$7,'approved')", user_id, "binance_auto", info["amount"], "USDT", info["product_key"], qty, pay_id)
-                
-                binance_waiting.pop(user_id, None)
-                await loading_msg.delete()
-                await message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
-                await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
-        else:
-            if lang == "ar":
-                error_text = (
-                    f"{ce('error')} <b>لم نجد المعاملة بعد</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"<blockquote>{ce('quotes')} {ce('search')} <b>عذراً، لم نتمكن من العثور على أي تحويل بهذا المعرف في حسابنا حتى الآن.</b></blockquote>\n\n"
-                    f"{ce('announcement')} <b>يرجى التأكد من الآتي:</b>\n"
-                    f"{ce('arrow_right')} هل كتبت رقم الـ Pay ID بشكل صحيح؟\n"
-                    f"{ce('arrow_right')} هل قمت بتحويل المبلغ المطلوب بالكامل؟\n\n"
-                    f"{ce('hourglass')} <i>فضلاً انتظر دقيقة ثم أرسل رقم المعاملة مرة أخرى للمحاولة.</i>"
-                )
-                btn_text = "العودة للقائمة الرئيسية"
-            else:
-                error_text = (
-                    f"{ce('error')} <b>Payment Not Found</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"<blockquote>{ce('quotes')} {ce('search')} <b>We haven't received any transfer with this ID in our system just yet.</b></blockquote>\n\n"
-                    f"{ce('announcement')} <b>Please double check:</b>\n"
-                    f"{ce('arrow_right')} Did you copy the exact correct Pay ID?\n"
-                    f"{ce('arrow_right')} Did you send the full required amount?\n\n"
-                    f"{ce('hourglass')} <i>Kindly wait a minute and submit the ID again to re-verify.</i>"
-                )
-                btn_text = "Back to main menu"
-
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
-            ])
-            await loading_msg.edit_text(error_text, reply_markup=keyboard, parse_mode="HTML")
+        await call.message.delete()
+        succ = f"<b>Wallet successfully topped up with {amount} USDT!</b>" if lang == "en" else f"<b>تم شحن المحفظة بنجاح بمبلغ {amount} USDT!</b>"
+        await call.message.answer(f"{ce('success')} {succ}", parse_mode="HTML")
+        await bot.send_message(ADMIN_ID, f"💰 <b>شحن محفظة أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالمبلغ: {amount} USDT\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
 
 async def show_support(message_or_call):
     lang = await get_lang(message_or_call.from_user.id)
@@ -790,8 +795,8 @@ async def handle_text_messages(message: Message):
     text_value = message.text.strip()
     lang = await get_lang(user_id)
 
+    # إلغاء شامل وحماية
     if text_value in ["❌ Cancel", "❌ إلغاء", "Cancel", "إلغاء", "❌ Cancel / إلغاء"]:
-        binance_waiting.pop(user_id, None)
         buy_waiting.pop(user_id, None)
         deposit_waiting.pop(user_id, None)
         cancel_msg = "<b>Cancelled. Returning to main menu...</b>" if lang == "en" else "<b>تم الإلغاء. جاري العودة للقائمة الرئيسية...</b>"
@@ -801,9 +806,6 @@ async def handle_text_messages(message: Message):
 
     if text_value.startswith("/"): return
 
-    if user_id in binance_waiting:
-        await receive_binance_pay_id(message)
-        return
     if user_id in buy_waiting:
         await receive_custom_quantity(message)
         return
