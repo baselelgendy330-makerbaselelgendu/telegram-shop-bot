@@ -546,15 +546,22 @@ async def receive_binance_pay_id(message: Message):
 
 # ━━━━━ باقي قنوات العرض ━━━━━
 
-# 🟢 إضافة زرار الدعم هنا 🟢
+async def show_support(message_or_call):
+    lang = await get_lang(message_or_call.from_user.id)
+    text = (f"{ce('support_msg')} <b>Quick support:</b>\n\n{ce('telegram')} <b>Telegram:</b> {ce('arrow_right')} {SUPPORT}" 
+            if lang == "en" else 
+            f"{ce('support_msg')} <b>الدعم السريع:</b>\n\n{ce('telegram')} <b>تليجرام:</b> {ce('arrow_right')} {SUPPORT}")
+    
+    if isinstance(message_or_call, CallbackQuery):
+        await safe_edit_or_answer(message_or_call.message, text, reply_markup=back_home_keyboard(lang))
+    else:
+        await message_or_call.answer(text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
+
 @dp.callback_query(F.data == "home_support")
 async def support_callback(call: CallbackQuery):
     await call.answer()
-    lang = await get_lang(call.from_user.id)
-    support_text = f"{ce('support_msg')} <b>الدعم السريع:</b>\n\n{ce('telegram')} <b>تليجرام:</b> {ce('arrow_right')} {SUPPORT}\n\nتواصل معنا للحصول على مساعدة أسرع وحل المشاكل." if lang == "ar" else f"{ce('support_msg')} <b>Quick support:</b>\n\n{ce('telegram')} <b>Telegram:</b> {ce('arrow_right')} {SUPPORT}\n\nContact us for faster help and issue handling."
-    await safe_edit_or_answer(call.message, support_text, reply_markup=back_home_keyboard(lang))
+    await show_support(call)
 
-# 🟢 إضافة زرار اللغة هنا 🟢
 @dp.callback_query(F.data == "home_language")
 async def language_screen_callback(call: CallbackQuery):
     await call.answer()
@@ -567,4 +574,96 @@ async def set_language_callback(call: CallbackQuery):
     lang = call.data.replace("lang_", "")
     async with db_pool.acquire() as conn:
         await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
-    await call.answer("Language changed successfully!" if lang == "en" else "تم تغيير
+    await call.answer("Language changed successfully!" if lang == "en" else "تم تغيير اللغة بنجاح!")
+    
+    msg = await animate_message(call.message, lang)
+    await safe_edit_or_answer(msg, home_text(lang, call.from_user.first_name or "User"), reply_markup=home_keyboard(lang))
+    await call.message.answer("Main Menu" if lang == "en" else "القائمة الرئيسية", reply_markup=main_reply_keyboard(lang))
+
+@dp.callback_query(F.data == "home_deposit")
+async def deposit_inline_screen(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    text = "💰 <b>Deposit Funds</b>\nSelect currency:" if lang == "en" else "💰 <b>إيداع الأموال</b>\nاختر العملة:"
+    await safe_edit_or_answer(call.message, text, reply_markup=deposit_currency_buttons(lang))
+
+@dp.callback_query(F.data == "home_share")
+async def referral_screen(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    bot_info = await bot.get_me()
+    ref_link = f"https://t.me/{bot_info.username}?start={call.from_user.id}"
+    stats = await get_user_stats(call.from_user.id)
+    total_ref = stats["total_ref"] if stats else 0
+    earnings = total_ref * REFERRAL_REWARD
+    if lang == "en":
+        text = f"""{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\nInvite your friends to use the bot and earn <b>{REFERRAL_REWARD} USDT</b> instantly inside your wallet for every successful invite!\n\n{ce('users_group')} Your Total Invites: <b>{total_ref} users</b>\n{ce('money_fly')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n{ce('link_pin')} <b>Your Exclusive Referral Link:</b>\n<code>{ref_link}</code>\n\n<i>Copy the link and share it in groups to start earning!</i>"""
+    else:
+        text = f"""{ce('share')} <b>انشر البوت وابني أرباح مجانية!</b>\n━━━━━━━━━━━━━━━━━━━━━\nانسخ رابط الإحالة الخاص بك وانشره؛ لكل شخص يدخل البوت عن طريقك هتكسب <b>{REFERRAL_REWARD} USDT</b> فوراً جوه محفظتك تقدر تشتري بيها أي منتج!\n\n{ce('users_group')} عدد إحالاتك الحالي: <b>{total_ref} عضو</b>\n{ce('money_fly')} إجمالي ما كسبته: <b>{format_amount(earnings)} USDT</b>\n\n{ce('link_pin')} <b>رابط الإحالة الحصري الخاص بك:</b>\n<code>{ref_link}</code>\n\n<i>اضغط على الرابط لنسخه وانشره في الجروبات لتبدأ الأرباح!</i>"""
+    await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard(lang))
+
+@dp.callback_query(F.data == "home_wallet")
+async def wallet_inline(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    stats = await get_user_stats(call.from_user.id)
+    balance = stats["balance_usdt"] if stats else 0.0
+    total_ref = stats["total_ref"] if stats else 0
+    msg = await animate_message(call.message, lang)
+    if lang == "en":
+        text = f"""{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n{ce('users_group')} Total Invited Users: <b>{total_ref} friends</b>\n{ce('money_fly')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."""
+    else:
+        text = f"""{ce('wallet')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n{ce('users_group')} إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n{ce('money_fly')} أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} تقدر تشحن محفظتك يدوياً أو تستخدم أرباح إحالاتك للشراء الفوري مباشرةً."""
+    await safe_edit_or_answer(msg, text, reply_markup=wallet_kb(lang))
+
+@dp.callback_query(F.data == "home_main")
+async def home_main(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    msg = await animate_message(call.message, lang)
+    await safe_edit_or_answer(msg, home_text(lang, call.from_user.first_name or "User"), reply_markup=home_keyboard(lang))
+
+@dp.callback_query(F.data == "home_shop")
+async def shop_inline_callback(call: CallbackQuery):
+    await call.answer()
+    msg = await animate_message(call.message, await get_lang(call.from_user.id))
+    await handle_shop_action(msg, await get_lang(call.from_user.id))
+
+@dp.message(F.text)
+async def handle_text_messages(message: Message):
+    user_id = message.from_user.id
+    if user_id in binance_waiting: await receive_binance_pay_id(message); return
+    if user_id in buy_waiting: await receive_custom_quantity(message); return
+        
+    text_value = message.text.strip()
+    if text_value.startswith("/"): return
+
+    lang = await get_lang(user_id)
+
+    if text_value in ["🛍 Products", "🛍 المنتجات"]:
+        msg = await animate_message(message, lang)
+        await handle_shop_action(msg, lang)
+    elif text_value in ["🎧 Support", "🎧 الدعم"]:
+        await show_support(message)
+    elif text_value in ["💰 Wallet", "💰 المحفظة"]:
+        class FakeCall:
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
+            async def answer(self, *args, **kwargs): pass
+        await wallet_inline(FakeCall(message, message.from_user))
+    elif text_value in ["🎁 Share & Earn", "🎁 الإحالات"]:
+        class FakeCall:
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
+            async def answer(self, *args, **kwargs): pass
+        await referral_screen(FakeCall(message, message.from_user))
+    elif text_value in ["🌐 Language", "🌐 اللغة"]:
+        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language_keyboard(), parse_mode="HTML")
+    else:
+        await send_home(message)
+
+async def main():
+    await init_db()
+    await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
+    await dp.start_polling(bot)
+
+if __name__ == "__main__": 
+    asyncio.run(main())
