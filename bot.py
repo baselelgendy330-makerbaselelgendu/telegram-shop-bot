@@ -44,6 +44,9 @@ EMOJI = {
     "telegram": "6089099509202164251", "arrow_right": "6181560401214314708", "users_group": "4942888689131848546",
     "money_fly": "5816492162488995555", "link_pin": "5332724926216428039",
     "quotes": "5460795800101594035", "search": "5231012545799666522", "hourglass": "5386367538735104399"
+        "announcement": "5395695537687123235", # الإيموجي المتحرك (اللمبة/🚨)
+    "arrow_right": "6181684276661066306"  # الإيموجي المتحرك (السهم ➡️)
+
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -487,15 +490,15 @@ async def receive_binance_pay_id(message: Message):
             
             # إشعار نجاح فوري للأدمن
             await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
-        else:
+                else:
             if lang == "ar":
                 error_text = (
                     f"{ce('error')} <b>لم نجد المعاملة بعد</b>\n"
                     f"━━━━━━━━━━━━━━━━━━\n"
                     f"<blockquote>{ce('quotes')} {ce('search')} <b>عذراً، لم نتمكن من العثور على أي تحويل بهذا المعرف في حسابنا حتى الآن.</b></blockquote>\n\n"
-                    f"💡 <b>يرجى التأكد من الآتي:</b>\n"
-                    f"1️⃣ هل كتبت رقم الـ Pay ID بشكل صحيح؟\n"
-                    f"2️⃣ هل قمت بتحويل المبلغ المطلوب بالكامل؟\n\n"
+                    f"{ce('announcement')} <b>يرجى التأكد من الآتي:</b>\n"
+                    f"{ce('arrow_right')} هل كتبت رقم الـ Pay ID بشكل صحيح؟\n"
+                    f"{ce('arrow_right')} هل قمت بتحويل المبلغ المطلوب بالكامل؟\n\n"
                     f"{ce('hourglass')} <i>فضلاً انتظر دقيقة ثم أرسل رقم المعاملة مرة أخرى للمحاولة.</i>"
                 )
                 btn_text = "العودة للقائمة الرئيسية"
@@ -504,12 +507,19 @@ async def receive_binance_pay_id(message: Message):
                     f"{ce('error')} <b>Payment Not Found</b>\n"
                     f"━━━━━━━━━━━━━━━━━━\n"
                     f"<blockquote>{ce('quotes')} {ce('search')} <b>We haven't received any transfer with this ID in our system just yet.</b></blockquote>\n\n"
-                    f"💡 <b>Please double check:</b>\n"
-                    f"1️⃣ Did you copy the exact correct Pay ID?\n"
-                    f"2️⃣ Did you send the full required amount?\n\n"
+                    f"{ce('announcement')} <b>Please double check:</b>\n"
+                    f"{ce('arrow_right')} Did you copy the exact correct Pay ID?\n"
+                    f"{ce('arrow_right')} Did you send the full required amount?\n\n"
                     f"{ce('hourglass')} <i>Kindly wait a minute and submit the ID again to re-verify.</i>"
                 )
                 btn_text = "Back to main menu"
+
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
+            ])
+            
+            await loading_msg.edit_text(error_text, reply_markup=keyboard, parse_mode="HTML")
+
 
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
