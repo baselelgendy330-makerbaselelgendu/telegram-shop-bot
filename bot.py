@@ -4,7 +4,10 @@ import html
 import re
 import json
 import asyncpg
-import aiohttp  
+import hmac
+import hashlib
+import time
+import aiohttp
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
@@ -12,10 +15,6 @@ from aiogram.types import (
     Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery,
     URLInputFile, FSInputFile, BotCommand, ReplyKeyboardMarkup, KeyboardButton
 )
-# مكاتب جوجل للفحص التلقائي
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -23,12 +22,14 @@ ADMIN_ID = 6728595587
 BINANCE_UID = "381880403"
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
-REFERRAL_REWARD = 0.10  
+REFERRAL_REWARD = 0.10
+
+# مفاتيح بينانس من السيرفر
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
-CANBOSO_API_KEY = "tgb_ed38161c10c75c472acddb5ba18bb8f130609e7ba60a4038"
-CANBOSO_API_URL = "https://canboso.com/api/telegram-buyer"
 
 EMOJI = {
     "cart": "5312361253610475399", "back": "6181245923708903693", "wallet": "6088990159334808217",
@@ -92,7 +93,7 @@ db_pool = None
 
 deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
-binance_waiting: dict[int, dict] = {} # لحفظ حالة انتظار الـ ID العميل
+binance_waiting: dict[int, dict] = {} 
 
 PRODUCTS = {
     "cdk_chatgpt": {
@@ -107,50 +108,39 @@ PRODUCTS = {
     }
 }
 
-# ━━━━━ 📧 لوجيك فحص الـ Gmail الذكي 📧 ━━━━━
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-
-def get_gmail_service():
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds:
-        if os.getenv("GOOGLE_CREDENTIALS_JSON"):
-            creds_dict = json.loads(os.getenv("GOOGLE_CREDENTIALS_JSON"))
-            flow = InstalledAppFlow.from_client_config(creds_dict, SCOPES)
-            # توليد رابط يدوي لو مفيش متصفح (زي سيرفر ريلواي)
-            flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
-            auth_url, _ = flow.authorization_url(prompt='consent')
-            print(f"[AUTH REQUIRED] ادخل هنا لتفعيل الإيميل: {auth_url}")
-            # هنبعت رسالة للأدمن تليجرام بالرابط لو مش مفعل
-            asyncio.create_task(bot.send_message(ADMIN_ID, f"⚠️ <b>مطلوب تفعيل نظام الأوتوماتيك!</b>\nاضغط على الرابط وسجل دخول بإيميل الإشعارات، وانسخ الكود اللي هيظهرلك وابعتولي هنا:\n\n<a href='{auth_url}'>اضغط هنا لتسجيل الدخول</a>", parse_mode="HTML"))
-            return None
-    return build('gmail', 'v1', credentials=creds)
-
-async def verify_binance_pay_id(pay_id: str, expected_amount: float) -> bool:
+# ━━━━━ 🟡 لوجيك فحص بينانس الذكي والآمن 🟡 ━━━━━
+async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> bool:
+    if not BINANCE_API_KEY or not BINANCE_API_SECRET:
+        print("⚠️ Binance API Keys are missing in variables!")
+        return False
+    
+    url = "https://api.binance.com/sapi/v1/pay/transactions"
+    timestamp = int(time.time() * 1000)
+    query_string = f"timestamp={timestamp}"
+    signature = hmac.new(BINANCE_API_SECRET.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
+    
+    headers = {
+        "X-MBX-APIKEY": BINANCE_API_KEY
+    }
+    
     try:
-        service = get_gmail_service()
-        if not service: return False
-        
-        # البحث عن رسائل بينانس التي تحتوي على الـ Pay ID
-        query = f"from:binance.com {pay_id}"
-        results = service.users().messages().list(userId='me', q=query).execute()
-        messages = results.get('messages', [])
-        
-        if not messages: return False
-        
-        for msg in messages:
-            msg_data = service.users().messages().get(userId='me', id=msg['id']).execute()
-            snippet = msg_data.get('snippet', '')
-            body = msg_data.get('body', {}).get('data', '')
-            full_text = snippet + body
-            
-            # التحقق من وجود رقم المعاملة والمبلغ داخل نص الرسالة
-            if pay_id in full_text and str(int(expected_amount)) in full_text:
-                return True
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{url}?{query_string}&signature={signature}", headers=headers) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    transactions = data.get("data", [])
+                    for tx in transactions:
+                        # التحقق من تطابق رقم التحويل وحالة النجاح والمبلغ
+                        if str(tx.get("orderId")) == str(pay_id) or str(tx.get("transactionId")) == str(pay_id):
+                            amount = float(tx.get("amount", 0))
+                            status = tx.get("status") # SUCCESS
+                            if status == "SUCCESS" and abs(amount - expected_amount) < 0.01:
+                                return True
+                else:
+                    print(f"Binance API Error Status: {resp.status}")
         return False
     except Exception as e:
-        print(f"Gmail Check Error: {e}")
+        print(f"Binance API Connection Error: {e}")
         return False
 
 # ━━━━━ دالات قاعدة البيانات ━━━━━
@@ -342,21 +332,7 @@ async def start(message: Message):
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
 
-# ━━━━━ أوامر الإدارة وفحص الـ API ━━━━━
-@dp.message(Command("api_test"))
-async def cmd_api_test(message: Message):
-    if message.from_user.id != ADMIN_ID: return
-    msg = await message.answer(f"{ce('loading')} جاري سحب المنتجات من API صديقك...", parse_mode="HTML")
-    try:
-        async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": f"Bearer {CANBOSO_API_KEY}", "Accept": "application/json"}
-            async with session.get(f"{CANBOSO_API_URL}/products", headers=headers) as resp:
-                text = await resp.text()
-                if len(text) > 3500: text = text[:3500] + "\n... [مقطوع]"
-                await msg.edit_text(f"✅ <b>استجابة المنتجات:</b>\n\n<code>{html.escape(text)}</code>", parse_mode="HTML")
-    except Exception as e:
-        await msg.edit_text(f"❌ <b>خطأ في الاتصال:</b>\n<code>{str(e)}</code>", parse_mode="HTML")
-
+# ━━━━━ أوامر الإدارة ━━━━━
 @dp.message(Command("addstock"))
 async def add_stock(message: Message):
     if message.from_user.id != ADMIN_ID: return
@@ -365,7 +341,7 @@ async def add_stock(message: Message):
         await message.answer(f"{ce('error')} <b>خطأ! استخدم الصيغة دي (في رسالة واحدة):</b>\n\n<code>/addstock CDK</code>\n<code>الكود_الأول</code>", parse_mode="HTML")
         return
     product_key, stock_name = resolve_stock_product(lines[0])
-    if not stock_name: return await message.answer(f"{ce('error')} الكود غير معروف. استخدم `CDK`.", parse_mode="HTML")
+    if not stock_name: return await message.answer(f"{ce('error')} الكود غير معروف. استخدم CDK.", parse_mode="HTML")
     added_count = 0
     items = lines[1:]
     async with db_pool.acquire() as conn:
@@ -441,7 +417,7 @@ async def proceed_to_checkout(call_obj, product_key: str, qty: int):
     if isinstance(call_obj, Message): await call_obj.answer(text, reply_markup=checkout_payment_buttons(lang, product_key, qty), parse_mode="HTML")
     else: await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(lang, product_key, qty))
 
-# ━━━━━ 🚀 الدفع والتحقق التلقائي 🚀 ━━━━━
+# ━━━━━ 🚀 الدفع والتحقق التلقائي المحدث 🚀 ━━━━━
 @dp.callback_query(F.data.startswith("pay_binance_"))
 async def pay_binance_product(call: CallbackQuery):
     await call.answer()
@@ -454,11 +430,11 @@ async def pay_binance_product(call: CallbackQuery):
     text = (
         f"{ce('binance')} <b>Binance Pay (UID):</b> <code>{BINANCE_UID}</code>\n"
         f"{ce('price')} <b>Required Amount:</b> <code>{total_price} USDT</code>\n━━━━━━━━━━━━━━━━━\n"
-        f"⚡ Send the funds via Binance Pay, then <b>type your Binance Transaction Pay ID</b> below for instant verification!"
+        f"⚡ Send the funds via Binance Pay, then <b>type your Binance Transaction Pay ID</b> below!"
         if lang=="en" else
         f"{ce('binance')} <b>بينانس Pay (UID):</b> <code>{BINANCE_UID}</code>\n"
         f"{ce('price')} <b>المبلغ المطلوب:</b> <code>{total_price} USDT</code>\n━━━━━━━━━━━━━━━━━\n"
-        f"⚡ حول المبلغ المطلوب أولاً، ثم <b>اكتب معرف المعاملة (Pay ID)</b> هنا ليتم الفحص والتسليم تلقائياً في ثانية واحدة!"
+        f"⚡ حول المبلغ المطلوب أولاً، ثم <b>اكتب معرف المعاملة (Pay ID)</b> هنا ليتم التسليم تلقائياً!"
     )
     await call.message.answer(text, parse_mode="HTML")
 
@@ -472,23 +448,22 @@ async def receive_binance_pay_id(message: Message):
         await message.answer("❌ معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!")
         return
         
-    loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً في ثانية...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction instantly...</b>", parse_mode="HTML")
+    loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً عبر بينانس...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction via Binance...</b>", parse_mode="HTML")
     
     async with db_pool.acquire() as conn:
-        # منع استخدام نفس الـ ID مرتين
         duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", pay_id)
         if duplicate:
             await loading_msg.edit_text("❌ معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!")
             return
             
-        # تشغيل دالة الفحص عبر الـ Gmail API
-        success = await verify_binance_pay_id(pay_id, info["amount"])
+        # تشغيل الفحص الأوتوماتيكي الفوري عبر الـ API الجديد
+        success = await check_binance_payment_via_api(pay_id, info["amount"])
         
         if success:
             product = PRODUCTS[info["product_key"]]
             qty = info["qty"]
-            
             items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
+            
             if len(items) < qty:
                 await loading_msg.edit_text("❌ نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!")
                 return
@@ -499,9 +474,12 @@ async def receive_binance_pay_id(message: Message):
             binance_waiting.pop(user_id, None)
             await loading_msg.delete()
             await message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
-            await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
+            
+            # إشعار نجاح فوري للأدمن
+            await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
         else:
-            await loading_msg.edit_text("❌ <b>لم نجد هذه المعاملة بعد!</b>\nتأكد من إرسال المبلغ بالكامل وكتابة الـ ID بشكل صحيح، وجرب مجدداً خلال دقيقة." if lang=="ar" else "❌ <b>Transaction not found yet!</b>\nPlease ensure you sent the exact amount and type the correct Pay ID.")
+            # في حال لم يتم العثور عليها أو لم تصل بعد
+            await loading_msg.edit_text("❌ <b>لم نجد هذه المعاملة في حسابك بعد!</b>\nتأكد من إرسال المبلغ بالكامل وكتابة الـ ID بشكل صحيح، وجرب مجدداً خلال دقيقة." if lang=="ar" else "❌ <b>Transaction not found yet!</b>\nPlease ensure you sent the exact amount and type the correct Pay ID.")
 
 # ━━━━━ باقي قنوات العرض العادية ━━━━━
 @dp.callback_query(F.data == "home_deposit")
@@ -555,21 +533,6 @@ async def shop_inline_callback(call: CallbackQuery):
 async def handle_text_messages(message: Message):
     user_id = message.from_user.id
     
-    # استقبال كود تفعيل جوجل لو اتبعت من الأدمن لأول مرة
-    if user_id == ADMIN_ID and "4/" in message.text:
-        try:
-            creds_dict = json.loads(os.getenv("GOOGLE_CREDENTIALS_JSON"))
-            flow = InstalledAppFlow.from_client_config(creds_dict, SCOPES)
-            flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
-            flow.fetch_token(code=message.text.strip())
-            with open('token.json', 'w') as token:
-                token.write(flow.credentials.to_json())
-            await message.answer("✅ <b>تم ربط الـ Gmail بنجاح وتفعيل نظام الفحص الفوري في ثانية!</b>", parse_mode="HTML")
-            return
-        except Exception as e:
-            await message.answer(f"❌ خطأ أثناء التفعيل: `{e}`")
-            return
-
     if user_id in binance_waiting:
         await receive_binance_pay_id(message)
         return
@@ -590,12 +553,12 @@ async def handle_text_messages(message: Message):
         await message.answer(support_text, reply_markup=back_home_keyboard(lang), parse_mode="HTML")
     elif text_value in ["💰 Wallet", "💰 المحفظة"]:
         class FakeCall:
-            def __init__(self, message, from_user): self.message, self.from_user = message, from_user
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
             async def answer(self, *args, **kwargs): pass
         await wallet_inline(FakeCall(message, message.from_user))
     elif text_value in ["🎁 Share & Earn", "🎁 الإحالات"]:
         class FakeCall:
-            def __init__(self, message, from_user): self.message, self.from_user = message, from_user
+            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
             async def answer(self, *args, **kwargs): pass
         await referral_screen(FakeCall(message, message.from_user))
     else:
@@ -606,4 +569,5 @@ async def main():
     await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
     await dp.start_polling(bot)
 
-if __name__ == "__main__": asyncio.run(main())
+if __name__ == "__main__": 
+    asyncio.run(main())
