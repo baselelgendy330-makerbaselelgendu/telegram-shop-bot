@@ -1,4 +1,6 @@
-aiogram==3.13.1
-python-dotenv
-aiohttp
+aiogram
 asyncpg
+aiohttp
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
