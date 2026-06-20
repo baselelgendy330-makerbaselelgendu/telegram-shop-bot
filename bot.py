@@ -134,14 +134,13 @@ PRODUCTS = {
         "title_en": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
         "title_ar": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
         "image": CDK_IMAGE_FILE,
-        "usd": 4.8,  # السعر الجديد للـ 10 حبات وفوق
+        "usd": 4.8,  
         "type": "stock",
         "desc_en": "✅ ChatGPT K12 Edu 1 year package.\nFull of latest languages like Plus\n✅ Can activate any account owner. Only applies to Gmail or hotmail, outlook\n✅ After ordering, you will receive a code\n✅ Account is on free plan\n✅ Recommended to use an account without an active subscription or a newly created account to register.\n✅ Web upgrade CDK: http://gpt.ddfafa.com",
         "desc_ar": "✅ باقة ChatGPT K12 المخصصة للتعليم لمدة سنة كاملة.\nتحتوي على أحدث المميزات واللغات مثل حسابات بلس تماماً.\n✅ تقبل التفعيل على أي حساب، وتطبق على إيميلات جيمل، هوتميل، وأوتلوك.\n✅ بعد الطلب والدفع، ستتلقى كود التفعيل فوراً.\n✅ الحساب يجب أن يكون على الخطة المجانية الحالية.\n✅ يوصى باستخدام حساب ليس به اشتراك نشط أو حساب جديد تماماً للتسجيل.\n✅ موقع ترقية وتفعيل الكود: http://gpt.ddfafa.com"
     }
 }
 
-# ━━━━━ 🟡 لوجيك فحص بينانس الذكي 🟡 ━━━━━
 async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> bool:
     if not BINANCE_API_KEY or not BINANCE_API_SECRET:
         print("⚠️ Binance API Keys are missing in variables!")
@@ -172,7 +171,6 @@ async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> 
         print(f"Binance API Connection Error: {e}")
         return False
 
-# ━━━━━ دالات قاعدة البيانات ━━━━━
 async def init_db():
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
@@ -238,12 +236,13 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
     else:
         return f"""{ce('success')} <b>تم تأكيد الدفع وتسليم طلب بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('vip')} <b>{product['title_ar']}</b>\n\n{ce('quantity')} <b>الكمية المطلوبة:</b> {qty}\n\n{ce('announcement')} <b>لاستلام الأكواد الخاصة بك:</b>\nبرجاء التواصل مع الإدارة لاستلام الأكواد فوراً. يرجى إرسال سكرين شوت لهذه الرسالة كإثبات لطلبك!\n{ce('support')} <b>تواصل مع الإدارة:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n{ce('heart')} <b>شكراً لثقتك في AIX Store!</b>"""
 
-# 🟢 الكيبورد الجديد عشان يناسب إن أقل حاجة 10
-def reply_quantity_keyboard():
+# 🟢 تحديث دالة زرار الكمية لتظهر بلغة واحدة
+def reply_quantity_keyboard(lang: str):
+    cancel_text = "❌ Cancel" if lang == "en" else "❌ إلغاء"
     return ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="10"), KeyboardButton(text="20"), KeyboardButton(text="50")],
         [KeyboardButton(text="100"), KeyboardButton(text="200")],
-        [KeyboardButton(text="❌ Cancel / إلغاء")]
+        [KeyboardButton(text=cancel_text)]
     ], resize_keyboard=True, one_time_keyboard=True)
 
 def home_keyboard(lang: str):
@@ -257,7 +256,6 @@ def home_keyboard(lang: str):
 def back_home_keyboard(lang: str): 
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]])
 
-# 🟢 تحديث السعر في أزرار المنتجات
 def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
@@ -329,7 +327,6 @@ def home_text(lang: str, name: str):
     if lang == "en": return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b>\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{ce('lightning')} Fast activation • Secure payments • Trusted service"
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b>\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{ce('lightning')} تفعيل سريع • دفع آمن • خدمة موثوقة"
 
-# 🟢 تحديث السعر في رسالة المتجر
 def product_list_text(lang: str):
     if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt For 1 year</b>\nPrice: $4.80 | Subscription: 1 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
     return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt For 1 year</b>\nالسعر: 4.80$ | الاشتراك سنه ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
@@ -403,7 +400,6 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
     product = PRODUCTS["cdk_chatgpt"]
     desc = product["desc_en"].replace("✅", ce("success")) if lang == "en" else product["desc_ar"].replace("✅", ce("success"))
     
-    # 🟢 تنسيق السعر بكسور عشرية (4.80 بدل 4.8)
     caption = (
         f"{ce('chatgpt')} <b>{product['title_en']}</b>\n━━━━━━━━━━━━━━\n"
         f"{ce('price')} Price: <b>${float(product['usd']):.2f}</b>\n"
@@ -422,22 +418,16 @@ async def buy_product(call: CallbackQuery):
     product_key = call.data.replace("buy_", "")
     lang = await get_lang(call.from_user.id)
     buy_waiting[call.from_user.id] = product_key
-    # 🟢 تعديل رسالة الطلب
     text = f"{ce('pencil')} Enter quantity to buy (Minimum 10):" if lang == "en" else f"{ce('pencil')} أدخل الكمية المراد شراؤها (أقل كمية 10):"
-    await call.message.answer(text, reply_markup=reply_quantity_keyboard(), parse_mode="HTML")
+    await call.message.answer(text, reply_markup=reply_quantity_keyboard(lang), parse_mode="HTML")
 
 async def receive_custom_quantity(message: Message):
     user_id = message.from_user.id
     lang = await get_lang(user_id)
     product_key = buy_waiting.get(user_id)
-    if message.text and ("Cancel" in message.text or "إلغاء" in message.text):
-        buy_waiting.pop(user_id, None)
-        await message.answer(f"{ce('error')} <b>Cancelled / تم الإلغاء</b>", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
-        await send_home(message)
-        return
+    
     try:
         qty = int(message.text.strip())
-        # 🟢 اللوجيك الجديد للحد الأدنى + رسالة الرفض الاحترافية 🟢
         if qty < 10:
             if lang == "ar":
                 error_text = (
@@ -458,6 +448,7 @@ async def receive_custom_quantity(message: Message):
     except ValueError:
         await message.answer(f"{ce('error')} <b>اكتب رقم صحيح! / Enter a valid number!</b>", parse_mode="HTML")
         return
+        
     buy_waiting.pop(user_id, None)
     await proceed_to_checkout(message, product_key, qty)
 
@@ -465,7 +456,6 @@ async def proceed_to_checkout(call_obj, product_key: str, qty: int):
     lang = await get_lang(call_obj.from_user.id)
     product = PRODUCTS[product_key]
     total_price = float(product["usd"]) * qty
-    # 🟢 تنسيق إجمالي السعر
     text = (f"{ce('checkout')} <b>Checkout</b>\n━━━━━━━━━━━━━━\n\n{ce('quantity')} Quantity: <b>{qty}</b>\n{ce('price')} Total Price: <b>${total_price:.2f}</b>\n\nChoose payment method:" if lang == "en" else f"{ce('checkout')} <b>إتمام الشراء</b>\n━━━━━━━━━━━━━━\n\n{ce('quantity')} الكمية: <b>{qty}</b>\n{ce('price')} الإجمالي: <b>{total_price:.2f}$</b>\n\nاختار طريقة الدفع:")
     if isinstance(call_obj, Message): await call_obj.answer(text, reply_markup=checkout_payment_buttons(lang, product_key, qty), parse_mode="HTML")
     else: await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(lang, product_key, qty))
@@ -599,7 +589,9 @@ async def receive_binance_pay_id(message: Message):
     pay_id = message.text.strip()
     
     if not pay_id.isdigit() or len(pay_id) < 6:
-        await message.answer(f"{ce('error')} <b>معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!</b>", parse_mode="HTML")
+        # 🟢 تصحيح لغة رسالة الخطأ للمعرف
+        err_msg = "<b>Invalid ID, please enter a valid Pay ID (Numbers only)!</b>" if lang == "en" else "<b>معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!</b>"
+        await message.answer(f"{ce('error')} {err_msg}", parse_mode="HTML")
         return
         
     loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً عبر بينانس...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction via Binance...</b>", parse_mode="HTML")
@@ -607,7 +599,8 @@ async def receive_binance_pay_id(message: Message):
     async with db_pool.acquire() as conn:
         duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", pay_id)
         if duplicate:
-            await loading_msg.edit_text(f"{ce('error')} <b>معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!</b>", parse_mode="HTML")
+            err_msg = "<b>This transaction ID has already been used!</b>" if lang == "en" else "<b>معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!</b>"
+            await loading_msg.edit_text(f"{ce('error')} {err_msg}", parse_mode="HTML")
             return
             
         success = await check_binance_payment_via_api(pay_id, info["amount"])
@@ -626,7 +619,8 @@ async def receive_binance_pay_id(message: Message):
                 items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
                 
                 if len(items) < qty:
-                    await loading_msg.edit_text(f"{ce('error')} <b>نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!</b>", parse_mode="HTML")
+                    err_msg = "<b>Out of stock! Please contact support to charge your wallet.</b>" if lang == "en" else "<b>نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!</b>"
+                    await loading_msg.edit_text(f"{ce('error')} {err_msg}", parse_mode="HTML")
                     return
                     
                 await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
@@ -753,7 +747,23 @@ async def shop_inline_callback(call: CallbackQuery):
 @dp.message(F.text)
 async def handle_text_messages(message: Message):
     user_id = message.from_user.id
-    
+    text_value = message.text.strip()
+    lang = await get_lang(user_id)
+
+    if text_value.startswith("/"): return
+
+    # 🟢 نظام الإلغاء الشامل (Global Cancel) قبل أي أوامر تانية 🟢
+    if "Cancel" in text_value or "إلغاء" in text_value:
+        binance_waiting.pop(user_id, None)
+        buy_waiting.pop(user_id, None)
+        deposit_waiting.pop(user_id, None)
+        
+        cancel_msg = "<b>Cancelled. Returning to main menu...</b>" if lang == "en" else "<b>تم الإلغاء. جاري العودة للقائمة الرئيسية...</b>"
+        await message.answer(f"{ce('error')} {cancel_msg}", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
+        await send_home(message)
+        return
+
+    # 🟢 فحص الأوامر المعلقة
     if user_id in binance_waiting:
         await receive_binance_pay_id(message)
         return
@@ -763,11 +773,6 @@ async def handle_text_messages(message: Message):
     if user_id in deposit_waiting:
         await receive_deposit_amount(message)
         return
-        
-    text_value = message.text.strip()
-    if text_value.startswith("/"): return
-
-    lang = await get_lang(user_id)
 
     if text_value in ["🛍 Products", "🛍 المنتجات"]:
         msg = await animate_message(message, lang)
