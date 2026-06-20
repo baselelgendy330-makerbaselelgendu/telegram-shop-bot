@@ -72,8 +72,8 @@ SAFE_EMOJI_FALLBACK = {
     "cart": "🛒", "back": "🔙", "wallet": "💰", "binance": "🟡", "share": "🎁", "support": "🎧", 
     "language": "🌐", "checkout": "💳", "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
     "user": "👤", "camera": "📸", "success": "✅", "error": "❌", "chatgpt": "🤖", "refresh": "🔄", 
-    "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "👉",
-    "users_group": "👥", "money_fly": "💸", "link_pin": "🔗", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛"
+    "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "➡️",
+    "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -85,16 +85,23 @@ def ce(key: str, fallback: str = "") -> str:
 def esc(value) -> str: return html.escape(str(value), quote=False)
 def strip_custom_emoji(text: str) -> str: return re.sub(r'<tg-emoji emoji-id="\d+">(.*?)</tg-emoji>', r'\1', text)
 
+# ━━━━━ دالة الأمان المعدلة ━━━━━
 async def safe_answer(message: Message, text: str, reply_markup=None):
     try: return await message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
     except TelegramBadRequest: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
 
 async def safe_edit_or_answer(message, text: str, reply_markup=None):
-    try: return await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
-    except TelegramBadRequest:
-        try: return await message.edit_text(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
-        except Exception: return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
-    except Exception: return await safe_answer(message, text, reply_markup)
+    try: 
+        return await message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except TelegramBadRequest as e:
+        if "message is not modified" in str(e).lower():
+            return message
+        try: 
+            return await message.edit_text(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
+        except Exception: 
+            return await message.answer(strip_custom_emoji(text), reply_markup=reply_markup, parse_mode="HTML")
+    except Exception: 
+        return await safe_answer(message, text, reply_markup)
 
 async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
     try:
@@ -419,14 +426,14 @@ async def receive_custom_quantity(message: Message):
     product_key = buy_waiting.get(user_id)
     if message.text and ("Cancel" in message.text or "إلغاء" in message.text):
         buy_waiting.pop(user_id, None)
-        await message.answer(f"{ce('error')} Cancelled / تم الإلغاء", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
+        await message.answer(f"{ce('error')} <b>Cancelled / تم الإلغاء</b>", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
         await send_home(message)
         return
     try:
         qty = int(message.text.strip())
         if qty <= 0 or qty > 5: raise ValueError
     except ValueError:
-        await message.answer(f"{ce('error')} اكتب رقم صحيح بين 1 و 5!", parse_mode="HTML")
+        await message.answer(f"{ce('error')} <b>اكتب رقم صحيح بين 1 و 5!</b>", parse_mode="HTML")
         return
     buy_waiting.pop(user_id, None)
     await proceed_to_checkout(message, product_key, qty)
@@ -477,7 +484,7 @@ async def receive_binance_pay_id(message: Message):
     pay_id = message.text.strip()
     
     if not pay_id.isdigit() or len(pay_id) < 6:
-        await message.answer(f"{ce('error')} معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!")
+        await message.answer(f"{ce('error')} <b>معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!</b>", parse_mode="HTML")
         return
         
     loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً عبر بينانس...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction via Binance...</b>", parse_mode="HTML")
@@ -485,10 +492,9 @@ async def receive_binance_pay_id(message: Message):
     async with db_pool.acquire() as conn:
         duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", pay_id)
         if duplicate:
-            await loading_msg.edit_text(f"{ce('error')} معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!")
+            await loading_msg.edit_text(f"{ce('error')} <b>معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!</b>", parse_mode="HTML")
             return
             
-        # تشغيل الفحص الأوتوماتيكي الفوري عبر الـ API الجديد
         success = await check_binance_payment_via_api(pay_id, info["amount"])
         
         if success:
@@ -497,7 +503,7 @@ async def receive_binance_pay_id(message: Message):
             items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
             
             if len(items) < qty:
-                await loading_msg.edit_text(f"{ce('error')} نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!")
+                await loading_msg.edit_text(f"{ce('error')} <b>نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!</b>", parse_mode="HTML")
                 return
                 
             await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
@@ -507,7 +513,6 @@ async def receive_binance_pay_id(message: Message):
             await loading_msg.delete()
             await message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
             
-            # إشعار نجاح فوري للأدمن
             await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
         else:
             if lang == "ar":
@@ -539,7 +544,27 @@ async def receive_binance_pay_id(message: Message):
             
             await loading_msg.edit_text(error_text, reply_markup=keyboard, parse_mode="HTML")
 
-# ━━━━━ باقي قنوات العرض العادية ━━━━━
+# ━━━━━ باقي قنوات العرض ━━━━━
+
+# 🟢 إضافة زرار اللغة هنا 🟢
+@dp.callback_query(F.data == "home_language")
+async def language_screen_callback(call: CallbackQuery):
+    await call.answer()
+    lang = await get_lang(call.from_user.id)
+    text = "🌐 <b>Choose your language:</b>" if lang == "en" else "🌐 <b>اختر لغتك المفضلة:</b>"
+    await safe_edit_or_answer(call.message, text, reply_markup=language_keyboard())
+
+@dp.callback_query(F.data.startswith("lang_"))
+async def set_language_callback(call: CallbackQuery):
+    lang = call.data.replace("lang_", "")
+    async with db_pool.acquire() as conn:
+        await conn.execute("UPDATE users SET lang=$1 WHERE telegram_id=$2", lang, call.from_user.id)
+    await call.answer("Language changed successfully!" if lang == "en" else "تم تغيير اللغة بنجاح!")
+    
+    msg = await animate_message(call.message, lang)
+    await safe_edit_or_answer(msg, home_text(lang, call.from_user.first_name or "User"), reply_markup=home_keyboard(lang))
+    await call.message.answer("Main Menu" if lang == "en" else "القائمة الرئيسية", reply_markup=main_reply_keyboard(lang))
+
 @dp.callback_query(F.data == "home_deposit")
 async def deposit_inline_screen(call: CallbackQuery):
     await call.answer()
