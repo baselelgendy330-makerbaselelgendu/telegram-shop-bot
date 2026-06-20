@@ -40,9 +40,10 @@ EMOJI = {
     "error": "6181467651395558500", "chatgpt": "5359726582447487916", "refresh": "5386367538735104399",
     "store": "5859297284029681680", "vip": "6088920147072915408", "verified": "5976653524476368012",       
     "stock": "5397916757333654639", "sold": "5429651785352501917", "announcement": "5424818078833715060",
-    "heart": "5364201435858744869", "quotes": "6181467651395558500", "support_msg": "5443038326535759644",
+    "heart": "5364201435858744869", "support_msg": "5443038326535759644",
     "telegram": "6089099509202164251", "arrow_right": "6181560401214314708", "users_group": "4942888689131848546",
-    "money_fly": "5816492162488995555", "link_pin": "5332724926216428039"
+    "money_fly": "5816492162488995555", "link_pin": "5332724926216428039",
+    "quotes": "5460795800101594035", "search": "5231012545799666522", "hourglass": "5386367538735104399"
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -50,7 +51,7 @@ SAFE_EMOJI_FALLBACK = {
     "language": "🌐", "checkout": "💳", "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
     "user": "👤", "camera": "📸", "success": "✅", "error": "❌", "chatgpt": "🤖", "refresh": "🔄", 
     "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "👉",
-    "users_group": "👥", "money_fly": "💸", "link_pin": "🔗"
+    "users_group": "👥", "money_fly": "💸", "link_pin": "🔗", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -130,10 +131,9 @@ async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> 
                     data = await resp.json()
                     transactions = data.get("data", [])
                     for tx in transactions:
-                        # التحقق من تطابق رقم التحويل وحالة النجاح والمبلغ
                         if str(tx.get("orderId")) == str(pay_id) or str(tx.get("transactionId")) == str(pay_id):
                             amount = float(tx.get("amount", 0))
-                            status = tx.get("status") # SUCCESS
+                            status = tx.get("status") 
                             if status == "SUCCESS" and abs(amount - expected_amount) < 0.01:
                                 return True
                 else:
@@ -375,7 +375,7 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
         f"{ce('price')} Price: <b>${product['usd']}.00</b>\n"
         f"{ce('stock')} Stock: <b>{count} accounts</b>\n"
         f"{ce('sold')} Sold: <b>{sold_count} accounts</b>\n\n"
-        f"{ce('quotes')} <b>Description:</b>\n<blockquote>{desc}</blockquote>"
+        f"<b>Description:</b>\n<blockquote>{ce('quotes')} {desc}</blockquote>"
     )
     try: await call.message.delete()
     except: pass
@@ -427,16 +427,26 @@ async def pay_binance_product(call: CallbackQuery):
     
     binance_waiting[call.from_user.id] = {"product_key": product_key, "qty": qty, "amount": total_price}
     
-    text = (
-        f"{ce('binance')} <b>Binance Pay (UID):</b> <code>{BINANCE_UID}</code>\n"
-        f"{ce('price')} <b>Required Amount:</b> <code>{total_price} USDT</code>\n━━━━━━━━━━━━━━━━━\n"
-        f"⚡ Send the funds via Binance Pay, then <b>type your Binance Transaction Pay ID</b> below!"
-        if lang=="en" else
-        f"{ce('binance')} <b>بينانس Pay (UID):</b> <code>{BINANCE_UID}</code>\n"
-        f"{ce('price')} <b>المبلغ المطلوب:</b> <code>{total_price} USDT</code>\n━━━━━━━━━━━━━━━━━\n"
-        f"⚡ حول المبلغ المطلوب أولاً، ثم <b>اكتب معرف المعاملة (Pay ID)</b> هنا ليتم التسليم تلقائياً!"
-    )
-    await call.message.answer(text, parse_mode="HTML")
+    if lang == "en":
+        text = (
+            f"Binance ID (tap to copy): <code>{BINANCE_UID}</code>\n"
+            f"Amount to transfer: <b>${total_price}</b>\n"
+            f"Please send the order ID or off-chain transaction reference after payment for verification."
+        )
+        btn_text = "Back to main menu"
+    else:
+        text = (
+            f"معرف بينانس (اضغط للنسخ): <code>{BINANCE_UID}</code>\n"
+            f"المبلغ المطلوب تحويله: <b>${total_price}</b>\n"
+            f"يرجى إرسال رقم المعاملة (Pay ID) أو مرجع المعاملة (Off-chain) بعد الدفع للتحقق."
+        )
+        btn_text = "العودة للقائمة الرئيسية"
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
+    ])
+
+    await call.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 async def receive_binance_pay_id(message: Message):
     user_id = message.from_user.id
@@ -445,7 +455,7 @@ async def receive_binance_pay_id(message: Message):
     pay_id = message.text.strip()
     
     if not pay_id.isdigit() or len(pay_id) < 6:
-        await message.answer("❌ معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!")
+        await message.answer(f"{ce('error')} معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!")
         return
         
     loading_msg = await message.answer(f"{ce('loading')} <b>جاري فحص المعاملة تلقائياً عبر بينانس...</b>" if lang=="ar" else f"{ce('loading')} <b>Verifying transaction via Binance...</b>", parse_mode="HTML")
@@ -453,7 +463,7 @@ async def receive_binance_pay_id(message: Message):
     async with db_pool.acquire() as conn:
         duplicate = await conn.fetchval("SELECT id FROM deposits WHERE txid=$1", pay_id)
         if duplicate:
-            await loading_msg.edit_text("❌ معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!")
+            await loading_msg.edit_text(f"{ce('error')} معذرةً، تم استخدام معرف المعاملة هذا مسبقاً!")
             return
             
         # تشغيل الفحص الأوتوماتيكي الفوري عبر الـ API الجديد
@@ -465,7 +475,7 @@ async def receive_binance_pay_id(message: Message):
             items = await conn.fetch("SELECT id FROM stock WHERE product=$1 AND sold=false ORDER BY id ASC LIMIT $2", product["stock_name"], qty)
             
             if len(items) < qty:
-                await loading_msg.edit_text("❌ نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!")
+                await loading_msg.edit_text(f"{ce('error')} نفذت الكمية من المخزون حالياً، يرجى مراسلة الدعم لشحن حسابك يدوياً!")
                 return
                 
             await conn.execute("UPDATE stock SET sold=true WHERE id = ANY($1)", [i["id"] for i in items])
@@ -478,8 +488,34 @@ async def receive_binance_pay_id(message: Message):
             # إشعار نجاح فوري للأدمن
             await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
         else:
-            # في حال لم يتم العثور عليها أو لم تصل بعد
-            await loading_msg.edit_text("❌ <b>لم نجد هذه المعاملة في حسابك بعد!</b>\nتأكد من إرسال المبلغ بالكامل وكتابة الـ ID بشكل صحيح، وجرب مجدداً خلال دقيقة." if lang=="ar" else "❌ <b>Transaction not found yet!</b>\nPlease ensure you sent the exact amount and type the correct Pay ID.")
+            if lang == "ar":
+                error_text = (
+                    f"{ce('error')} <b>لم نجد المعاملة بعد</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"<blockquote>{ce('quotes')} {ce('search')} <b>عذراً، لم نتمكن من العثور على أي تحويل بهذا المعرف في حسابنا حتى الآن.</b></blockquote>\n\n"
+                    f"💡 <b>يرجى التأكد من الآتي:</b>\n"
+                    f"1️⃣ هل كتبت رقم الـ Pay ID بشكل صحيح؟\n"
+                    f"2️⃣ هل قمت بتحويل المبلغ المطلوب بالكامل؟\n\n"
+                    f"{ce('hourglass')} <i>فضلاً انتظر دقيقة ثم أرسل رقم المعاملة مرة أخرى للمحاولة.</i>"
+                )
+                btn_text = "العودة للقائمة الرئيسية"
+            else:
+                error_text = (
+                    f"{ce('error')} <b>Payment Not Found</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"<blockquote>{ce('quotes')} {ce('search')} <b>We haven't received any transfer with this ID in our system just yet.</b></blockquote>\n\n"
+                    f"💡 <b>Please double check:</b>\n"
+                    f"1️⃣ Did you copy the exact correct Pay ID?\n"
+                    f"2️⃣ Did you send the full required amount?\n\n"
+                    f"{ce('hourglass')} <i>Kindly wait a minute and submit the ID again to re-verify.</i>"
+                )
+                btn_text = "Back to main menu"
+
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
+            ])
+            
+            await loading_msg.edit_text(error_text, reply_markup=keyboard, parse_mode="HTML")
 
 # ━━━━━ باقي قنوات العرض العادية ━━━━━
 @dp.callback_query(F.data == "home_deposit")
@@ -571,3 +607,4 @@ async def main():
 
 if __name__ == "__main__": 
     asyncio.run(main())
+
