@@ -68,7 +68,6 @@ EMOJI = {
     "hourglass": "5386367538735104399"
 }
 
-
 SAFE_EMOJI_FALLBACK = {
     "cart": "🛒", "back": "🔙", "wallet": "💰", "binance": "🟡", "share": "🎁", "support": "🎧", 
     "language": "🌐", "checkout": "💳", "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
@@ -510,7 +509,7 @@ async def receive_binance_pay_id(message: Message):
             
             # إشعار نجاح فوري للأدمن
             await bot.send_message(ADMIN_ID, f"⚡ <b>بيع تلقائي ناجح عبر الـ API!</b>\nالمستخدم: @{message.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ: {info['amount']} USDT\nرقم المعاملة: <code>{pay_id}</code>", parse_mode="HTML")
-                else:
+        else:
             if lang == "ar":
                 error_text = (
                     f"{ce('error')} <b>لم نجد المعاملة بعد</b>\n"
@@ -533,13 +532,6 @@ async def receive_binance_pay_id(message: Message):
                     f"{ce('hourglass')} <i>Kindly wait a minute and submit the ID again to re-verify.</i>"
                 )
                 btn_text = "Back to main menu"
-
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
-            ])
-            
-            await loading_msg.edit_text(error_text, reply_markup=keyboard, parse_mode="HTML")
-
 
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text=btn_text, callback_data="home_main", icon_custom_emoji_id="5332455502917949981")]
@@ -637,4 +629,3 @@ async def main():
 
 if __name__ == "__main__": 
     asyncio.run(main())
-
