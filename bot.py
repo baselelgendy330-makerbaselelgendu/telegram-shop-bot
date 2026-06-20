@@ -24,6 +24,7 @@ SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
+# مفاتيح بينانس من السيرفر
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 
@@ -160,10 +161,8 @@ PRODUCTS = {
     }
 }
 
-# ━━━━━ 🟡 لوجيك فحص بينانس الذكي (مع إرسال إشعارات الأخطاء للأدمن) 🟡 ━━━━━
 async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> bool:
     if not BINANCE_API_KEY or not BINANCE_API_SECRET:
-        await bot.send_message(ADMIN_ID, "⚠️ <b>تحذير:</b> مفاتيح بينانس (API Keys) غير موجودة في إعدادات السيرفر!", parse_mode="HTML")
         return False
     
     url = "https://api.binance.com/sapi/v1/pay/transactions"
@@ -175,36 +174,17 @@ async def check_binance_payment_via_api(pay_id: str, expected_amount: float) -> 
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{url}?{query_string}&signature={signature}", headers=headers) as resp:
-                resp_text = await resp.text() # قراءة رد بينانس الخام لمعرفة المشكلة
-                
                 if resp.status == 200:
-                    data = json.loads(resp_text)
+                    data = await resp.json()
                     transactions = data.get("data", [])
-                    
                     for tx in transactions:
-                        tx_id = str(tx.get("transactionId"))
-                        order_id = str(tx.get("orderId"))
-                        
-                        if tx_id == str(pay_id) or order_id == str(pay_id):
+                        if str(tx.get("orderId")) == str(pay_id) or str(tx.get("transactionId")) == str(pay_id):
                             amount = float(tx.get("amount", 0))
                             status = tx.get("status") 
-                            
-                            # فحص هل المبلغ مطابق والحالة ناجحة
                             if status == "SUCCESS" and abs(amount - expected_amount) < 0.01:
                                 return True
-                            else:
-                                await bot.send_message(ADMIN_ID, f"⚠️ <b>المعاملة موجودة ولكن مرفوضة أو غير مكتملة!</b>\nالمبلغ المطلوب: {expected_amount}\nالمبلغ المدفوع فعلياً: {amount}\nالحالة في بينانس: {status}", parse_mode="HTML")
-                                return False
-                    
-                    # لو الكود وصل لهنا، معناه إن المعاملة مش موجودة في الـ API
-                    await bot.send_message(ADMIN_ID, f"❌ <b>المعاملة ({pay_id}) لم تظهر في بينانس!</b>\nقد يكون الـ API Key لا يمتلك صلاحية (Binance Pay) لرؤية التحويلات، أو أن التحويل تم داخلياً ولا يظهر في الـ API.", parse_mode="HTML")
-                    return False
-                else:
-                    # لو الـ Status مش 200
-                    await bot.send_message(ADMIN_ID, f"⛔️ <b>بينانس يرفض الاتصال! (Status {resp.status}):</b>\n<code>{html.escape(resp_text)}</code>\n\nتأكد من إزالة الـ IP Restriction وتفعيل الـ Reading من إعدادات الـ API.", parse_mode="HTML")
-                    return False
-    except Exception as e:
-        await bot.send_message(ADMIN_ID, f"⚠️ <b>حدث خطأ في الاتصال بسيرفر بينانس:</b>\n{html.escape(str(e))}", parse_mode="HTML")
+        return False
+    except Exception:
         return False
 
 async def init_db():
