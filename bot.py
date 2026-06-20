@@ -31,6 +31,9 @@ BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 AIX_HEADER_IMAGE = os.getenv("AIX_HEADER_IMAGE", "https://i.postimg.cc/m2xpGPZP/a-dark-futuristic-neon-digital-banner-promotiona.png")
 AIX_HEADER_FILE = os.getenv("AIX_HEADER_FILE", "aix_header.jpg")
 
+# 🟢 الصورة الجديدة للمنتج 🟢
+CDK_IMAGE_FILE = "https://i.postimg.cc/dQ7m0g1R/IMG-20260620-151545-816.jpg"
+
 EMOJI = {
     "cart": "5312361253610475399",
     "back": "6181245923708903693",
@@ -118,8 +121,6 @@ async def safe_answer_photo(message: Message, caption: str, reply_markup=None):
         except Exception: return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
     except Exception: return await message.answer(strip_custom_emoji(caption), reply_markup=reply_markup, parse_mode="HTML")
 
-CDK_IMAGE_FILE = "https://i.postimg.cc/Twx17x9S/IMG-20260616-190321.jpg"
-
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 db_pool = None
@@ -128,16 +129,38 @@ deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
 binance_waiting: dict[int, dict] = {} 
 
+# 🟢 الديسكريبشن المحدث 🟢
+CDK_DESC_EN = (
+    "✅ ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
+    "✅ Can activate any account owner. Only applies to Gmail or hotmail, outlook\n"
+    "✅ After ordering, you will receive a code\n✅ Account is on free plan\n"
+    "✅ Recommended to use an account without an active subscription or a newly created account to register.\n"
+    "✅ Web upgrade CDK: https://oaiteam.azx.us/\n"
+    "Step 1: Get https://chatgpt.com/api/auth/session Paste into JSon\n"
+    "Step 2: Paste the CDK\nStep 3: Upgrade, guys."
+)
+
+CDK_DESC_AR = (
+    "✅ باقة ChatGPT K12 المخصصة للتعليم لمدة سنتين.\nتحتوي على أحدث المميزات واللغات مثل حسابات بلس تماماً.\n"
+    "✅ تقبل التفعيل على أي حساب، وتطبق على إيميلات جيمل، هوتميل، وأوتلوك.\n"
+    "✅ بعد الطلب والدفع، ستتلقى كود التفعيل فوراً.\n✅ الحساب يجب أن يكون على الخطة المجانية الحالية.\n"
+    "✅ يوصى باستخدام حساب ليس به اشتراك نشط أو حساب جديد تماماً للتسجيل.\n"
+    "✅ موقع ترقية وتفعيل الكود: https://oaiteam.azx.us/\n"
+    "Step 1: Get https://chatgpt.com/api/auth/session Paste into JSon\n"
+    "Step 2: Paste the CDK\nStep 3: Upgrade, guys."
+)
+
+# 🟢 تحديث السعر لـ 4.8 🟢
 PRODUCTS = {
     "cdk_chatgpt": {
         "stock_name": "CDK Activation Chatgpt 1Y",
-        "title_en": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
-        "title_ar": "CDK GPT Plus (K12 - EDU) 1 year No warranty",
+        "title_en": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
+        "title_ar": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
         "image": CDK_IMAGE_FILE,
         "usd": 4.8,  
         "type": "stock",
-        "desc_en": "✅ ChatGPT K12 Edu 1 year package.\nFull of latest languages like Plus\n✅ Can activate any account owner. Only applies to Gmail or hotmail, outlook\n✅ After ordering, you will receive a code\n✅ Account is on free plan\n✅ Recommended to use an account without an active subscription or a newly created account to register.\n✅ Web upgrade CDK: http://gpt.ddfafa.com",
-        "desc_ar": "✅ باقة ChatGPT K12 المخصصة للتعليم لمدة سنة كاملة.\nتحتوي على أحدث المميزات واللغات مثل حسابات بلس تماماً.\n✅ تقبل التفعيل على أي حساب، وتطبق على إيميلات جيمل، هوتميل، وأوتلوك.\n✅ بعد الطلب والدفع، ستتلقى كود التفعيل فوراً.\n✅ الحساب يجب أن يكون على الخطة المجانية الحالية.\n✅ يوصى باستخدام حساب ليس به اشتراك نشط أو حساب جديد تماماً للتسجيل.\n✅ موقع ترقية وتفعيل الكود: http://gpt.ddfafa.com"
+        "desc_en": CDK_DESC_EN,
+        "desc_ar": CDK_DESC_AR
     }
 }
 
@@ -236,7 +259,7 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
     else:
         return f"""{ce('success')} <b>تم تأكيد الدفع وتسليم طلب بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━━\n{ce('vip')} <b>{product['title_ar']}</b>\n\n{ce('quantity')} <b>الكمية المطلوبة:</b> {qty}\n\n{ce('announcement')} <b>لاستلام الأكواد الخاصة بك:</b>\nبرجاء التواصل مع الإدارة لاستلام الأكواد فوراً. يرجى إرسال سكرين شوت لهذه الرسالة كإثبات لطلبك!\n{ce('support')} <b>تواصل مع الإدارة:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n{ce('heart')} <b>شكراً لثقتك في AIX Store!</b>"""
 
-# 🟢 تحديث دالة زرار الكمية لتظهر بلغة واحدة
+# 🟢 الكيبورد الجديد واللغة الخاصة به 🟢
 def reply_quantity_keyboard(lang: str):
     cancel_text = "❌ Cancel" if lang == "en" else "❌ إلغاء"
     return ReplyKeyboardMarkup(keyboard=[
@@ -256,24 +279,21 @@ def home_keyboard(lang: str):
 def back_home_keyboard(lang: str): 
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]])
 
+# 🟢 تنسيق السعر في الأزرار 🟢
 def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
     refresh_icon_id = "5386367538735104399"
     if lang == "en": 
-        if stock_count == 0:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $4.80 | 0", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=EMOJI["error"])
-        else:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | $4.80 | {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+        btn_text = f"CDK GPT Plus 2Y | $4.80 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | $4.80 | 0"
+        btn_product = InlineKeyboardButton(text=btn_text, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
             [InlineKeyboardButton(text="Refresh products", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="Back", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
         ])
     else:
-        if stock_count == 0:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 4.80$ | 0", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=EMOJI["error"])
-        else:
-            btn_product = InlineKeyboardButton(text=f"CDK GPT Plus 1Y | 4.80$ | {stock_count}", callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id)
+        btn_text = f"CDK GPT Plus 2Y | 4.80$ | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | 4.80$ | 0"
+        btn_product = InlineKeyboardButton(text=btn_text, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
             [InlineKeyboardButton(text="تحديث المنتجات", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="رجوع", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
@@ -327,9 +347,10 @@ def home_text(lang: str, name: str):
     if lang == "en": return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b>\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{ce('lightning')} Fast activation • Secure payments • Trusted service"
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b>\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{ce('lightning')} تفعيل سريع • دفع آمن • خدمة موثوقة"
 
+# 🟢 تحديث السعر في رسالة المتجر 🟢
 def product_list_text(lang: str):
-    if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt For 1 year</b>\nPrice: $4.80 | Subscription: 1 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
-    return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt For 1 year</b>\nالسعر: 4.80$ | الاشتراك سنه ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
+    if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice: $4.80 | Subscription: 2 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
+    return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nالسعر: 4.80$ | الاشتراك سنتين ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
 
 async def animate_message(message: Message, lang: str):
     text = f"{ce('loading')} <b>Loading...</b>" if lang == "en" else f"{ce('loading')} <b>جاري التحميل...</b>"
@@ -428,6 +449,7 @@ async def receive_custom_quantity(message: Message):
     
     try:
         qty = int(message.text.strip())
+        # 🟢 اللوجيك الجديد للحد الأدنى مع رسالة خطأ بريميوم 🟢
         if qty < 10:
             if lang == "ar":
                 error_text = (
@@ -589,7 +611,7 @@ async def receive_binance_pay_id(message: Message):
     pay_id = message.text.strip()
     
     if not pay_id.isdigit() or len(pay_id) < 6:
-        # 🟢 تصحيح لغة رسالة الخطأ للمعرف
+        # 🟢 تصحيح لغة رسالة الخطأ للمعرف 🟢
         err_msg = "<b>Invalid ID, please enter a valid Pay ID (Numbers only)!</b>" if lang == "en" else "<b>معرف غير صحيح، يرجى كتابة أرقام الـ Pay ID فقط!</b>"
         await message.answer(f"{ce('error')} {err_msg}", parse_mode="HTML")
         return
@@ -714,90 +736,4 @@ async def referral_screen(call: CallbackQuery):
     if lang == "en":
         text = f"""{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\nInvite your friends to use the bot and earn <b>{REFERRAL_REWARD} USDT</b> instantly inside your wallet for every successful invite!\n\n{ce('users_group')} Your Total Invites: <b>{total_ref} users</b>\n{ce('money_fly')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n{ce('link_pin')} <b>Your Exclusive Referral Link:</b>\n<code>{ref_link}</code>\n\n<i>Copy the link and share it in groups to start earning!</i>"""
     else:
-        text = f"""{ce('share')} <b>انشر البوت وابني أرباح مجانية!</b>\n━━━━━━━━━━━━━━━━━━━━━\nانسخ رابط الإحالة الخاص بك وانشره؛ لكل شخص يدخل البوت عن طريقك هتكسب <b>{REFERRAL_REWARD} USDT</b> فوراً جوه محفظتك تقدر تشتري بيها أي منتج!\n\n{ce('users_group')} عدد إحالاتك الحالي: <b>{total_ref} عضو</b>\n{ce('money_fly')} إجمالي ما كسبته: <b>{format_amount(earnings)} USDT</b>\n\n{ce('link_pin')} <b>رابط الإحالة الحصري الخاص بك:</b>\n<code>{ref_link}</code>\n\n<i>اضغط على الرابط لنسخه وانشره في الجروبات لتبدأ الأرباح!</i>"""
-    await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard(lang))
-
-@dp.callback_query(F.data == "home_wallet")
-async def wallet_inline(call: CallbackQuery):
-    await call.answer()
-    lang = await get_lang(call.from_user.id)
-    stats = await get_user_stats(call.from_user.id)
-    balance = stats["balance_usdt"] if stats else 0.0
-    total_ref = stats["total_ref"] if stats else 0
-    msg = await animate_message(call.message, lang)
-    if lang == "en":
-        text = f"""{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n{ce('users_group')} Total Invited Users: <b>{total_ref} friends</b>\n{ce('money_fly')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."""
-    else:
-        text = f"""{ce('wallet')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b>\n{ce('price')} رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n{ce('users_group')} إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n{ce('money_fly')} أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} تقدر تشحن محفظتك يدوياً أو تستخدم أرباح إحالاتك للشراء الفوري مباشرةً."""
-    await safe_edit_or_answer(msg, text, reply_markup=wallet_kb(lang))
-
-@dp.callback_query(F.data == "home_main")
-async def home_main(call: CallbackQuery):
-    await call.answer()
-    lang = await get_lang(call.from_user.id)
-    msg = await animate_message(call.message, lang)
-    await safe_edit_or_answer(msg, home_text(lang, call.from_user.first_name or "User"), reply_markup=home_keyboard(lang))
-
-@dp.callback_query(F.data == "home_shop")
-async def shop_inline_callback(call: CallbackQuery):
-    await call.answer()
-    msg = await animate_message(call.message, await get_lang(call.from_user.id))
-    await handle_shop_action(msg, await get_lang(call.from_user.id))
-
-@dp.message(F.text)
-async def handle_text_messages(message: Message):
-    user_id = message.from_user.id
-    text_value = message.text.strip()
-    lang = await get_lang(user_id)
-
-    if text_value.startswith("/"): return
-
-    # 🟢 نظام الإلغاء الشامل (Global Cancel) قبل أي أوامر تانية 🟢
-    if "Cancel" in text_value or "إلغاء" in text_value:
-        binance_waiting.pop(user_id, None)
-        buy_waiting.pop(user_id, None)
-        deposit_waiting.pop(user_id, None)
-        
-        cancel_msg = "<b>Cancelled. Returning to main menu...</b>" if lang == "en" else "<b>تم الإلغاء. جاري العودة للقائمة الرئيسية...</b>"
-        await message.answer(f"{ce('error')} {cancel_msg}", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
-        await send_home(message)
-        return
-
-    # 🟢 فحص الأوامر المعلقة
-    if user_id in binance_waiting:
-        await receive_binance_pay_id(message)
-        return
-    if user_id in buy_waiting:
-        await receive_custom_quantity(message)
-        return
-    if user_id in deposit_waiting:
-        await receive_deposit_amount(message)
-        return
-
-    if text_value in ["🛍 Products", "🛍 المنتجات"]:
-        msg = await animate_message(message, lang)
-        await handle_shop_action(msg, lang)
-    elif text_value in ["🎧 Support", "🎧 الدعم"]:
-        await show_support(message)
-    elif text_value in ["💰 Wallet", "💰 المحفظة"]:
-        class FakeCall:
-            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
-            async def answer(self, *args, **kwargs): pass
-        await wallet_inline(FakeCall(message, message.from_user))
-    elif text_value in ["🎁 Share & Earn", "🎁 الإحالات"]:
-        class FakeCall:
-            def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
-            async def answer(self, *args, **kwargs): pass
-        await referral_screen(FakeCall(message, message.from_user))
-    elif text_value in ["🌐 Language", "🌐 اللغة"]:
-        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language_keyboard(), parse_mode="HTML")
-    else:
-        await send_home(message)
-
-async def main():
-    await init_db()
-    await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
-    await dp.start_polling(bot)
-
-if __name__ == "__main__": 
-    asyncio.run(main())
+        text = f"""{ce('share')} <b>انشر البوت وابني أرباح مجانية!</b>\n━━━━━━━━━━━━━━━━━━━━━\nانسخ رابط الإحالة الخاص بك وانشره؛ لكل شخص يدخل البوت عن طريقك هتكسب <b>{REFERRAL_REWARD} USDT</b> فوراً جوه محفظتك تقدر تشتري بيها أي منتج!\n\n{ce('users_group')} عدد إحالاتك الحالي: <b>{total_ref} عضو</b>\n{ce('money_fly')} إجمالي ما كسبته: <b>{format_amount(earnings)} USDT</b>\n\n{ce('link_pin')} <b>رابط الإحالة الحصري الخاص بك:</b>\n<code>
