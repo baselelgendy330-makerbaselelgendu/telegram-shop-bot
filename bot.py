@@ -644,8 +644,13 @@ async def handle_text_messages(message: Message):
             def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
             async def answer(self, *args, **kwargs): pass
         await referral_screen(FakeCall(message, message.from_user))
+    elif text_value in ["🌐 Language", "🌐 اللغة"]:  # 🟢 الجزء اللي تم إضافته عشان زرار اللغة يشتغل
+        lang = await get_lang(user_id)
+        text = "🌐 <b>Choose your language:</b>" if lang == "en" else "🌐 <b>اختر لغتك المفضلة:</b>"
+        await message.answer(text, reply_markup=language_keyboard(), parse_mode="HTML")
     else:
         await send_home(message)
+
 
 async def main():
     await init_db()
