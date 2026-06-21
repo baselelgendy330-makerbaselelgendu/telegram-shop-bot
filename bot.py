@@ -66,7 +66,9 @@ EMOJI = {
     "link_pin": "5332724926216428039",
     "quotes": "5460795800101594035",
     "search": "5231012545799666522",
-    "hourglass": "5386367538735104399"
+    "hourglass": "5386367538735104399",
+    "check_anim": "6276090299232031662",
+    "user_link": "5440410042773824003"
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -74,7 +76,9 @@ SAFE_EMOJI_FALLBACK = {
     "language": "🌐", "checkout": "💳", "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
     "user": "👤", "camera": "📸", "success": "✅", "error": "❌", "chatgpt": "🤖", "refresh": "🔄", 
     "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "➡️",
-    "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨"
+    "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨",
+    "check_anim": "✅",
+    "user_link": "🔗"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -159,7 +163,6 @@ PRODUCTS = {
     }
 }
 
-# ━━━━━ 🟢 دوال Cryptomus الأوتوماتيكية للدفع والتحقق 🟢 ━━━━━
 async def create_cryptomus_payment(amount: float, order_id: str):
     if not CRYPTOMUS_API_KEY or not CRYPTOMUS_MERCHANT_ID:
         return None
@@ -206,7 +209,6 @@ async def check_cryptomus_payment(order_id: str) -> bool:
         pass
     return False
 
-# ━━━━━ دالات قاعدة البيانات ━━━━━
 async def init_db():
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
@@ -364,9 +366,13 @@ def main_reply_keyboard(lang: str):
         [KeyboardButton(text="🌐 Language" if lang=="en" else "🌐 اللغة")]
     ], resize_keyboard=True, is_persistent=True)
 
+# ━━━━━ 🟢 تم إضافة الإيموجي المتحرك (علامة الصح والرابط) 🟢 ━━━━━
 def home_text(lang: str, name: str):
-    if lang == "en": return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b>\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{ce('lightning')} Fast activation • Secure payments • Trusted service"
-    return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b>\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{ce('lightning')} تفعيل سريع • دفع آمن • خدمة موثوقة"
+    chk = ce('check_anim')
+    ulink = ce('user_link')
+    if lang == "en": 
+        return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
+    return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b> {ulink}\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{chk} تفعيل سريع  {chk} دفع آمن  {chk} خدمة موثوقة"
 
 def product_list_text(lang: str):
     if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice: $4.80 | Subscription: 2 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
@@ -520,7 +526,6 @@ async def pay_wallet_product(call: CallbackQuery):
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
         await bot.send_message(ADMIN_ID, f"🛒 <b>شراء ناجح من المحفظة!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ المخصوم: {total_price} USDT", parse_mode="HTML")
 
-# ━━━━━ 🚀 الدفع الأوتوماتيكي للمنتجات عبر Cryptomus 🚀 ━━━━━
 @dp.callback_query(F.data.startswith("pay_crypto_"))
 async def pay_crypto_product(call: CallbackQuery):
     await call.answer()
@@ -592,7 +597,6 @@ async def verify_crypto_payment(call: CallbackQuery):
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
         await bot.send_message(ADMIN_ID, f"⚡ <b>بيع أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
 
-# ━━━━━ 🟢 الشحن وإيداع الأموال 🟢 ━━━━━
 @dp.callback_query(F.data == "deposit_currency_USDT")
 async def deposit_currency_chosen(call: CallbackQuery):
     await call.answer()
@@ -756,10 +760,12 @@ async def wallet_inline(call: CallbackQuery):
     balance = stats["balance_usdt"] if stats else 0.0
     total_ref = stats["total_ref"] if stats else 0
     msg = await animate_message(call.message, lang)
+    ulink = ce('user_link')
+    
     if lang == "en":
         text = (
             f"{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b>\n"
+            f"{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b> {ulink}\n"
             f"{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n"
             f"{ce('users_group')} Total Invited Users: <b>{total_ref} friends</b>\n"
             f"{ce('money_fly')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n"
@@ -768,7 +774,7 @@ async def wallet_inline(call: CallbackQuery):
     else:
         text = (
             f"{ce('wallet')} <b>ملف الحساب ومحفظة AIX</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b>\n"
+            f"{ce('user')} الحساب: <b>{esc(call.from_user.first_name)}</b> {ulink}\n"
             f"{ce('price')} رصيد المحفظة الحالي: <b>{balance} USDT</b>\n\n"
             f"{ce('users_group')} إجمالي الإحالات الخاصة بك: <b>{total_ref} عضو</b>\n"
             f"{ce('money_fly')} أرباحك من الإحالات: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n"
@@ -795,7 +801,6 @@ async def handle_text_messages(message: Message):
     text_value = message.text.strip()
     lang = await get_lang(user_id)
 
-    # إلغاء شامل وحماية
     if text_value in ["❌ Cancel", "❌ إلغاء", "Cancel", "إلغاء", "❌ Cancel / إلغاء"]:
         buy_waiting.pop(user_id, None)
         deposit_waiting.pop(user_id, None)
