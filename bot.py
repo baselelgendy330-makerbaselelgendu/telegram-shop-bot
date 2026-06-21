@@ -290,13 +290,34 @@ def reply_quantity_keyboard(lang: str):
         [KeyboardButton(text=cancel_text)]
     ], resize_keyboard=True, one_time_keyboard=True)
 
+# ━━━━━ 🟢 الأزرار الملونة والمعدلة لتناسب المتجر 🟢 ━━━━━
 def home_keyboard(lang: str):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Browse Products" if lang=="en" else "تصفح المنتجات", callback_data="home_shop", icon_custom_emoji_id=EMOJI["store"])],
-        [InlineKeyboardButton(text="Deposit" if lang=="en" else "إيداع", callback_data="home_deposit", icon_custom_emoji_id=EMOJI["wallet"]), InlineKeyboardButton(text="Wallet / Profile" if lang=="en" else "المحفظة والحساب", callback_data="home_wallet", icon_custom_emoji_id=EMOJI["user"])],
-        [InlineKeyboardButton(text="Support" if lang=="en" else "الدعم", callback_data="home_support", icon_custom_emoji_id=EMOJI["support"]), InlineKeyboardButton(text="Share & Earn" if lang=="en" else "نشر وبناء أرباح", callback_data="home_share", icon_custom_emoji_id=EMOJI["share"])],
-        [InlineKeyboardButton(text="Language" if lang=="en" else "اللغة", callback_data="home_language", icon_custom_emoji_id=EMOJI["language"])]
-    ])
+    if lang == "en":
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🟢 SHOP — Browse Products", callback_data="home_shop", icon_custom_emoji_id=EMOJI["store"])],
+            [
+                InlineKeyboardButton(text="🟢 Wallet", callback_data="home_deposit", icon_custom_emoji_id=EMOJI["wallet"]),
+                InlineKeyboardButton(text="🟢 Profile", callback_data="home_wallet", icon_custom_emoji_id=EMOJI["user"])
+            ],
+            [
+                InlineKeyboardButton(text="🟢 Support", callback_data="home_support", icon_custom_emoji_id=EMOJI["support"]),
+                InlineKeyboardButton(text="🟢 Share & Earn", callback_data="home_share", icon_custom_emoji_id=EMOJI["share"])
+            ],
+            [InlineKeyboardButton(text="🌐 Language / تغيير اللغة", callback_data="home_language", icon_custom_emoji_id=EMOJI["language"])]
+        ])
+    else:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🟢 SHOP — تصفح المنتجات", callback_data="home_shop", icon_custom_emoji_id=EMOJI["store"])],
+            [
+                InlineKeyboardButton(text="🟢 إيداع الأموال", callback_data="home_deposit", icon_custom_emoji_id=EMOJI["wallet"]),
+                InlineKeyboardButton(text="🟢 ملف الحساب", callback_data="home_wallet", icon_custom_emoji_id=EMOJI["user"])
+            ],
+            [
+                InlineKeyboardButton(text="🟢 الدعم الفني", callback_data="home_support", icon_custom_emoji_id=EMOJI["support"]),
+                InlineKeyboardButton(text="🟢 الإحالات والأرباح", callback_data="home_share", icon_custom_emoji_id=EMOJI["share"])
+            ],
+            [InlineKeyboardButton(text="🌐 Language / تغيير اللغة", callback_data="home_language", icon_custom_emoji_id=EMOJI["language"])]
+        ])
 
 def back_home_keyboard(lang: str): 
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]])
