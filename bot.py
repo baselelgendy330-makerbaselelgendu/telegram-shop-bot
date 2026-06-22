@@ -406,13 +406,14 @@ async def start(message: Message):
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
 
-# ━━━━━ 🟢 أمر الإذاعة (Broadcast) مخصص للأدمن فقط 🟢 ━━━━━
+# ━━━━━ 🚀 تعديل دالة الإذاعة المباشرة للحفاظ على الـ HTML والإيموجيز 🚀 ━━━━━
 @dp.message(Command("broadcast"))
 async def broadcast_message(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
         
-    text_to_send = message.text.replace("/broadcast", "", 1).strip()
+    # نأخذ النص بالتنسيق والأكواد الأصلية بالمللي من رسالة الأدمن
+    text_to_send = message.html_text.replace("/broadcast", "", 1).strip()
     
     if not text_to_send:
         await message.answer(f"{ce('error')} <b>خطأ! برجاء كتابة الرسالة بعد الأمر.</b>\nمثال:\n<code>/broadcast عرض خاص بمناسبة العيد!</code>", parse_mode="HTML")
@@ -427,9 +428,9 @@ async def broadcast_message(message: Message):
             try:
                 await bot.send_message(u["telegram_id"], text_to_send, parse_mode="HTML")
                 sent_count += 1
-                await asyncio.sleep(0.05) # لتفادي الحظر من تليجرام عند الإرسال السريع
+                await asyncio.sleep(0.05)
             except Exception:
-                pass # لو العميل عامل بلوك للبوت، الكود هيكمل ومش هيقف
+                pass
 
     await loading_msg.edit_text(f"{ce('success')} <b>تم إرسال رسالة الإذاعة بنجاح لـ {sent_count} مستخدم!</b>", parse_mode="HTML")
 
