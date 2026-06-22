@@ -366,7 +366,6 @@ def main_reply_keyboard(lang: str):
         [KeyboardButton(text="🌐 Language" if lang=="en" else "🌐 اللغة")]
     ], resize_keyboard=True, is_persistent=True)
 
-# ━━━━━ 🟢 تم إضافة الإيموجي المتحرك (علامة الصح والرابط) 🟢 ━━━━━
 def home_text(lang: str, name: str):
     chk = ce('check_anim')
     ulink = ce('user_link')
@@ -406,6 +405,33 @@ async def start(message: Message):
 
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
+
+# ━━━━━ 🟢 أمر الإذاعة (Broadcast) مخصص للأدمن فقط 🟢 ━━━━━
+@dp.message(Command("broadcast"))
+async def broadcast_message(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+        
+    text_to_send = message.text.replace("/broadcast", "", 1).strip()
+    
+    if not text_to_send:
+        await message.answer(f"{ce('error')} <b>خطأ! برجاء كتابة الرسالة بعد الأمر.</b>\nمثال:\n<code>/broadcast عرض خاص بمناسبة العيد!</code>", parse_mode="HTML")
+        return
+
+    loading_msg = await message.answer(f"{ce('loading')} <b>جاري إرسال الإذاعة لجميع المستخدمين...</b>", parse_mode="HTML")
+    
+    sent_count = 0
+    async with db_pool.acquire() as conn:
+        users = await conn.fetch("SELECT telegram_id FROM users")
+        for u in users:
+            try:
+                await bot.send_message(u["telegram_id"], text_to_send, parse_mode="HTML")
+                sent_count += 1
+                await asyncio.sleep(0.05) # لتفادي الحظر من تليجرام عند الإرسال السريع
+            except Exception:
+                pass # لو العميل عامل بلوك للبوت، الكود هيكمل ومش هيقف
+
+    await loading_msg.edit_text(f"{ce('success')} <b>تم إرسال رسالة الإذاعة بنجاح لـ {sent_count} مستخدم!</b>", parse_mode="HTML")
 
 @dp.message(Command("addstock"))
 async def add_stock(message: Message):
