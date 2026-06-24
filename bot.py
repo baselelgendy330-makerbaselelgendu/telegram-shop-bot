@@ -24,7 +24,7 @@ SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
-# مفاتيح Cryptomus الجديدة
+# مفاتيح Cryptomus
 CRYPTOMUS_API_KEY = os.getenv("CRYPTOMUS_API_KEY")
 CRYPTOMUS_MERCHANT_ID = os.getenv("CRYPTOMUS_MERCHANT_ID")
 
@@ -127,12 +127,15 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 db_pool = None
 
+# قوائم الانتظار
 deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
+admin_reply_waiting: dict[int, int] = {} # لحفظ طلبات التسليم من الإدارة
 
+# 🟢 تم تحديث الوصف ليتضمن التفعيل بـ Gmail فقط
 CDK_DESC_EN = (
     "✅ ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
-    "✅ Can activate any account owner. Only applies to Gmail or hotmail, outlook\n"
+    "✅ Can activate any account owner. ⚠️ Applies to **Gmail ONLY**. (We are not responsible if you use other emails)\n"
     "✅ After ordering, you will receive a code\n✅ Account is on free plan\n"
     "✅ Recommended to use an account without an active subscription or a newly created account to register.\n"
     "✅ Web upgrade CDK: https://oaiteam.azx.us/\n"
@@ -142,7 +145,7 @@ CDK_DESC_EN = (
 
 CDK_DESC_AR = (
     "✅ باقة ChatGPT K12 المخصصة للتعليم لمدة سنتين.\nتحتوي على أحدث المميزات واللغات مثل حسابات بلس تماماً.\n"
-    "✅ تقبل التفعيل على أي حساب، وتطبق على إيميلات جيمل، هوتميل، وأوتلوك.\n"
+    "✅ تقبل التفعيل على إيميلات <b>جيميل (Gmail) فقط</b>. (نحن غير مسؤولين عن أي خطأ إذا تم استخدام إيميل آخر)\n"
     "✅ بعد الطلب والدفع، ستتلقى كود التفعيل فوراً.\n✅ الحساب يجب أن يكون على الخطة المجانية الحالية.\n"
     "✅ يوصى باستخدام حساب ليس به اشتراك نشط أو حساب جديد تماماً للتسجيل.\n"
     "✅ موقع ترقية وتفعيل الكود: https://oaiteam.azx.us/\n"
@@ -156,7 +159,7 @@ PRODUCTS = {
         "title_en": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
         "title_ar": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
         "image": CDK_IMAGE_FILE,
-        "usd": 4.0,  # 🟢 تم تعديل السعر لـ 4$
+        "usd": 4.0,  
         "type": "stock",
         "desc_en": CDK_DESC_EN,
         "desc_ar": CDK_DESC_AR
@@ -168,13 +171,10 @@ async def create_cryptomus_payment(amount: float, order_id: str):
         return None
     url = "https://api.cryptomus.com/v1/payment"
     payload = {"amount": str(amount), "currency": "USDT", "order_id": order_id}
-    
     data_str = json.dumps(payload)
     encoded_data = base64.b64encode(data_str.encode('utf-8')).decode('utf-8')
     sign = hashlib.md5((encoded_data + CRYPTOMUS_API_KEY).encode('utf-8')).hexdigest()
-    
     headers = {"merchant": CRYPTOMUS_MERCHANT_ID, "sign": sign, "Content-Type": "application/json"}
-    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as resp:
@@ -190,13 +190,10 @@ async def check_cryptomus_payment(order_id: str) -> bool:
         return False
     url = "https://api.cryptomus.com/v1/payment/info"
     payload = {"order_id": order_id}
-    
     data_str = json.dumps(payload)
     encoded_data = base64.b64encode(data_str.encode('utf-8')).decode('utf-8')
     sign = hashlib.md5((encoded_data + CRYPTOMUS_API_KEY).encode('utf-8')).hexdigest()
-    
     headers = {"merchant": CRYPTOMUS_MERCHANT_ID, "sign": sign, "Content-Type": "application/json"}
-    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as resp:
@@ -269,18 +266,16 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
         return (
             f"{ce('success')} <b>Payment Confirmed Successfully!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
             f"{ce('vip')} <b>{product['title_en']}</b>\n\n{ce('quantity')} <b>Quantity:</b> {qty}\n\n"
-            f"{ce('announcement')} <b>How to receive your codes:</b>\n"
-            f"Please contact the admin directly to receive your keys instantly! Send a screenshot of this message to the admin below.\n"
-            f"{ce('support')} <b>Contact Admin:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{ce('announcement')} <b>Delivery Status:</b>\n"
+            f"Please wait... The admin has been notified and will send your codes directly here in this chat shortly!\n\n━━━━━━━━━━━━━━━━━━━━━\n"
             f"{ce('heart')} <b>Thank you for trusting AIX Store!</b>"
         )
     else:
         return (
             f"{ce('success')} <b>تم تأكيد الدفع وتسليم طلب بنجاح!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
             f"{ce('vip')} <b>{product['title_ar']}</b>\n\n{ce('quantity')} <b>الكمية المطلوبة:</b> {qty}\n\n"
-            f"{ce('announcement')} <b>لاستلام الأكواد الخاصة بك:</b>\n"
-            f"برجاء التواصل مع الإدارة لاستلام الأكواد فوراً. يرجى إرسال سكرين شوت لهذه الرسالة كإثبات لطلبك!\n"
-            f"{ce('support')} <b>تواصل مع الإدارة:</b> {support}\n\n━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{ce('announcement')} <b>حالة التسليم:</b>\n"
+            f"برجاء الانتظار... تم إشعار الإدارة وجاري إرسال الأكواد لك في هذا الشات مباشرةً! لا داعي للمغادرة.\n\n━━━━━━━━━━━━━━━━━━━━━\n"
             f"{ce('heart')} <b>شكراً لثقتك في AIX Store!</b>"
         )
 
@@ -307,7 +302,6 @@ def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
     refresh_icon_id = "5386367538735104399"
-    # 🟢 تم تعديل السعر لـ 4.00$
     if lang == "en": 
         btn_text = f"CDK GPT Plus 2Y | $4.00 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | $4.00 | 0"
         btn_product = InlineKeyboardButton(text=btn_text, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
@@ -329,7 +323,6 @@ def product_details_buttons(lang: str, product_key: str):
         [InlineKeyboardButton(text="Back to Shop" if lang == "en" else "رجوع للمتجر", callback_data="home_shop", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
-# ━━━━━ 🟢 تمت إضافة طريقة الدفع اليدوية عبر بينانس 🟢 ━━━━━
 def checkout_payment_buttons(lang: str, product_key: str, qty: int):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Pay from Wallet" if lang=="en" else "الدفع من المحفظة", callback_data=f"pay_wallet_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["wallet"])],
@@ -344,7 +337,6 @@ def deposit_currency_buttons(lang: str):
         [InlineKeyboardButton(text="Back" if lang == "en" else "رجوع", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
-# ━━━━━ 🟢 تمت إضافة الدفع اليدوي في قسم الإيداع 🟢 ━━━━━
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"Auto Crypto Pay • {format_amount(amount)} USDT" if lang == "en" else f"دفع أوتوماتيك • {format_amount(amount)} USDT", callback_data=f"topup_crypto_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
@@ -379,7 +371,6 @@ def home_text(lang: str, name: str):
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b> {ulink}\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{chk} تفعيل سريع  {chk} دفع آمن  {chk} خدمة موثوقة"
 
 def product_list_text(lang: str):
-    # 🟢 تم تعديل السعر لـ 4.00$
     if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice: $4.00 | Subscription: 2 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
     return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nالسعر: 4.00$ | الاشتراك سنتين ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
 
@@ -411,6 +402,38 @@ async def start(message: Message):
 
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
+
+@dp.message(Command("addbalance"))
+async def add_balance_command(message: Message):
+    if message.from_user.id != ADMIN_ID: return
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer(f"{ce('error')} <b>الاستخدام الصحيح:</b>\n<code>/addbalance user_id amount</code>", parse_mode="HTML")
+        return
+    try:
+        target_id = int(parts[1])
+        amount = float(parts[2])
+        async with db_pool.acquire() as conn:
+            await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", amount, target_id)
+        await message.answer(f"{ce('success')} <b>تم شحن محفظة العميل (ID: {target_id}) بمبلغ {amount}$ بنجاح!</b>", parse_mode="HTML")
+        await bot.send_message(target_id, f"💰 <b>تم شحن رصيدك!</b>\n━━━━━━━━━━━━━━━━━━━━━\nتمت إضافة <b>{amount} USDT</b> إلى محفظتك من قِبل الإدارة.\nيمكنك الآن تصفح المنتجات والشراء بسهولة.", parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"{ce('error')} <b>خطأ:</b> {e}", parse_mode="HTML")
+
+@dp.message(Command("send"))
+async def send_to_user_command(message: Message):
+    if message.from_user.id != ADMIN_ID: return
+    parts = message.html_text.split(" ", 2)
+    if len(parts) < 3:
+        await message.answer(f"{ce('error')} <b>خطأ! استخدم الأمر هكذا:</b>\n<code>/send user_id رسالتك هنا</code>", parse_mode="HTML")
+        return
+    try:
+        target_id = int(parts[1])
+        text_to_send = parts[2]
+        await bot.send_message(target_id, f"💬 <b>رسالة من الإدارة:</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{text_to_send}", parse_mode="HTML")
+        await message.answer(f"{ce('success')} <b>تم إرسال الرسالة للعميل بنجاح!</b>", parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"{ce('error')} <b>خطأ أثناء الإرسال:</b>\n{e}", parse_mode="HTML")
 
 @dp.message(Command("broadcast"))
 async def broadcast_message(message: Message):
@@ -465,7 +488,6 @@ async def add_stock(message: Message):
             except Exception: pass
     await message.answer(f"{ce('success')} <b>تمت إضافة {added_count} أكواد!</b>\nالمخزون الكلي: {total}\nتم إرسال إشعار لـ {sent_count} مستخدم.", parse_mode="HTML")
 
-# ━━━━━ 🟢 حماية المخزون وإظهار رسالة عند النفاذ 🟢 ━━━━━
 @dp.callback_query(F.data == "product_cdk_chatgpt")
 @dp.callback_query(F.data.startswith("back_to_prod_"))
 async def product_cdk_chatgpt_callback(call: CallbackQuery):
@@ -473,7 +495,6 @@ async def product_cdk_chatgpt_callback(call: CallbackQuery):
     lang = await get_lang(call.from_user.id)
     count = await get_stock_count("cdk_chatgpt")
     
-    # رسالة التحذير لما يكون المخزون صفر
     if count <= 0:
         msg = "Out of stock! Please check back later." if lang == "en" else "عذراً، هذا المنتج نفذ من المخزون حالياً!"
         await call.answer(msg, show_alert=True)
@@ -563,7 +584,11 @@ async def pay_wallet_product(call: CallbackQuery):
         await conn.execute("INSERT INTO deposits (telegram_id, method, amount, currency, product_key, quantity, txid, status) VALUES($1,$2,$3,$4,$5,$6,$7,'approved')", user_id, "wallet", total_price, "USDT", product_key, qty, f"wallet_{int(time.time())}")
 
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
-        await bot.send_message(ADMIN_ID, f"🛒 <b>شراء ناجح من المحفظة!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nالمبلغ المخصوم: {total_price} USDT", parse_mode="HTML")
+        
+        admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✉️ إرسال الكود للعميل", callback_data=f"sendprod_{user_id}")]
+        ])
+        await bot.send_message(ADMIN_ID, f"🛒 <b>شراء ناجح من المحفظة!</b>\nالمستخدم: @{call.from_user.username}\nالـ ID: <code>{user_id}</code>\nالمنتج: {product['title_ar']}\nالكمية: {qty}\nالمبلغ المخصوم: {total_price} USDT", parse_mode="HTML", reply_markup=admin_kb)
 
 @dp.callback_query(F.data.startswith("pay_crypto_"))
 async def pay_crypto_product(call: CallbackQuery):
@@ -598,7 +623,6 @@ async def pay_crypto_product(call: CallbackQuery):
         err = "Error creating invoice. Contact Admin." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة. تواصل مع الدعم."
         await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
 
-# ━━━━━ 🟢 معالجة طلب الدفع اليدوي (بينانس) لشراء المنتجات 🟢 ━━━━━
 @dp.callback_query(F.data.startswith("pay_binmanual_"))
 async def pay_binmanual_product(call: CallbackQuery):
     await call.answer()
@@ -634,6 +658,11 @@ async def pay_binmanual_product(call: CallbackQuery):
         [InlineKeyboardButton(text="Back" if lang=="en" else "رجوع", callback_data=f"back_to_prod_{product_key}", icon_custom_emoji_id=EMOJI["back"])]
     ])
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
+    
+    admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✉️ مراسلة / إرسال الكود", callback_data=f"sendprod_{user_id}")]
+    ])
+    await bot.send_message(ADMIN_ID, f"🟡 <b>طلب دفع يدوي (بينانس)!</b>\nالمستخدم: @{call.from_user.username}\nالـ ID: <code>{user_id}</code>\nالمنتج: {PRODUCTS[product_key]['title_ar']}\nالكمية: {qty}\nالمبلغ المطلوب: {total_price} USDT\n\n<i>(العميل سيقوم بمراسلتك بالسكرين شوت، يمكنك الرد عليه وإرسال الكود من هنا)</i>", parse_mode="HTML", reply_markup=admin_kb)
 
 @dp.callback_query(F.data.startswith("verify_buy-"))
 async def verify_crypto_payment(call: CallbackQuery):
@@ -671,7 +700,11 @@ async def verify_crypto_payment(call: CallbackQuery):
         
         await call.message.delete()
         await call.message.answer(get_delivery_text(lang, product, qty, SUPPORT), parse_mode="HTML")
-        await bot.send_message(ADMIN_ID, f"⚡ <b>بيع أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالمنتج: {product['title_en']}\nالكمية: {qty}\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
+        
+        admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✉️ إرسال الكود للعميل", callback_data=f"sendprod_{user_id}")]
+        ])
+        await bot.send_message(ADMIN_ID, f"⚡ <b>بيع أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالـ ID: <code>{user_id}</code>\nالمنتج: {product['title_ar']}\nالكمية: {qty}\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML", reply_markup=admin_kb)
 
 @dp.callback_query(F.data == "deposit_currency_USDT")
 async def deposit_currency_chosen(call: CallbackQuery):
@@ -729,7 +762,6 @@ async def topup_crypto_callback(call: CallbackQuery):
         err = "Error creating invoice." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة."
         await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
 
-# ━━━━━ 🟢 معالجة الدفع اليدوي (بينانس) لشحن المحفظة 🟢 ━━━━━
 @dp.callback_query(F.data.startswith("topup_binmanual_"))
 async def topup_binmanual_callback(call: CallbackQuery):
     await call.answer()
@@ -763,6 +795,11 @@ async def topup_binmanual_callback(call: CallbackQuery):
         [InlineKeyboardButton(text="Main Menu" if lang=="en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
     ])
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
+    
+    admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✉️ مراسلة العميل", callback_data=f"sendprod_{user_id}")]
+    ])
+    await bot.send_message(ADMIN_ID, f"🟡 <b>طلب شحن يدوي (بينانس)!</b>\nالمستخدم: @{call.from_user.username}\nالـ ID: <code>{user_id}</code>\nالمبلغ المطلوب: {amount} {currency}\n\n<i>(العميل سيقوم بمراسلتك بالسكرين شوت، يمكنك استخدام أمر الشحن /addbalance مباشرة)</i>", parse_mode="HTML", reply_markup=admin_kb)
 
 @dp.callback_query(F.data.startswith("vtop_top-"))
 async def verify_topup_payment(call: CallbackQuery):
@@ -791,7 +828,19 @@ async def verify_topup_payment(call: CallbackQuery):
         await call.message.delete()
         succ = f"<b>Wallet successfully topped up with {amount} USDT!</b>" if lang == "en" else f"<b>تم شحن المحفظة بنجاح بمبلغ {amount} USDT!</b>"
         await call.message.answer(f"{ce('success')} {succ}", parse_mode="HTML")
-        await bot.send_message(ADMIN_ID, f"💰 <b>شحن محفظة أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالمبلغ: {amount} USDT\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
+        await bot.send_message(ADMIN_ID, f"💰 <b>شحن محفظة أوتوماتيك ناجح (Cryptomus)!</b>\nالمستخدم: @{call.from_user.username}\nالـ ID: <code>{user_id}</code>\nالمبلغ: {amount} USDT\nرقم الطلب: <code>{order_id}</code>", parse_mode="HTML")
+
+# ━━━━━ 🟢 تهيئة زر إرسال الكود للعميل 🟢 ━━━━━
+@dp.callback_query(F.data.startswith("sendprod_"))
+async def admin_send_product_prompt(call: CallbackQuery):
+    if call.from_user.id != ADMIN_ID:
+        return await call.answer("غير مصرح لك!", show_alert=True)
+        
+    target_user = int(call.data.split("_")[1])
+    admin_reply_waiting[ADMIN_ID] = target_user
+    
+    await call.message.reply(f"{ce('pencil')} <b>حسناً يا غالي، أرسل الكود أو الرسالة الآن ليتم تحويلها للعميل (ID: <code>{target_user}</code>):</b>\n<i>(يمكنك إرسال نص، صورة، أو ملف)\nلإلغاء العملية أرسل: ❌ إلغاء</i>", parse_mode="HTML")
+    await call.answer()
 
 async def show_support(message_or_call):
     lang = await get_lang(message_or_call.from_user.id)
@@ -906,11 +955,26 @@ async def shop_inline_callback(call: CallbackQuery):
     msg = await animate_message(call.message, await get_lang(call.from_user.id))
     await handle_shop_action(msg, await get_lang(call.from_user.id))
 
-# 🟢 إضافة خاصية لتشغيل زرار "تحديث المنتجات" بشكل سليم
 @dp.callback_query(F.data == "refresh_products")
 async def refresh_products_callback(call: CallbackQuery):
     await shop_inline_callback(call)
 
+# ━━━━━ 🟢 استلام الصور والملفات من الإدارة للعميل 🟢 ━━━━━
+@dp.message(F.photo | F.document)
+async def handle_admin_media(message: Message):
+    user_id = message.from_user.id
+    if user_id == ADMIN_ID and user_id in admin_reply_waiting:
+        target_id = admin_reply_waiting.pop(ADMIN_ID)
+        try:
+            original_caption = message.html_text or ""
+            new_caption = f"🎁 <b>طلبك جاهز يا غالي!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{original_caption}\n\n{ce('heart')} <b>شكراً لشرائك وثقتك في متجرنا!</b>"
+            await message.copy_to(target_id, caption=new_caption, parse_mode="HTML")
+            await message.answer(f"{ce('success')} <b>تم إرسال الملف/الصورة للعميل (ID: {target_id}) بنجاح! ✅</b>", parse_mode="HTML")
+        except Exception as e:
+            await message.answer(f"{ce('error')} <b>حدث خطأ أثناء الإرسال! ربما العميل حظر البوت.</b>\nالخطأ: {e}", parse_mode="HTML")
+        return
+
+# ━━━━━ 🟢 استلام الكود (نصياً) من الإدارة للعميل 🟢 ━━━━━
 @dp.message(F.text)
 async def handle_text_messages(message: Message):
     user_id = message.from_user.id
@@ -920,12 +984,28 @@ async def handle_text_messages(message: Message):
     if text_value in ["❌ Cancel", "❌ إلغاء", "Cancel", "إلغاء", "❌ Cancel / إلغاء"]:
         buy_waiting.pop(user_id, None)
         deposit_waiting.pop(user_id, None)
+        if user_id == ADMIN_ID:
+            admin_reply_waiting.pop(ADMIN_ID, None)
         cancel_msg = "<b>Cancelled. Returning to main menu...</b>" if lang == "en" else "<b>تم الإلغاء. جاري العودة للقائمة الرئيسية...</b>"
         await message.answer(f"{ce('error')} {cancel_msg}", reply_markup=main_reply_keyboard(lang), parse_mode="HTML")
         await send_home(message)
         return
 
     if text_value.startswith("/"): return
+    
+    # تحويل رسالة الأدمن مباشرة للعميل
+    if user_id == ADMIN_ID and user_id in admin_reply_waiting:
+        target_id = admin_reply_waiting.pop(ADMIN_ID)
+        try:
+            await bot.send_message(
+                target_id, 
+                f"🎁 <b>طلبك جاهز يا غالي!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{message.html_text}\n\n{ce('heart')} <b>شكراً لشرائك وثقتك في متجرنا!</b>", 
+                parse_mode="HTML"
+            )
+            await message.answer(f"{ce('success')} <b>تم إرسال الكود للعميل بنجاح! ✅</b>", parse_mode="HTML")
+        except Exception as e:
+            await message.answer(f"{ce('error')} <b>حدث خطأ أثناء الإرسال! ربما العميل حظر البوت.</b>\nالخطأ: {e}", parse_mode="HTML")
+        return
 
     if user_id in buy_waiting:
         await receive_custom_quantity(message)
