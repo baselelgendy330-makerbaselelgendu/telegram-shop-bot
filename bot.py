@@ -156,7 +156,7 @@ PRODUCTS = {
         "title_en": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
         "title_ar": "CDK GPT Plus (K12 - EDU) 2 years No warranty",
         "image": CDK_IMAGE_FILE,
-        "usd": 4.8,  
+        "usd": 4.0,  # 🟢 تم تعديل السعر لـ 4$
         "type": "stock",
         "desc_en": CDK_DESC_EN,
         "desc_ar": CDK_DESC_AR
@@ -307,15 +307,16 @@ def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
     refresh_icon_id = "5386367538735104399"
+    # 🟢 تم تعديل السعر لـ 4.00$
     if lang == "en": 
-        btn_text = f"CDK GPT Plus 2Y | $4.80 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | $4.80 | 0"
+        btn_text = f"CDK GPT Plus 2Y | $4.00 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | $4.00 | 0"
         btn_product = InlineKeyboardButton(text=btn_text, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
             [InlineKeyboardButton(text="Refresh products", callback_data="refresh_products", icon_custom_emoji_id=refresh_icon_id), InlineKeyboardButton(text="Back", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
         ])
     else:
-        btn_text = f"CDK GPT Plus 2Y | 4.80$ | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | 4.80$ | 0"
+        btn_text = f"CDK GPT Plus 2Y | 4.00$ | {stock_count}" if stock_count > 0 else f"CDK GPT Plus 2Y | 4.00$ | 0"
         btn_product = InlineKeyboardButton(text=btn_text, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         return InlineKeyboardMarkup(inline_keyboard=[
             [btn_product], 
@@ -328,10 +329,12 @@ def product_details_buttons(lang: str, product_key: str):
         [InlineKeyboardButton(text="Back to Shop" if lang == "en" else "رجوع للمتجر", callback_data="home_shop", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
+# ━━━━━ 🟢 تمت إضافة طريقة الدفع اليدوية عبر بينانس 🟢 ━━━━━
 def checkout_payment_buttons(lang: str, product_key: str, qty: int):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Pay from Wallet" if lang=="en" else "الدفع من المحفظة", callback_data=f"pay_wallet_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["wallet"])],
         [InlineKeyboardButton(text="Auto Crypto Pay" if lang=="en" else "دفع أوتوماتيك (كريبتو)", callback_data=f"pay_crypto_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["binance"])],
+        [InlineKeyboardButton(text="Manual Binance Pay" if lang=="en" else "دفع بينانس يدوي (بالموافقة)", callback_data=f"pay_binmanual_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["binance"])],
         [InlineKeyboardButton(text="Back" if lang=="en" else "رجوع", callback_data=f"back_to_prod_{product_key}", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
@@ -341,9 +344,11 @@ def deposit_currency_buttons(lang: str):
         [InlineKeyboardButton(text="Back" if lang == "en" else "رجوع", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
+# ━━━━━ 🟢 تمت إضافة الدفع اليدوي في قسم الإيداع 🟢 ━━━━━
 def deposit_amount_payment_buttons(lang: str, amount: float, currency: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"Auto Crypto Pay • {format_amount(amount)} USDT" if lang == "en" else f"دفع أوتوماتيك • {format_amount(amount)} USDT", callback_data=f"topup_crypto_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
+        [InlineKeyboardButton(text=f"Binance Pay • {format_amount(amount)} USDT" if lang == "en" else f"دفع بينانس يدوي • {format_amount(amount)} USDT", callback_data=f"topup_binmanual_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
         [InlineKeyboardButton(text="Change Amount" if lang == "en" else "تغيير المبلغ", callback_data="deposit_currency_USDT", icon_custom_emoji_id=EMOJI["pencil"])]
     ])
 
@@ -374,8 +379,9 @@ def home_text(lang: str, name: str):
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b> {ulink}\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{chk} تفعيل سريع  {chk} دفع آمن  {chk} خدمة موثوقة"
 
 def product_list_text(lang: str):
-    if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice: $4.80 | Subscription: 2 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
-    return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nالسعر: 4.80$ | الاشتراك سنتين ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
+    # 🟢 تم تعديل السعر لـ 4.00$
+    if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice: $4.00 | Subscription: 2 Year, no warranty {ce('error')}\n\n{ce('arrows_down')} Choose a product below:"
+    return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nالسعر: 4.00$ | الاشتراك سنتين ، no warranty {ce('error')}\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
 
 async def animate_message(message: Message, lang: str):
     text = f"{ce('loading')} <b>Loading...</b>" if lang == "en" else f"{ce('loading')} <b>جاري التحميل...</b>"
@@ -406,13 +412,11 @@ async def start(message: Message):
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
 
-# ━━━━━ 🚀 تعديل دالة الإذاعة المباشرة للحفاظ على الـ HTML والإيموجيز 🚀 ━━━━━
 @dp.message(Command("broadcast"))
 async def broadcast_message(message: Message):
     if message.from_user.id != ADMIN_ID:
         return
         
-    # نأخذ النص بالتنسيق والأكواد الأصلية بالمللي من رسالة الأدمن
     text_to_send = message.html_text.replace("/broadcast", "", 1).strip()
     
     if not text_to_send:
@@ -461,12 +465,20 @@ async def add_stock(message: Message):
             except Exception: pass
     await message.answer(f"{ce('success')} <b>تمت إضافة {added_count} أكواد!</b>\nالمخزون الكلي: {total}\nتم إرسال إشعار لـ {sent_count} مستخدم.", parse_mode="HTML")
 
+# ━━━━━ 🟢 حماية المخزون وإظهار رسالة عند النفاذ 🟢 ━━━━━
 @dp.callback_query(F.data == "product_cdk_chatgpt")
 @dp.callback_query(F.data.startswith("back_to_prod_"))
 async def product_cdk_chatgpt_callback(call: CallbackQuery):
     await call.answer()
     lang = await get_lang(call.from_user.id)
     count = await get_stock_count("cdk_chatgpt")
+    
+    # رسالة التحذير لما يكون المخزون صفر
+    if count <= 0:
+        msg = "Out of stock! Please check back later." if lang == "en" else "عذراً، هذا المنتج نفذ من المخزون حالياً!"
+        await call.answer(msg, show_alert=True)
+        return
+        
     sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"])
     product = PRODUCTS["cdk_chatgpt"]
     desc = product["desc_en"].replace("✅", ce("success")) if lang == "en" else product["desc_ar"].replace("✅", ce("success"))
@@ -586,6 +598,43 @@ async def pay_crypto_product(call: CallbackQuery):
         err = "Error creating invoice. Contact Admin." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة. تواصل مع الدعم."
         await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
 
+# ━━━━━ 🟢 معالجة طلب الدفع اليدوي (بينانس) لشراء المنتجات 🟢 ━━━━━
+@dp.callback_query(F.data.startswith("pay_binmanual_"))
+async def pay_binmanual_product(call: CallbackQuery):
+    await call.answer()
+    parts = call.data.replace("pay_binmanual_", "").rsplit("_", 1)
+    product_key = parts[0]
+    qty = int(parts[1])
+    user_id = call.from_user.id
+    lang = await get_lang(user_id)
+    
+    total_price = float(PRODUCTS[product_key]["usd"]) * qty
+    
+    if lang == "en":
+        text = (
+            f"{ce('binance')} <b>Manual Binance Payment</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('price')} Amount to pay: <b>{total_price:.2f} USDT</b>\n\n"
+            f"{ce('loading')} Please transfer the exact amount to the following Binance ID:\n\n"
+            f"{ce('arrow_right')} <code>381880403</code>\n\n"
+            f"{ce('support_msg')} After successful transfer, take a screenshot and send it to our support team for approval and order processing:\n"
+            f"{ce('support')} {SUPPORT}"
+        )
+    else:
+        text = (
+            f"{ce('binance')} <b>الدفع اليدوي عبر بينانس</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('price')} المبلغ المطلوب تحويله: <b>{total_price:.2f} USDT</b>\n\n"
+            f"{ce('loading')} برجاء تحويل المبلغ بالكامل إلى معرف بينانس (Binance ID) التالي:\n\n"
+            f"{ce('arrow_right')} <code>381880403</code>\n\n"
+            f"{ce('support_msg')} بعد إتمام التحويل، يرجى أخذ لقطة شاشة (سكرين شوت) وإرسالها للإدارة لتأكيد الدفع وتسليم طلبك فوراً:\n"
+            f"{ce('support')} {SUPPORT}"
+        )
+        
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Contact Support" if lang=="en" else "تواصل مع الإدارة", url=f"https://t.me/{SUPPORT.replace('@', '')}")],
+        [InlineKeyboardButton(text="Back" if lang=="en" else "رجوع", callback_data=f"back_to_prod_{product_key}", icon_custom_emoji_id=EMOJI["back"])]
+    ])
+    await safe_edit_or_answer(call.message, text, reply_markup=kb)
+
 @dp.callback_query(F.data.startswith("verify_buy-"))
 async def verify_crypto_payment(call: CallbackQuery):
     await call.answer()
@@ -679,6 +728,41 @@ async def topup_crypto_callback(call: CallbackQuery):
     else:
         err = "Error creating invoice." if lang == "en" else "عذراً، حدث خطأ أثناء إنشاء الفاتورة."
         await safe_edit_or_answer(msg, f"{ce('error')} <b>{err}</b>")
+
+# ━━━━━ 🟢 معالجة الدفع اليدوي (بينانس) لشحن المحفظة 🟢 ━━━━━
+@dp.callback_query(F.data.startswith("topup_binmanual_"))
+async def topup_binmanual_callback(call: CallbackQuery):
+    await call.answer()
+    parts = call.data.split("_")
+    amount = float(parts[2])
+    currency = parts[3]
+    user_id = call.from_user.id
+    lang = await get_lang(user_id)
+
+    if lang == "en":
+        text = (
+            f"{ce('binance')} <b>Manual Binance Deposit</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('price')} Amount to transfer: <b>{amount} {currency}</b>\n\n"
+            f"{ce('loading')} Please transfer the exact amount to the following Binance ID:\n\n"
+            f"{ce('arrow_right')} <code>381880403</code>\n\n"
+            f"{ce('support_msg')} After successful transfer, take a screenshot and send it to our support team to add the balance to your wallet:\n"
+            f"{ce('support')} {SUPPORT}"
+        )
+    else:
+        text = (
+            f"{ce('binance')} <b>إيداع يدوي عبر بينانس</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('price')} المبلغ المطلوب تحويله: <b>{amount} {currency}</b>\n\n"
+            f"{ce('loading')} برجاء تحويل المبلغ بالكامل إلى معرف بينانس (Binance ID) التالي:\n\n"
+            f"{ce('arrow_right')} <code>381880403</code>\n\n"
+            f"{ce('support_msg')} بعد إتمام التحويل، يرجى أخذ لقطة شاشة (سكرين شوت) وإرسالها للإدارة لشحن رصيد محفظتك فوراً:\n"
+            f"{ce('support')} {SUPPORT}"
+        )
+        
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Contact Support" if lang=="en" else "تواصل مع الإدارة", url=f"https://t.me/{SUPPORT.replace('@', '')}")],
+        [InlineKeyboardButton(text="Main Menu" if lang=="en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]
+    ])
+    await safe_edit_or_answer(call.message, text, reply_markup=kb)
 
 @dp.callback_query(F.data.startswith("vtop_top-"))
 async def verify_topup_payment(call: CallbackQuery):
@@ -821,6 +905,11 @@ async def shop_inline_callback(call: CallbackQuery):
     await call.answer()
     msg = await animate_message(call.message, await get_lang(call.from_user.id))
     await handle_shop_action(msg, await get_lang(call.from_user.id))
+
+# 🟢 إضافة خاصية لتشغيل زرار "تحديث المنتجات" بشكل سليم
+@dp.callback_query(F.data == "refresh_products")
+async def refresh_products_callback(call: CallbackQuery):
+    await shop_inline_callback(call)
 
 @dp.message(F.text)
 async def handle_text_messages(message: Message):
