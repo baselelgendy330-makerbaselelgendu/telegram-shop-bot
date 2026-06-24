@@ -9,7 +9,7 @@ import hashlib
 import time
 import aiohttp
 import base64
-from aiogram import Bot, Dispatcher, F
+from aiogram import BaseMiddleware, Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import (
@@ -171,7 +171,7 @@ PRODUCTS = {
         "title_en": "CDK (K12) FOR SINGLE",
         "title_ar": "CDK (K12) للمفرد",
         "image": CDK_IMAGE_FILE,
-        "usd": 5.5,  # سعر المفرد 5.5
+        "usd": 5.5,  # السعر الجديد 5.5
         "type": "stock",
         "desc_en": CDK_DESC_EN,
         "desc_ar": CDK_DESC_AR
@@ -186,9 +186,29 @@ async def init_db():
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ref INT DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usdt NUMERIC DEFAULT 0;")
+        # إضافة عمود الحظر
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS deposits (id SERIAL PRIMARY KEY, telegram_id BIGINT, method TEXT, amount NUMERIC, currency TEXT, product_key TEXT DEFAULT 'cdk_chatgpt', status TEXT DEFAULT 'pending', quantity INT DEFAULT 1, txid TEXT UNIQUE, created_at TIMESTAMP DEFAULT NOW());")
         await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS txid TEXT UNIQUE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS stock (id SERIAL PRIMARY KEY, product TEXT NOT NULL, item_data TEXT NOT NULL, sold BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW());")
+
+# 🟢 نظام الأمان للتحقق من المحظورين (Ban Middleware)
+class BanMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        user = data.get("event_from_user")
+        if user and user.id != ADMIN_ID:
+            if db_pool:
+                async with db_pool.acquire() as conn:
+                    try:
+                        is_banned = await conn.fetchval("SELECT is_banned FROM users WHERE telegram_id=$1", user.id)
+                        if is_banned:
+                            return  # تجاهل العميل المحظور تماماً
+                    except Exception:
+                        pass
+        return await handler(event, data)
+
+dp.message.middleware(BanMiddleware())
+dp.callback_query.middleware(BanMiddleware())
 
 async def ensure_user_by_id(user_id: int, username: str | None = None, first_name: str | None = None, referrer_id: int | None = None):
     async with db_pool.acquire() as conn:
@@ -251,7 +271,7 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
             f"{ce('heart')} <b>شكراً لثقتك في AIX Store!</b>"
         )
 
-# 🟢 كيبورد الكمية ديناميكي (الجملة بيعرض العشرات والمئات، المفرد بيعرض وحايد)
+# 🟢 كيبورد الكمية ديناميكي
 def reply_quantity_keyboard(lang: str, is_single: bool = False):
     cancel_text = "❌ Cancel" if lang == "en" else "❌ إلغاء"
     if is_single:
@@ -278,7 +298,7 @@ def home_keyboard(lang: str):
 def back_home_keyboard(lang: str): 
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]])
 
-# 🟢 زرارين للمنتج: واحد جملة وواحد مفرد
+# 🟢 زرارين للمنتج (بالسعر الجديد 5.5)
 def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
@@ -315,7 +335,7 @@ def product_details_buttons(lang: str, product_key: str):
         [InlineKeyboardButton(text="Back to Shop" if lang == "en" else "رجوع للمتجر", callback_data="home_shop", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
-# 🟢 أزرار الدفع خالية من Cryptomus وفيها BEP20
+# 🟢 أزرار الدفع
 def checkout_payment_buttons(lang: str, product_key: str, qty: int):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Pay from Wallet" if lang=="en" else "الدفع من المحفظة", callback_data=f"pay_wallet_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["wallet"])],
@@ -363,6 +383,7 @@ def home_text(lang: str, name: str):
         return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b> {ulink}\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{chk} تفعيل سريع  {chk} دفع آمن  {chk} خدمة موثوقة"
 
+# 🟢 تم تعديل السعر لـ 5.50 هنا بشكل نهائي
 def product_list_text(lang: str):
     if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
     return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nسعر الجملة (10+): 4.00$ | المفرد: 5.50$\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
@@ -395,6 +416,38 @@ async def start(message: Message):
 
 @dp.message(Command("menu"))
 async def menu_command(message: Message): await start(message)
+
+# 🟢 أمر الحظر
+@dp.message(Command("ban"))
+async def ban_user_command(message: Message):
+    if message.from_user.id != ADMIN_ID: return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(f"{ce('error')} <b>الاستخدام الصحيح:</b>\n<code>/ban user_id</code>", parse_mode="HTML")
+        return
+    try:
+        target_id = int(parts[1])
+        async with db_pool.acquire() as conn:
+            await conn.execute("UPDATE users SET is_banned = TRUE WHERE telegram_id=$1", target_id)
+        await message.answer(f"{ce('success')} <b>تم حظر المستخدم (ID: {target_id}) بنجاح! ولن يستطيع استخدام البوت.</b>", parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"{ce('error')} <b>خطأ:</b> {e}", parse_mode="HTML")
+
+# 🟢 أمر فك الحظر
+@dp.message(Command("unban"))
+async def unban_user_command(message: Message):
+    if message.from_user.id != ADMIN_ID: return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(f"{ce('error')} <b>الاستخدام الصحيح:</b>\n<code>/unban user_id</code>", parse_mode="HTML")
+        return
+    try:
+        target_id = int(parts[1])
+        async with db_pool.acquire() as conn:
+            await conn.execute("UPDATE users SET is_banned = FALSE WHERE telegram_id=$1", target_id)
+        await message.answer(f"{ce('success')} <b>تم فك الحظر عن المستخدم (ID: {target_id}) بنجاح!</b>", parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"{ce('error')} <b>خطأ:</b> {e}", parse_mode="HTML")
 
 @dp.message(Command("addbalance"))
 async def add_balance_command(message: Message):
@@ -766,7 +819,7 @@ async def topup_bep20_callback(call: CallbackQuery):
 
     if lang == "en":
         text = (
-            f"{ce('usdt')} <b>USDT (BEP20) Deposit</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('usdt')} <b>USDT (BEP20 Deposit)</b>\n━━━━━━━━━━━━━━\n"
             f"{ce('price')} Amount to transfer: <b>{amount} {currency}</b>\n\n"
             f"{ce('loading')} Please transfer the amount to the following Address (BEP20):\n\n"
             f"<code>0x40ae850b17bb209142f70eb75fa6f3c3b0a757aa</code>\n\n"
@@ -999,14 +1052,4 @@ async def handle_text_messages(message: Message):
             async def answer(self, *args, **kwargs): pass
         await referral_screen(FakeCall(message, message.from_user))
     elif text_value in ["🌐 Language", "🌐 اللغة"]:
-        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language_keyboard(), parse_mode="HTML")
-    else:
-        await send_home(message)
-
-async def main():
-    await init_db()
-    await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
-    await dp.start_polling(bot)
-
-if __name__ == "__main__": 
-    asyncio.run(main())
+        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language
