@@ -24,6 +24,10 @@ SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
+# 🔴 Linked Channel & Bot
+CHANNEL_USERNAME = "@chatgpt_k12" 
+BOT_USERNAME = "Shop_chatgptplus_bot"
+
 # Cryptomus Keys
 CRYPTOMUS_API_KEY = os.getenv("CRYPTOMUS_API_KEY")
 CRYPTOMUS_MERCHANT_ID = os.getenv("CRYPTOMUS_MERCHANT_ID")
@@ -68,7 +72,14 @@ EMOJI = {
     "hourglass": "5386367538735104399",
     "check_anim": "6276090299232031662",
     "user_link": "5440410042773824003",
-    "usdt": "5879991085001871624"
+    "usdt": "5879991085001871624",
+    
+    # 🟢 الإيموجي الجديدة للجروب
+    "buy_cart": "5312361253610475399",
+    "sparkles_pay": "5409048419211682843",
+    "diamond_arrow": "5416117059207572332",
+    "secure_shield": "5251203410396458957",
+    "user_new": "5262742999678329061"
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -79,7 +90,14 @@ SAFE_EMOJI_FALLBACK = {
     "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨",
     "check_anim": "✅",
     "user_link": "🔗",
-    "usdt": "💵"
+    "usdt": "💵",
+    
+    # 🟢 بدائل الإيموجي الجديدة
+    "buy_cart": "🛒",
+    "sparkles_pay": "💵",
+    "diamond_arrow": "➡️",
+    "secure_shield": "🛡",
+    "user_new": "👤"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -177,10 +195,16 @@ async def init_db():
         await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS txid TEXT UNIQUE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS stock (id SERIAL PRIMARY KEY, product TEXT NOT NULL, item_data TEXT NOT NULL, sold BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW());")
 
-class BanMiddleware(BaseMiddleware):
+# 🟢 Security Middleware (Ban Check + Force Subscribe)
+class SecurityMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
         user = data.get("event_from_user")
+        
+        if isinstance(event, CallbackQuery) and event.data == "check_sub":
+            return await handler(event, data)
+            
         if user and user.id != ADMIN_ID:
+            # 1. Ban Check
             if db_pool:
                 async with db_pool.acquire() as conn:
                     try:
@@ -189,10 +213,47 @@ class BanMiddleware(BaseMiddleware):
                             return
                     except Exception:
                         pass
+                        
+            # 2. Force Subscribe Check
+            if CHANNEL_USERNAME != "@YourChannelUsername":
+                try:
+                    member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user.id)
+                    if member.status not in ["member", "administrator", "creator"]:
+                        text = f"{ce('error')} <b>Access Denied!</b>\n━━━━━━━━━━━━━━━━━━━━━\nYou must join our group to use this bot.\n\n{ce('arrow_right')} Please join {CHANNEL_USERNAME} first."
+                        kb = InlineKeyboardMarkup(inline_keyboard=[
+                            [InlineKeyboardButton(text="📢 Join Group", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
+                            [InlineKeyboardButton(text="🔄 Check Subscription", callback_data="check_sub")]
+                        ])
+                        if isinstance(event, Message):
+                            await event.answer(text, reply_markup=kb, parse_mode="HTML")
+                        elif isinstance(event, CallbackQuery):
+                            await event.message.answer(text, reply_markup=kb, parse_mode="HTML")
+                            await event.answer()
+                        return
+                except Exception:
+                    pass 
+                    
         return await handler(event, data)
 
-dp.message.middleware(BanMiddleware())
-dp.callback_query.middleware(BanMiddleware())
+dp.message.middleware(SecurityMiddleware())
+dp.callback_query.middleware(SecurityMiddleware())
+
+@dp.callback_query(F.data == "check_sub")
+async def check_sub_callback(call: CallbackQuery):
+    if CHANNEL_USERNAME == "@YourChannelUsername":
+        await call.answer("Channel is not configured yet.", show_alert=True)
+        return
+        
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=call.from_user.id)
+        if member.status in ["member", "administrator", "creator"]:
+            await call.message.delete()
+            await call.answer("✅ Thank you for subscribing! You can now use the bot.", show_alert=True)
+            await send_home(call.message)
+        else:
+            await call.answer("❌ You haven't joined yet!", show_alert=True)
+    except Exception:
+        await call.answer("Error checking subscription.", show_alert=True)
 
 async def ensure_user_by_id(user_id: int, username: str | None = None, first_name: str | None = None, referrer_id: int | None = None):
     async with db_pool.acquire() as conn:
@@ -480,16 +541,21 @@ async def add_stock(message: Message):
     if len(lines) < 2: 
         await message.answer(f"{ce('error')} <b>Error! Use this format (in a single message):</b>\n\n<code>/addstock CDK</code>\n<code>Code_1</code>", parse_mode="HTML")
         return
+        
     product_key, stock_name = resolve_stock_product(lines[0])
     if not stock_name: return await message.answer(f"{ce('error')} Unknown code. Use CDK.", parse_mode="HTML")
+    
     added_count = 0
     items = lines[1:]
+    
     async with db_pool.acquire() as conn:
         for item in items: 
             await conn.execute("INSERT INTO stock(product,item_data) VALUES($1,$2)", stock_name, item)
             added_count += 1
         total = await conn.fetchval("SELECT COUNT(*) FROM stock WHERE product=$1 AND sold=false", stock_name)
         product_info = PRODUCTS[product_key]
+        
+        # 1. Broadcast to users
         broadcast_text = f"{ce('announcement')} <b>Stock Alert!</b>\n━━━━━━━━━━━━━━━━━━━━━\n🔥 New keys have been added for: <b>{product_info['title']}</b>\n\n{ce('quantity')} Available Stock: <b>{total}</b>\n⚡ Hurry up and grab yours now before it runs out!"
         users = await conn.fetch("SELECT telegram_id FROM users")
         sent_count = 0
@@ -498,7 +564,30 @@ async def add_stock(message: Message):
                 await bot.send_message(u["telegram_id"], broadcast_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Buy Now", callback_data=f"buy_{product_key}", icon_custom_emoji_id=EMOJI["cart"])]]))
                 sent_count += 1
             except Exception: pass
-    await message.answer(f"{ce('success')} <b>Successfully added {added_count} codes!</b>\nTotal stock: {total}\nNotification sent to {sent_count} users.", parse_mode="HTML")
+            
+        # 2. Post to Group
+        if CHANNEL_USERNAME != "@YourChannelUsername":
+            group_text = (
+                f"{ce('announcement')} <b>STOCK ALERT!</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔥 New keys have been added for: <b>{product_info['title']}</b>\n\n"
+                f"{ce('quantity')} Available Stock: <b>{total}</b>\n"
+                f"⚡ Hurry up and grab yours now before it runs out!\n"
+                f"━━━━━━━━━━━━━━━━━━━━━"
+            )
+            try:
+                await bot.send_message(
+                    chat_id=CHANNEL_USERNAME,
+                    text=group_text,
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🛒 Buy Now", url=f"https://t.me/{BOT_USERNAME}?start=shop")]
+                    ])
+                )
+            except Exception as e:
+                await message.answer(f"{ce('error')} <b>Failed to post to group:</b> {e}", parse_mode="HTML")
+
+    await message.answer(f"{ce('success')} <b>Successfully added {added_count} codes!</b>\nTotal stock: {total}\nNotification sent to {sent_count} users and the Group.", parse_mode="HTML")
 
 @dp.callback_query(F.data.in_(["product_cdk_chatgpt", "product_cdk_chatgpt_single"]))
 @dp.callback_query(F.data.startswith("back_to_prod_"))
@@ -600,6 +689,21 @@ async def pay_wallet_product(call: CallbackQuery):
 
         await call.message.answer(get_delivery_text(product, qty), parse_mode="HTML")
         
+        # 🟢 Send group notification for new purchase (No user details, just **)
+        if CHANNEL_USERNAME != "@YourChannelUsername":
+            group_sale_msg = (
+                f"{ce('buy_cart')} <b>New Purchase!</b>\n\n"
+                f"{ce('user_new')} <b>User:</b> **\n"
+                f"{ce('diamond_arrow')} <b>Product:</b> {product['title']}\n"
+                f"{ce('sparkles_pay')} <b>QTY:</b> {qty}\n\n"
+                f"<i>Thank you for choosing us</i> {ce('secure_shield')}"
+            )
+            try:
+                await bot.send_message(chat_id=CHANNEL_USERNAME, text=group_sale_msg, parse_mode="HTML")
+            except Exception:
+                pass
+                
+        # Notify Admin with codes
         codes_str = "\n".join([f"<code>{i['item_data']}</code>" for i in items])
         admin_msg = f"🛒 <b>Successful purchase from Wallet!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {product['title']}\nQuantity: {qty}\nDeducted Amount: {total_price} USDT\n\n<b>🔑 Codes pulled from stock:</b>\n{codes_str}"
         
