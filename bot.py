@@ -171,7 +171,7 @@ PRODUCTS = {
         "title_en": "CDK (K12) FOR SINGLE",
         "title_ar": "CDK (K12) للمفرد",
         "image": CDK_IMAGE_FILE,
-        "usd": 6.0,  # سعر المفرد 6$
+        "usd": 5.5,  # سعر المفرد 5.5
         "type": "stock",
         "desc_en": CDK_DESC_EN,
         "desc_ar": CDK_DESC_AR
@@ -288,7 +288,7 @@ def product_buttons(lang: str, counts: dict):
         btn_text_wholesale = f"CDK GPT Plus (10+) | $4.00 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus (10+) | $4.00 | 0"
         btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         
-        btn_text_single = f"CDK (K12) FOR SINGLE | $6.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $6.00 | 0"
+        btn_text_single = f"CDK (K12) FOR SINGLE | $5.5 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $5.5 | 0"
         btn_2 = InlineKeyboardButton(text=btn_text_single, callback_data="product_cdk_chatgpt_single", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         
         return InlineKeyboardMarkup(inline_keyboard=[
@@ -300,7 +300,7 @@ def product_buttons(lang: str, counts: dict):
         btn_text_wholesale = f"CDK GPT Plus (10+) | 4.00$ | {stock_count}" if stock_count > 0 else f"CDK GPT Plus (10+) | 4.00$ | 0"
         btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         
-        btn_text_single = f"CDK (K12) FOR SINGLE | 6.00$ | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | 6.00$ | 0"
+        btn_text_single = f"CDK (K12) FOR SINGLE | 5.5$ | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | 5.5$ | 0"
         btn_2 = InlineKeyboardButton(text=btn_text_single, callback_data="product_cdk_chatgpt_single", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
         
         return InlineKeyboardMarkup(inline_keyboard=[
