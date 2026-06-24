@@ -24,7 +24,7 @@ SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
-# مفاتيح Cryptomus (متروكة كمتغيرات لعدم حدوث خطأ في الخادم)
+# مفاتيح Cryptomus
 CRYPTOMUS_API_KEY = os.getenv("CRYPTOMUS_API_KEY")
 CRYPTOMUS_MERCHANT_ID = os.getenv("CRYPTOMUS_MERCHANT_ID")
 
@@ -129,7 +129,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 db_pool = None
 
-# قوائم الانتظار في البوت
+# قوائم الانتظار
 deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
 admin_reply_waiting: dict[int, int] = {} 
@@ -154,7 +154,7 @@ CDK_DESC_AR = (
     "Step 2: Paste the CDK\nStep 3: Upgrade, guys."
 )
 
-# 🟢 إضافة منتجين (جملة ومفرد) مرتبطين بنفس المخزون
+# 🟢 المنتجات بالسعر الجديد
 PRODUCTS = {
     "cdk_chatgpt": {
         "stock_name": "CDK Activation Chatgpt 1Y",
@@ -167,11 +167,11 @@ PRODUCTS = {
         "desc_ar": CDK_DESC_AR
     },
     "cdk_chatgpt_single": {
-        "stock_name": "CDK Activation Chatgpt 1Y", # نفس المخزون!
+        "stock_name": "CDK Activation Chatgpt 1Y",
         "title_en": "CDK (K12) FOR SINGLE",
         "title_ar": "CDK (K12) للمفرد",
         "image": CDK_IMAGE_FILE,
-        "usd": 5.5,  # السعر الجديد 5.5
+        "usd": 5.5,  # السعر 5.5
         "type": "stock",
         "desc_en": CDK_DESC_EN,
         "desc_ar": CDK_DESC_AR
@@ -202,7 +202,7 @@ class BanMiddleware(BaseMiddleware):
                     try:
                         is_banned = await conn.fetchval("SELECT is_banned FROM users WHERE telegram_id=$1", user.id)
                         if is_banned:
-                            return  # تجاهل العميل المحظور تماماً
+                            return
                     except Exception:
                         pass
         return await handler(event, data)
@@ -271,7 +271,7 @@ def get_delivery_text(lang: str, product: dict, qty: int, support: str):
             f"{ce('heart')} <b>شكراً لثقتك في AIX Store!</b>"
         )
 
-# 🟢 كيبورد الكمية ديناميكي
+# 🟢 كيبورد الكمية
 def reply_quantity_keyboard(lang: str, is_single: bool = False):
     cancel_text = "❌ Cancel" if lang == "en" else "❌ إلغاء"
     if is_single:
@@ -298,7 +298,7 @@ def home_keyboard(lang: str):
 def back_home_keyboard(lang: str): 
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Main Menu" if lang == "en" else "القائمة الرئيسية", callback_data="home_main", icon_custom_emoji_id=EMOJI["back"])]])
 
-# 🟢 زرارين للمنتج (بالسعر الجديد 5.5)
+# 🟢 زرارين للمنتج (بالسعر 5.50)
 def product_buttons(lang: str, counts: dict):
     stock_count = counts.get('cdk_chatgpt', 0)
     chatgpt_icon_id = "5359726582447487916" 
@@ -335,7 +335,6 @@ def product_details_buttons(lang: str, product_key: str):
         [InlineKeyboardButton(text="Back to Shop" if lang == "en" else "رجوع للمتجر", callback_data="home_shop", icon_custom_emoji_id=EMOJI["back"])]
     ])
 
-# 🟢 أزرار الدفع
 def checkout_payment_buttons(lang: str, product_key: str, qty: int):
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Pay from Wallet" if lang=="en" else "الدفع من المحفظة", callback_data=f"pay_wallet_{product_key}_{qty}", icon_custom_emoji_id=EMOJI["wallet"])],
@@ -383,9 +382,10 @@ def home_text(lang: str, name: str):
         return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nأهلاً، <b>{esc(name)}</b> {ulink}\nنورت متجر اشتراكات الذكاء الاصطناعي المميزة.\n\n{ce('store')} <b>المتجر</b> — تصفح واشتري المنتجات\n{ce('wallet')} <b>إيداع</b> — إضافة رصيد للمحفظة\n{ce('support')} <b>الدعم</b> — مساعدة في أي وقت\n\n{chk} تفعيل سريع  {chk} دفع آمن  {chk} خدمة موثوقة"
 
-# 🟢 تم تعديل السعر لـ 5.50 هنا بشكل نهائي
+# 🟢 القائمة تم تعديل السعر لـ 5.50
 def product_list_text(lang: str):
-    if lang == "en": return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
+    if lang == "en":
+        return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
     return f"{ce('store')} <b>المنتجات المتاحة</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nسعر الجملة (10+): 4.00$ | المفرد: 5.50$\n\n{ce('arrows_down')} اختار المنتج من الأزرار:"
 
 async def animate_message(message: Message, lang: str):
@@ -543,7 +543,6 @@ async def add_stock(message: Message):
             except Exception: pass
     await message.answer(f"{ce('success')} <b>تمت إضافة {added_count} أكواد!</b>\nالمخزون الكلي: {total}\nتم إرسال إشعار لـ {sent_count} مستخدم.", parse_mode="HTML")
 
-# 🟢 معالجة المنتجين (الجملة والمفرد) وإظهار التفاصيل وحماية المخزون
 @dp.callback_query(F.data.in_(["product_cdk_chatgpt", "product_cdk_chatgpt_single"]))
 @dp.callback_query(F.data.startswith("back_to_prod_"))
 async def product_callback(call: CallbackQuery):
@@ -555,7 +554,7 @@ async def product_callback(call: CallbackQuery):
         product_key = call.data.replace("back_to_prod_", "")
         
     lang = await get_lang(call.from_user.id)
-    count = await get_stock_count("cdk_chatgpt") # المخزون واحد للمنتجين
+    count = await get_stock_count("cdk_chatgpt") 
     
     if count <= 0:
         msg = "Out of stock! Please check back later." if lang == "en" else "عذراً، هذا المنتج نفذ من المخزون حالياً!"
@@ -819,7 +818,7 @@ async def topup_bep20_callback(call: CallbackQuery):
 
     if lang == "en":
         text = (
-            f"{ce('usdt')} <b>USDT (BEP20 Deposit)</b>\n━━━━━━━━━━━━━━\n"
+            f"{ce('usdt')} <b>USDT (BEP20) Deposit</b>\n━━━━━━━━━━━━━━\n"
             f"{ce('price')} Amount to transfer: <b>{amount} {currency}</b>\n\n"
             f"{ce('loading')} Please transfer the amount to the following Address (BEP20):\n\n"
             f"<code>0x40ae850b17bb209142f70eb75fa6f3c3b0a757aa</code>\n\n"
@@ -1052,4 +1051,15 @@ async def handle_text_messages(message: Message):
             async def answer(self, *args, **kwargs): pass
         await referral_screen(FakeCall(message, message.from_user))
     elif text_value in ["🌐 Language", "🌐 اللغة"]:
-        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language
+        await message.answer("🌐 <b>Choose your language / اختر لغتك:</b>", reply_markup=language_keyboard(), parse_mode="HTML")
+    else:
+        await send_home(message)
+
+async def main():
+    await init_db()
+    await bot.set_my_commands([BotCommand(command="start", description="Start"), BotCommand(command="menu", description="Menu")])
+    await dp.start_polling(bot)
+
+if __name__ == "__main__": 
+    asyncio.run(main())
+
