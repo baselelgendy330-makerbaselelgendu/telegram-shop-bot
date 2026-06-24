@@ -134,9 +134,10 @@ deposit_waiting: dict[int, str] = {}
 buy_waiting: dict[int, str] = {}
 admin_reply_waiting: dict[int, int] = {} 
 
+# 🟢 وصف منتج الجملة (الأساسي)
 CDK_DESC_EN = (
     "✅ ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
-    "✅ Can activate any account owner. ⚠️ Applies to **Gmail ONLY**. (We are not responsible if you use other emails)\n"
+    "✅ Can activate any account owner. ⚠️ Applies to <b>Gmail ONLY</b>. (We are not responsible if you use other emails)\n"
     "✅ After ordering, you will receive a code\n✅ Account is on free plan\n"
     "✅ Recommended to use an account without an active subscription or a newly created account to register.\n"
     "✅ Web upgrade CDK: https://oaiteam.azx.us/\n"
@@ -154,7 +155,11 @@ CDK_DESC_AR = (
     "Step 2: Paste the CDK\nStep 3: Upgrade, guys."
 )
 
-# 🟢 المنتجات بالسعر الجديد
+# 🟢 وصف منتج المفرد (تمت إضافة ملاحظة بدون ضمان)
+CDK_SINGLE_DESC_EN = CDK_DESC_EN + "\n\n⚠️ <b>NOTE:</b> This product is sold with <b>NO WARRANTY</b>."
+CDK_SINGLE_DESC_AR = CDK_DESC_AR + "\n\n⚠️ <b>تنبيه هام:</b> هذا المنتج يباع <b>بدون ضمان (No Warranty)</b>."
+
+# 🟢 المنتجات
 PRODUCTS = {
     "cdk_chatgpt": {
         "stock_name": "CDK Activation Chatgpt 1Y",
@@ -173,8 +178,8 @@ PRODUCTS = {
         "image": CDK_IMAGE_FILE,
         "usd": 5.5,  # السعر 5.5
         "type": "stock",
-        "desc_en": CDK_DESC_EN,
-        "desc_ar": CDK_DESC_AR
+        "desc_en": CDK_SINGLE_DESC_EN,
+        "desc_ar": CDK_SINGLE_DESC_AR
     }
 }
 
@@ -1062,4 +1067,3 @@ async def main():
 
 if __name__ == "__main__": 
     asyncio.run(main())
-
