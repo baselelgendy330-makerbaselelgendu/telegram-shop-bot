@@ -23,9 +23,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 ADMIN_IDS = [6728595587, 7469507752]
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
-REFERRAL_REWARD = 0.10
 
-# 🔴 Linked Channel & Bot (Updated with the new group username)
+# 🔴 Linked Channel & Bot
 CHANNEL_USERNAME = "@CDKK12_CHATGPT" 
 BOT_USERNAME = "Shop_chatgptplus_bot"
 
@@ -75,12 +74,17 @@ EMOJI = {
     "user_link": "5440410042773824003",
     "usdt": "5879991085001871624",
     
-    # Custom Group Emojis
+    # Group Emojis (Sales)
     "buy_cart": "5312361253610475399",
     "sparkles_pay": "5409048419211682843",
     "diamond_arrow": "5416117059207572332",
     "secure_shield": "5251203410396458957",
-    "user_new": "5262742999678329061"
+    "user_new": "5262742999678329061",
+    
+    # Group Emojis (Referrals)
+    "ref_trend": "5244837092042750681",
+    "ref_check": "5206607081334906820",
+    "ref_hourglass": "5386367538735104399"
 }
 
 SAFE_EMOJI_FALLBACK = {
@@ -97,7 +101,10 @@ SAFE_EMOJI_FALLBACK = {
     "sparkles_pay": "💵",
     "diamond_arrow": "➡️",
     "secure_shield": "🛡",
-    "user_new": "👤"
+    "user_new": "👤",
+    "ref_trend": "📈",
+    "ref_check": "✔️",
+    "ref_hourglass": "⌛"
 }
 
 def ce(key: str, fallback: str = "") -> str:
@@ -191,20 +198,94 @@ async def init_db():
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ref INT DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usdt NUMERIC DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
+        # 🔴 حقل جديد لتأكيد الإحالة بعد الاشتراك الإجباري
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_counted BOOLEAN DEFAULT FALSE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS deposits (id SERIAL PRIMARY KEY, telegram_id BIGINT, method TEXT, amount NUMERIC, currency TEXT, product_key TEXT DEFAULT 'cdk_chatgpt', status TEXT DEFAULT 'pending', quantity INT DEFAULT 1, txid TEXT UNIQUE, created_at TIMESTAMP DEFAULT NOW());")
         await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS txid TEXT UNIQUE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS stock (id SERIAL PRIMARY KEY, product TEXT NOT NULL, item_data TEXT NOT NULL, sold BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW());")
 
-# 🟢 Security Middleware (Ban Check + Force Subscribe)
+async def ensure_user_by_id(user_id: int, username: str | None = None, first_name: str | None = None, referrer_id: int | None = None):
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow("SELECT * FROM users WHERE telegram_id=$1", user_id)
+        if not user:
+            if referrer_id and referrer_id != user_id:
+                ref_exists = await conn.fetchval("SELECT telegram_id FROM users WHERE telegram_id=$1", referrer_id)
+                if ref_exists:
+                    # يتم إضافته لكن بدون احتساب الإحالة بعد (ref_counted = FALSE)
+                    await conn.execute("INSERT INTO users(telegram_id, username, first_name, referred_by, ref_counted) VALUES($1, $2, $3, $4, FALSE)", user_id, username, first_name, referrer_id)
+                else:
+                    await conn.execute("INSERT INTO users(telegram_id, username, first_name) VALUES($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", user_id, username, first_name)
+            else:
+                await conn.execute("INSERT INTO users(telegram_id, username, first_name) VALUES($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", user_id, username, first_name)
+        else:
+            await conn.execute("UPDATE users SET username=$1, first_name=$2 WHERE telegram_id=$3", username, first_name, user_id)
+
+async def process_referral_reward(user_id: int):
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow("SELECT referred_by, ref_counted FROM users WHERE telegram_id=$1", user_id)
+        # لو المستخدم دخل عن طريق رابط ولسه الإحالة متأكدتش (عشان كان لسه مشترطتش في القناة)
+        if user and user["referred_by"] and not user["ref_counted"]:
+            referrer_id = user["referred_by"]
+            
+            # 1. تفعيل الإحالة
+            await conn.execute("UPDATE users SET ref_counted = TRUE WHERE telegram_id=$1", user_id)
+            # 2. إضافة إحالة نشطة لصاحب الرابط
+            await conn.execute("UPDATE users SET total_ref = total_ref + 1 WHERE telegram_id=$1", referrer_id)
+            
+            new_total_ref = await conn.fetchval("SELECT total_ref FROM users WHERE telegram_id=$1", referrer_id)
+            
+            # 3. احتساب المكافأة كل 10 إحالات نشطة
+            reward_earned = False
+            if new_total_ref > 0 and new_total_ref % 10 == 0:
+                await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", 0.50, referrer_id)
+                reward_earned = True
+                
+            more_to_earn = 10 - (new_total_ref % 10)
+            
+            if reward_earned:
+                try: await bot.send_message(referrer_id, f"{ce('share')} <b>Congratulations!</b>\n━━━━━━━━━━━━━━\nYou reached {new_total_ref} active referrals! <b>+0.50 USDT</b> has been added to your wallet.", parse_mode="HTML")
+                except Exception: pass
+            else:
+                try: await bot.send_message(referrer_id, f"{ce('share')} <b>New Active Referral!</b>\n━━━━━━━━━━━━━━\nSomeone joined via your link and subscribed! You now have {new_total_ref} active referrals. Invite {more_to_earn} more friends to get $0.50 USDT.", parse_mode="HTML")
+                except Exception: pass
+                
+            # 4. إشعار الجروب بالإحالة الجديدة (بدون ذكر اسم صاحب الرابط)
+            if CHANNEL_USERNAME != "@YourChannelUsername":
+                group_ref_msg = (
+                    f"{ce('ref_trend')} <b>New Active Referral!</b>\n\n"
+                    f"{ce('user_new')} <b>Referrer:</b> **\n"
+                    f"{ce('ref_check')} <b>Active Referrals:</b> {new_total_ref}\n"
+                    f"{ce('ref_hourglass')} <b>{more_to_earn} more to earn $0.50</b>"
+                )
+                try: await bot.send_message(chat_id=CHANNEL_USERNAME, text=group_ref_msg, parse_mode="HTML")
+                except Exception: pass
+
+# 🟢 Security Middleware (Ban Check + Force Subscribe + Reward Process)
 class SecurityMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
+        # Ignore group messages to avoid spam
+        chat = data.get("event_chat")
+        if chat and chat.type in ["group", "supergroup"]:
+            return
+
         user = data.get("event_from_user")
         
+        # 1. Capture referrer if it's a /start message BEFORE enforcing subscription
+        referrer_id = None
+        if isinstance(event, Message) and event.text and event.text.startswith("/start "):
+            args = event.text.split()
+            if len(args) > 1 and args[1].isdigit():
+                referrer_id = int(args[1])
+        
+        if user:
+            # Insert user with pending referral state if any
+            await ensure_user_by_id(user.id, user.username, user.first_name, referrer_id)
+            
         if isinstance(event, CallbackQuery) and event.data == "check_sub":
             return await handler(event, data)
             
         if user and user.id not in ADMIN_IDS:
-            # 1. Ban Check
+            # Ban Check
             if db_pool:
                 async with db_pool.acquire() as conn:
                     try:
@@ -214,7 +295,7 @@ class SecurityMiddleware(BaseMiddleware):
                     except Exception:
                         pass
                         
-            # 2. Force Subscribe Check
+            # Force Subscribe Check
             if CHANNEL_USERNAME != "@YourChannelUsername":
                 try:
                     member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user.id)
@@ -230,8 +311,14 @@ class SecurityMiddleware(BaseMiddleware):
                             await event.message.answer(text, reply_markup=kb, parse_mode="HTML")
                             await event.answer()
                         return
+                    else:
+                        # User is subscribed -> Process their pending referral (if any)
+                        await process_referral_reward(user.id)
                 except Exception:
                     pass 
+        else:
+            # Admins or no channel bypass -> process reward just in case
+            if user: await process_referral_reward(user.id)
                     
         return await handler(event, data)
 
@@ -247,6 +334,8 @@ async def check_sub_callback(call: CallbackQuery):
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=call.from_user.id)
         if member.status in ["member", "administrator", "creator"]:
+            # Process their pending referral immediately upon sub validation
+            await process_referral_reward(call.from_user.id)
             await call.message.delete()
             await call.answer("✅ Thank you for subscribing! You can now use the bot.", show_alert=True)
             await send_home(call.message)
@@ -254,24 +343,6 @@ async def check_sub_callback(call: CallbackQuery):
             await call.answer("❌ You haven't joined yet!", show_alert=True)
     except Exception:
         await call.answer("Error checking subscription.", show_alert=True)
-
-async def ensure_user_by_id(user_id: int, username: str | None = None, first_name: str | None = None, referrer_id: int | None = None):
-    async with db_pool.acquire() as conn:
-        user = await conn.fetchrow("SELECT * FROM users WHERE telegram_id=$1", user_id)
-        if not user:
-            if referrer_id and referrer_id != user_id:
-                ref_exists = await conn.fetchval("SELECT telegram_id FROM users WHERE telegram_id=$1", referrer_id)
-                if ref_exists:
-                    await conn.execute("INSERT INTO users(telegram_id, username, first_name, referred_by) VALUES($1, $2, $3, $4)", user_id, username, first_name, referrer_id)
-                    await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1, total_ref = total_ref + 1 WHERE telegram_id=$2", REFERRAL_REWARD, referrer_id)
-                    try: await bot.send_message(referrer_id, f"{ce('share')} <b>New Referral!</b>\n━━━━━━━━━━━━━━\nSomeone joined via your link! <b>+{REFERRAL_REWARD} USDT</b> has been added to your wallet.", parse_mode="HTML")
-                    except Exception: pass
-                else:
-                    await conn.execute("INSERT INTO users(telegram_id, username, first_name) VALUES($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", user_id, username, first_name)
-            if not referrer_id or referrer_id == user_id:
-                await conn.execute("INSERT INTO users(telegram_id, username, first_name) VALUES($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", user_id, username, first_name)
-        else:
-            await conn.execute("UPDATE users SET username=$1, first_name=$2 WHERE telegram_id=$3", username, first_name, user_id)
 
 async def get_user_stats(user_id: int):
     async with db_pool.acquire() as conn: return await conn.fetchrow("SELECT balance_usdt, total_ref FROM users WHERE telegram_id=$1", user_id)
@@ -417,7 +488,7 @@ async def start(message: Message):
     referrer_id = None
     args = message.text.split()
     if len(args) > 1 and args[1].isdigit(): referrer_id = int(args[1])
-    await ensure_user_by_id(message.from_user.id, message.from_user.username, message.from_user.first_name, referrer_id)
+    # The middleware already handled insertion, so we just send home if passed
     await send_home(message)
 
 @dp.message(Command("menu"))
@@ -515,7 +586,7 @@ async def send_to_user_command(message: Message):
 
 @dp.message(Command("broadcast"))
 async def broadcast_message(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     text_to_send = message.html_text.replace("/broadcast", "", 1).strip()
     if not text_to_send:
         await message.answer(f"{ce('error')} <b>Error! Please write the message after the command.</b>", parse_mode="HTML")
@@ -534,7 +605,6 @@ async def broadcast_message(message: Message):
                 pass
     await loading_msg.edit_text(f"{ce('success')} <b>Broadcast sent successfully to {sent_count} users!</b>", parse_mode="HTML")
 
-# 🟢 Dual Posting (Users + Group)
 @dp.message(Command("addstock"))
 async def add_stock(message: Message):
     if message.from_user.id not in ADMIN_IDS: return
@@ -690,7 +760,7 @@ async def pay_wallet_product(call: CallbackQuery):
 
         await call.message.answer(get_delivery_text(product, qty), parse_mode="HTML")
         
-        # 🟢 Send group notification for new purchase (No user details, just **)
+        # 🟢 Send group notification for new purchase
         if CHANNEL_USERNAME != "@YourChannelUsername":
             group_sale_msg = (
                 f"{ce('buy_cart')} <b>New Purchase!</b>\n\n"
@@ -904,11 +974,11 @@ async def referral_screen(call: CallbackQuery):
     ref_link = f"https://t.me/{bot_info.username}?start={call.from_user.id}"
     stats = await get_user_stats(call.from_user.id)
     total_ref = stats["total_ref"] if stats else 0
-    earnings = total_ref * REFERRAL_REWARD
+    earnings = (total_ref // 10) * 0.50
     
     text = (
         f"{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Invite your friends to use the bot and earn <b>{REFERRAL_REWARD} USDT</b> instantly inside your wallet for every successful invite!\n\n"
+        f"Invite <b>10 friends</b> to use the bot and earn <b>$0.50 USDT</b> instantly inside your wallet!\n\n"
         f"{ce('users_group')} Your Total Invites: <b>{total_ref} users</b>\n"
         f"{ce('money_fly')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n"
         f"{ce('link_pin')} <b>Your Exclusive Referral Link:</b>\n"
@@ -922,6 +992,7 @@ async def wallet_inline(call: CallbackQuery):
     stats = await get_user_stats(call.from_user.id)
     balance = stats["balance_usdt"] if stats else 0.0
     total_ref = stats["total_ref"] if stats else 0
+    earnings = (total_ref // 10) * 0.50
     msg = await animate_message(call.message)
     ulink = ce('user_link')
     
@@ -930,7 +1001,7 @@ async def wallet_inline(call: CallbackQuery):
         f"{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b> {ulink}\n"
         f"{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n"
         f"{ce('users_group')} Total Invited Users: <b>{total_ref} friends</b>\n"
-        f"{ce('money_fly')} Referral Earnings: <b>{format_amount(total_ref * REFERRAL_REWARD)} USDT</b>\n\n"
+        f"{ce('money_fly')} Referral Earnings: <b>{format_amount(earnings)} USDT</b>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."
     )
     await safe_edit_or_answer(msg, text, reply_markup=wallet_kb())
