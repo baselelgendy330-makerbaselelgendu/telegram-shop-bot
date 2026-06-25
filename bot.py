@@ -19,13 +19,14 @@ from aiogram.types import (
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-ADMIN_ID = 6728595587
+# 🔴 Multi-Admin List
+ADMIN_IDS = [6728595587, 7469507752]
 SUPPORT = "@VNV_I"
 BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
 REFERRAL_REWARD = 0.10
 
-# 🔴 Linked Channel & Bot
-CHANNEL_USERNAME = "@chatgpt_k12" 
+# 🔴 Linked Channel & Bot (Updated with the new group username)
+CHANNEL_USERNAME = "@CDKK12_CHATGPT" 
 BOT_USERNAME = "Shop_chatgptplus_bot"
 
 # Cryptomus Keys
@@ -74,7 +75,7 @@ EMOJI = {
     "user_link": "5440410042773824003",
     "usdt": "5879991085001871624",
     
-    # 🟢 الإيموجي الجديدة للجروب
+    # Custom Group Emojis
     "buy_cart": "5312361253610475399",
     "sparkles_pay": "5409048419211682843",
     "diamond_arrow": "5416117059207572332",
@@ -92,7 +93,6 @@ SAFE_EMOJI_FALLBACK = {
     "user_link": "🔗",
     "usdt": "💵",
     
-    # 🟢 بدائل الإيموجي الجديدة
     "buy_cart": "🛒",
     "sparkles_pay": "💵",
     "diamond_arrow": "➡️",
@@ -203,7 +203,7 @@ class SecurityMiddleware(BaseMiddleware):
         if isinstance(event, CallbackQuery) and event.data == "check_sub":
             return await handler(event, data)
             
-        if user and user.id != ADMIN_ID:
+        if user and user.id not in ADMIN_IDS:
             # 1. Ban Check
             if db_pool:
                 async with db_pool.acquire() as conn:
@@ -425,7 +425,7 @@ async def menu_command(message: Message): await start(message)
 
 @dp.message(Command("ban"))
 async def ban_user_command(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     parts = message.text.split()
     if len(parts) < 2:
         await message.answer(f"{ce('error')} <b>Correct usage:</b>\n<code>/ban user_id</code>", parse_mode="HTML")
@@ -440,7 +440,7 @@ async def ban_user_command(message: Message):
 
 @dp.message(Command("unban"))
 async def unban_user_command(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     parts = message.text.split()
     if len(parts) < 2:
         await message.answer(f"{ce('error')} <b>Correct usage:</b>\n<code>/unban user_id</code>", parse_mode="HTML")
@@ -455,7 +455,7 @@ async def unban_user_command(message: Message):
 
 @dp.message(Command("pull"))
 async def pull_stock_command(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     parts = message.text.split()
     if len(parts) < 2 or not parts[1].isdigit():
         await message.answer(f"{ce('error')} <b>Correct usage:</b>\n<code>/pull 10</code> (to pull 10 codes)", parse_mode="HTML")
@@ -479,7 +479,7 @@ async def pull_stock_command(message: Message):
 
 @dp.message(Command("addbalance"))
 async def add_balance_command(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     parts = message.text.split()
     if len(parts) < 3:
         await message.answer(f"{ce('error')} <b>Correct usage:</b>\n<code>/addbalance user_id amount</code>", parse_mode="HTML")
@@ -498,7 +498,7 @@ async def add_balance_command(message: Message):
 
 @dp.message(Command("send"))
 async def send_to_user_command(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     parts = message.html_text.split(" ", 2)
     if len(parts) < 3:
         await message.answer(f"{ce('error')} <b>Error! Correct usage:</b>\n<code>/send user_id your_message_here</code>", parse_mode="HTML")
@@ -534,9 +534,10 @@ async def broadcast_message(message: Message):
                 pass
     await loading_msg.edit_text(f"{ce('success')} <b>Broadcast sent successfully to {sent_count} users!</b>", parse_mode="HTML")
 
+# 🟢 Dual Posting (Users + Group)
 @dp.message(Command("addstock"))
 async def add_stock(message: Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id not in ADMIN_IDS: return
     lines = [x.strip() for x in message.text.replace("/addstock", "").strip().splitlines() if x.strip()]
     if len(lines) < 2: 
         await message.answer(f"{ce('error')} <b>Error! Use this format (in a single message):</b>\n\n<code>/addstock CDK</code>\n<code>Code_1</code>", parse_mode="HTML")
@@ -703,14 +704,16 @@ async def pay_wallet_product(call: CallbackQuery):
             except Exception:
                 pass
                 
-        # Notify Admin with codes
+        # Notify Admins with codes
         codes_str = "\n".join([f"<code>{i['item_data']}</code>" for i in items])
         admin_msg = f"🛒 <b>Successful purchase from Wallet!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {product['title']}\nQuantity: {qty}\nDeducted Amount: {total_price} USDT\n\n<b>🔑 Codes pulled from stock:</b>\n{codes_str}"
         
         admin_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✉️ Send Code to Customer", callback_data=f"sendprod_{user_id}")]
         ])
-        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+        for admin in ADMIN_IDS:
+            try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+            except Exception: pass
 
 @dp.callback_query(F.data.startswith("pay_binmanual_"))
 async def pay_binmanual_product(call: CallbackQuery):
@@ -740,7 +743,10 @@ async def pay_binmanual_product(call: CallbackQuery):
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✉️ Message / Send Code", callback_data=f"sendprod_{user_id}")]
     ])
-    await bot.send_message(ADMIN_ID, f"🟡 <b>Manual Binance Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>", parse_mode="HTML", reply_markup=admin_kb)
+    admin_msg = f"🟡 <b>Manual Binance Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
+    for admin in ADMIN_IDS:
+        try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+        except Exception: pass
 
 @dp.callback_query(F.data.startswith("pay_bep20_"))
 async def pay_bep20_product(call: CallbackQuery):
@@ -771,7 +777,10 @@ async def pay_bep20_product(call: CallbackQuery):
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✉️ Message / Send Code", callback_data=f"sendprod_{user_id}")]
     ])
-    await bot.send_message(ADMIN_ID, f"🟡 <b>USDT BEP20 Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>", parse_mode="HTML", reply_markup=admin_kb)
+    admin_msg = f"🟡 <b>USDT BEP20 Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
+    for admin in ADMIN_IDS:
+        try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+        except Exception: pass
 
 @dp.callback_query(F.data == "deposit_currency_USDT")
 async def deposit_currency_chosen(call: CallbackQuery):
@@ -821,7 +830,10 @@ async def topup_binmanual_callback(call: CallbackQuery):
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✉️ Message Customer", callback_data=f"sendprod_{user_id}")]
     ])
-    await bot.send_message(ADMIN_ID, f"🟡 <b>Manual Top-up Request (Binance)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>", parse_mode="HTML", reply_markup=admin_kb)
+    admin_msg = f"🟡 <b>Manual Top-up Request (Binance)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
+    for admin in ADMIN_IDS:
+        try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+        except Exception: pass
 
 @dp.callback_query(F.data.startswith("topup_bep20_"))
 async def topup_bep20_callback(call: CallbackQuery):
@@ -850,15 +862,18 @@ async def topup_bep20_callback(call: CallbackQuery):
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✉️ Message Customer", callback_data=f"sendprod_{user_id}")]
     ])
-    await bot.send_message(ADMIN_ID, f"🟡 <b>Manual Top-up Request (USDT BEP20)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>", parse_mode="HTML", reply_markup=admin_kb)
+    admin_msg = f"🟡 <b>Manual Top-up Request (USDT BEP20)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
+    for admin in ADMIN_IDS:
+        try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
+        except Exception: pass
 
 @dp.callback_query(F.data.startswith("sendprod_"))
 async def admin_send_product_prompt(call: CallbackQuery):
-    if call.from_user.id != ADMIN_ID:
+    if call.from_user.id not in ADMIN_IDS:
         return await call.answer("Unauthorized!", show_alert=True)
         
     target_user = int(call.data.split("_")[1])
-    admin_reply_waiting[ADMIN_ID] = target_user
+    admin_reply_waiting[call.from_user.id] = target_user
     
     await call.message.reply(f"{ce('pencil')} <b>Alright, please send the code or message now to be forwarded to the customer (ID: <code>{target_user}</code>):</b>\n<i>(You can send text, photo, or file)\nTo cancel, send: ❌ Cancel</i>", parse_mode="HTML")
     await call.answer()
@@ -939,8 +954,8 @@ async def refresh_products_callback(call: CallbackQuery):
 @dp.message(F.photo | F.document)
 async def handle_admin_media(message: Message):
     user_id = message.from_user.id
-    if user_id == ADMIN_ID and user_id in admin_reply_waiting:
-        target_id = admin_reply_waiting.pop(ADMIN_ID)
+    if user_id in ADMIN_IDS and user_id in admin_reply_waiting:
+        target_id = admin_reply_waiting.pop(user_id)
         try:
             original_caption = message.html_text or ""
             new_caption = f"🎁 <b>Your order is ready!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{original_caption}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
@@ -958,8 +973,8 @@ async def handle_text_messages(message: Message):
     if text_value in ["❌ Cancel", "Cancel"]:
         buy_waiting.pop(user_id, None)
         deposit_waiting.pop(user_id, None)
-        if user_id == ADMIN_ID:
-            admin_reply_waiting.pop(ADMIN_ID, None)
+        if user_id in ADMIN_IDS:
+            admin_reply_waiting.pop(user_id, None)
         cancel_msg = "<b>Cancelled. Returning to main menu...</b>"
         await message.answer(f"{ce('error')} {cancel_msg}", reply_markup=main_reply_keyboard(), parse_mode="HTML")
         await send_home(message)
@@ -967,8 +982,8 @@ async def handle_text_messages(message: Message):
 
     if text_value.startswith("/"): return
     
-    if user_id == ADMIN_ID and user_id in admin_reply_waiting:
-        target_id = admin_reply_waiting.pop(ADMIN_ID)
+    if user_id in ADMIN_IDS and user_id in admin_reply_waiting:
+        target_id = admin_reply_waiting.pop(user_id)
         try:
             user_msg = f"🎁 <b>Your order is ready!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{message.html_text}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
             await bot.send_message(target_id, user_msg, parse_mode="HTML")
@@ -1009,4 +1024,3 @@ async def main():
 
 if __name__ == "__main__": 
     asyncio.run(main())
-
