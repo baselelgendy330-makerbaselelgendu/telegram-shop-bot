@@ -1,4 +1,4 @@
-Import asyncio
+import asyncio
 import os
 import html
 import re
@@ -19,12 +19,12 @@ from aiogram.types import (
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-# 🔴 Multi-Admin List
+# ðŸ”´ Multi-Admin List
 ADMIN_IDS = [6728595587, 7469507752]
 SUPPORT = "@VNV_I"
-BOT_NAME = "✦ 𝗔𝗜𝗫 𝗦𝘁𝗼𝗿𝗲 ✦"
+BOT_NAME = "âœ¦ ð—”ð—œð—« ð—¦ð˜ð—¼ð—¿ð—² âœ¦"
 
-# 🔴 Linked Channel & Bot
+# ðŸ”´ Linked Channel & Bot
 CHANNEL_USERNAME = "@CDKK12_CHATGPT" 
 BOT_USERNAME = "Shop_chatgptplus_bot"
 
@@ -88,28 +88,28 @@ EMOJI = {
 }
 
 SAFE_EMOJI_FALLBACK = {
-    "cart": "🛒", "back": "🔙", "wallet": "💰", "binance": "🟡", "share": "🎁", "support": "🎧", 
-    "checkout": "💳", "quantity": "📦", "price": "💵", "pencil": "✏️", "loading": "⏳",
-    "user": "👤", "camera": "📸", "success": "✅", "error": "❌", "chatgpt": "🤖", "refresh": "🔄", 
-    "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "➡️",
-    "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨",
-    "check_anim": "✅",
-    "user_link": "🔗",
-    "usdt": "💵",
+    "cart": "ðŸ›’", "back": "ðŸ”™", "wallet": "ðŸ’°", "binance": "ðŸŸ¡", "share": "ðŸŽ", "support": "ðŸŽ§", 
+    "checkout": "ðŸ’³", "quantity": "ðŸ“¦", "price": "ðŸ’µ", "pencil": "âœï¸", "loading": "â³",
+    "user": "ðŸ‘¤", "camera": "ðŸ“¸", "success": "âœ…", "error": "âŒ", "chatgpt": "ðŸ¤–", "refresh": "ðŸ”„", 
+    "store": "ðŸ›", "stock": "âž•", "sold": "â†—ï¸", "support_msg": "ðŸ’¬", "telegram": "âš¡", "arrow_right": "âž¡ï¸",
+    "users_group": "ðŸ‘¥", "money_fly": "ðŸ’¸", "link_pin": "ðŸ“‡", "quotes": "ðŸ—£ï¸", "search": "ðŸ”", "hourglass": "âŒ›", "announcement": "ðŸš¨",
+    "check_anim": "âœ…",
+    "user_link": "ðŸ”—",
+    "usdt": "ðŸ’µ",
     
-    "buy_cart": "🛒",
-    "sparkles_pay": "💵",
-    "diamond_arrow": "➡️",
-    "secure_shield": "🛡",
-    "user_new": "👤",
-    "ref_trend": "📈",
-    "ref_check": "✔️",
-    "ref_hourglass": "⌛"
+    "buy_cart": "ðŸ›’",
+    "sparkles_pay": "ðŸ’µ",
+    "diamond_arrow": "âž¡ï¸",
+    "secure_shield": "ðŸ›¡",
+    "user_new": "ðŸ‘¤",
+    "ref_trend": "ðŸ“ˆ",
+    "ref_check": "âœ”ï¸",
+    "ref_hourglass": "âŒ›"
 }
 
 def ce(key: str, fallback: str = "") -> str:
     emoji_id = EMOJI.get(key)
-    safe_fallback = SAFE_EMOJI_FALLBACK.get(key, fallback or "✅")
+    safe_fallback = SAFE_EMOJI_FALLBACK.get(key, fallback or "âœ…")
     if not emoji_id or not str(emoji_id).isdigit(): return safe_fallback
     return f'<tg-emoji emoji-id="{emoji_id}">{safe_fallback}</tg-emoji>'
 
@@ -159,16 +159,16 @@ buy_waiting: dict[int, str] = {}
 admin_reply_waiting: dict[int, int] = {} 
 
 CDK_DESC_EN = (
-    "✅ ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
-    "✅ Can activate any account owner. ⚠️ Applies to <b>Gmail ONLY</b>. (We are not responsible if you use other emails)\n"
-    "✅ After ordering, you will receive a code\n✅ Account is on free plan\n"
-    "✅ Recommended to use an account without an active subscription or a newly created account to register.\n"
-    "✅ Web upgrade CDK: https://oaiteam.azx.us/\n"
+    "âœ… ChatGPT K12 Edu 2-year package.\nFull of latest languages like Plus\n"
+    "âœ… Can activate any account owner. âš ï¸ Applies to <b>Gmail ONLY</b>. (We are not responsible if you use other emails)\n"
+    "âœ… After ordering, you will receive a code\nâœ… Account is on free plan\n"
+    "âœ… Recommended to use an account without an active subscription or a newly created account to register.\n"
+    "âœ… Web upgrade CDK: https://oaiteam.azx.us/\n"
     "Step 1: Get https://chatgpt.com/api/auth/session Paste into JSon\n"
     "Step 2: Paste the CDK\nStep 3: Upgrade, guys."
 )
 
-CDK_SINGLE_DESC_EN = CDK_DESC_EN + "\n\n⚠️ <b>NOTE:</b> This product is sold with <b>NO WARRANTY</b>."
+CDK_SINGLE_DESC_EN = CDK_DESC_EN + "\n\nâš ï¸ <b>NOTE:</b> This product is sold with <b>NO WARRANTY</b>."
 
 PRODUCTS = {
     "cdk_chatgpt": {
@@ -198,7 +198,7 @@ async def init_db():
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ref INT DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usdt NUMERIC DEFAULT 0;")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
-        # 🔴 حقل جديد لتأكيد الإحالة بعد الاشتراك الإجباري
+        # ðŸ”´ Ø­Ù‚Ù„ Ø¬Ø¯ÙŠØ¯ Ù„ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø¨Ø¹Ø¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„Ø¥Ø¬Ø¨Ø§Ø±ÙŠ
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_counted BOOLEAN DEFAULT FALSE;")
         await conn.execute("CREATE TABLE IF NOT EXISTS deposits (id SERIAL PRIMARY KEY, telegram_id BIGINT, method TEXT, amount NUMERIC, currency TEXT, product_key TEXT DEFAULT 'cdk_chatgpt', status TEXT DEFAULT 'pending', quantity INT DEFAULT 1, txid TEXT UNIQUE, created_at TIMESTAMP DEFAULT NOW());")
         await conn.execute("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS txid TEXT UNIQUE;")
@@ -211,7 +211,7 @@ async def ensure_user_by_id(user_id: int, username: str | None = None, first_nam
             if referrer_id and referrer_id != user_id:
                 ref_exists = await conn.fetchval("SELECT telegram_id FROM users WHERE telegram_id=$1", referrer_id)
                 if ref_exists:
-                    # يتم إضافته لكن بدون احتساب الإحالة بعد (ref_counted = FALSE)
+                    # ÙŠØªÙ… Ø¥Ø¶Ø§ÙØªÙ‡ Ù„ÙƒÙ† Ø¨Ø¯ÙˆÙ† Ø§Ø­ØªØ³Ø§Ø¨ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø¨Ø¹Ø¯ (ref_counted = FALSE)
                     await conn.execute("INSERT INTO users(telegram_id, username, first_name, referred_by, ref_counted) VALUES($1, $2, $3, $4, FALSE)", user_id, username, first_name, referrer_id)
                 else:
                     await conn.execute("INSERT INTO users(telegram_id, username, first_name) VALUES($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", user_id, username, first_name)
@@ -223,18 +223,18 @@ async def ensure_user_by_id(user_id: int, username: str | None = None, first_nam
 async def process_referral_reward(user_id: int):
     async with db_pool.acquire() as conn:
         user = await conn.fetchrow("SELECT referred_by, ref_counted FROM users WHERE telegram_id=$1", user_id)
-        # لو المستخدم دخل عن طريق رابط ولسه الإحالة متأكدتش (عشان كان لسه مشترطتش في القناة)
+        # Ù„Ùˆ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¯Ø®Ù„ Ø¹Ù† Ø·Ø±ÙŠÙ‚ Ø±Ø§Ø¨Ø· ÙˆÙ„Ø³Ù‡ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ù…ØªØ£ÙƒØ¯ØªØ´ (Ø¹Ø´Ø§Ù† ÙƒØ§Ù† Ù„Ø³Ù‡ Ù…Ø´ØªØ±Ø·ØªØ´ ÙÙŠ Ø§Ù„Ù‚Ù†Ø§Ø©)
         if user and user["referred_by"] and not user["ref_counted"]:
             referrer_id = user["referred_by"]
             
-            # 1. تفعيل الإحالة
+            # 1. ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¥Ø­Ø§Ù„Ø©
             await conn.execute("UPDATE users SET ref_counted = TRUE WHERE telegram_id=$1", user_id)
-            # 2. إضافة إحالة نشطة لصاحب الرابط
+            # 2. Ø¥Ø¶Ø§ÙØ© Ø¥Ø­Ø§Ù„Ø© Ù†Ø´Ø·Ø© Ù„ØµØ§Ø­Ø¨ Ø§Ù„Ø±Ø§Ø¨Ø·
             await conn.execute("UPDATE users SET total_ref = total_ref + 1 WHERE telegram_id=$1", referrer_id)
             
             new_total_ref = await conn.fetchval("SELECT total_ref FROM users WHERE telegram_id=$1", referrer_id)
             
-            # 3. احتساب المكافأة كل 10 إحالات نشطة
+            # 3. Ø§Ø­ØªØ³Ø§Ø¨ Ø§Ù„Ù…ÙƒØ§ÙØ£Ø© ÙƒÙ„ 10 Ø¥Ø­Ø§Ù„Ø§Øª Ù†Ø´Ø·Ø©
             reward_earned = False
             if new_total_ref > 0 and new_total_ref % 10 == 0:
                 await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", 0.50, referrer_id)
@@ -243,13 +243,13 @@ async def process_referral_reward(user_id: int):
             more_to_earn = 10 - (new_total_ref % 10)
             
             if reward_earned:
-                try: await bot.send_message(referrer_id, f"{ce('share')} <b>Congratulations!</b>\n━━━━━━━━━━━━━━\nYou reached {new_total_ref} active referrals! <b>+0.50 USDT</b> has been added to your wallet.", parse_mode="HTML")
+                try: await bot.send_message(referrer_id, f"{ce('share')} <b>Congratulations!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\nYou reached {new_total_ref} active referrals! <b>+0.50 USDT</b> has been added to your wallet.", parse_mode="HTML")
                 except Exception: pass
             else:
-                try: await bot.send_message(referrer_id, f"{ce('share')} <b>New Active Referral!</b>\n━━━━━━━━━━━━━━\nSomeone joined via your link and subscribed! You now have {new_total_ref} active referrals. Invite {more_to_earn} more friends to get $0.50 USDT.", parse_mode="HTML")
+                try: await bot.send_message(referrer_id, f"{ce('share')} <b>New Active Referral!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\nSomeone joined via your link and subscribed! You now have {new_total_ref} active referrals. Invite {more_to_earn} more friends to get $0.50 USDT.", parse_mode="HTML")
                 except Exception: pass
                 
-            # 4. إشعار الجروب بالإحالة الجديدة (بدون ذكر اسم صاحب الرابط)
+            # 4. Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„Ø¬Ø±ÙˆØ¨ Ø¨Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© (Ø¨Ø¯ÙˆÙ† Ø°ÙƒØ± Ø§Ø³Ù… ØµØ§Ø­Ø¨ Ø§Ù„Ø±Ø§Ø¨Ø·)
             if CHANNEL_USERNAME != "@YourChannelUsername":
                 group_ref_msg = (
                     f"{ce('ref_trend')} <b>New Active Referral!</b>\n\n"
@@ -260,7 +260,7 @@ async def process_referral_reward(user_id: int):
                 try: await bot.send_message(chat_id=CHANNEL_USERNAME, text=group_ref_msg, parse_mode="HTML")
                 except Exception: pass
 
-# 🟢 Security Middleware (Ban Check + Force Subscribe + Reward Process)
+# ðŸŸ¢ Security Middleware (Ban Check + Force Subscribe + Reward Process)
 class SecurityMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
         # Ignore group messages to avoid spam
@@ -300,10 +300,10 @@ class SecurityMiddleware(BaseMiddleware):
                 try:
                     member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user.id)
                     if member.status not in ["member", "administrator", "creator"]:
-                        text = f"{ce('error')} <b>Access Denied!</b>\n━━━━━━━━━━━━━━━━━━━━━\nYou must join our group to use this bot.\n\n{ce('arrow_right')} Please join {CHANNEL_USERNAME} first."
+                        text = f"{ce('error')} <b>Access Denied!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nYou must join our group to use this bot.\n\n{ce('arrow_right')} Please join {CHANNEL_USERNAME} first."
                         kb = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(text="📢 Join Group", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
-                            [InlineKeyboardButton(text="🔄 Check Subscription", callback_data="check_sub")]
+                            [InlineKeyboardButton(text="ðŸ“¢ Join Group", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
+                            [InlineKeyboardButton(text="ðŸ”„ Check Subscription", callback_data="check_sub")]
                         ])
                         if isinstance(event, Message):
                             await event.answer(text, reply_markup=kb, parse_mode="HTML")
@@ -337,10 +337,10 @@ async def check_sub_callback(call: CallbackQuery):
             # Process their pending referral immediately upon sub validation
             await process_referral_reward(call.from_user.id)
             await call.message.delete()
-            await call.answer("✅ Thank you for subscribing! You can now use the bot.", show_alert=True)
+            await call.answer("âœ… Thank you for subscribing! You can now use the bot.", show_alert=True)
             await send_home(call.message)
         else:
-            await call.answer("❌ You haven't joined yet!", show_alert=True)
+            await call.answer("âŒ You haven't joined yet!", show_alert=True)
     except Exception:
         await call.answer("Error checking subscription.", show_alert=True)
 
@@ -370,15 +370,15 @@ async def handle_shop_action(target_message: Message):
 
 def get_delivery_text(product: dict, qty: int):
     return (
-        f"{ce('success')} <b>Payment Confirmed Successfully!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{ce('success')} <b>Payment Confirmed Successfully!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('vip')} <b>{product['title']}</b>\n\n{ce('quantity')} <b>Quantity:</b> {qty}\n\n"
         f"{ce('announcement')} <b>Delivery Status:</b>\n"
-        f"Please wait... The admin has been notified and will send your codes directly here in this chat shortly!\n\n━━━━━━━━━━━━━━━━━━━━━\n"
+        f"Please wait... The admin has been notified and will send your codes directly here in this chat shortly!\n\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('heart')} <b>Thank you for trusting AIX Store!</b>"
     )
 
 def reply_quantity_keyboard(is_single: bool = False):
-    cancel_text = "❌ Cancel"
+    cancel_text = "âŒ Cancel"
     if is_single:
         return ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(text="1"), KeyboardButton(text="2"), KeyboardButton(text="3")],
@@ -441,8 +441,8 @@ def deposit_currency_buttons():
 
 def deposit_amount_payment_buttons(amount: float, currency: str): 
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"Binance Pay • {format_amount(amount)} USDT", callback_data=f"topup_binmanual_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
-        [InlineKeyboardButton(text=f"USDT (BEP20) • {format_amount(amount)} USDT", callback_data=f"topup_bep20_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["usdt"])], 
+        [InlineKeyboardButton(text=f"Binance Pay â€¢ {format_amount(amount)} USDT", callback_data=f"topup_binmanual_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["binance"])], 
+        [InlineKeyboardButton(text=f"USDT (BEP20) â€¢ {format_amount(amount)} USDT", callback_data=f"topup_bep20_{format_amount(amount)}_{currency}", icon_custom_emoji_id=EMOJI["usdt"])], 
         [InlineKeyboardButton(text="Change Amount", callback_data="deposit_currency_USDT", icon_custom_emoji_id=EMOJI["pencil"])]
     ])
 
@@ -454,17 +454,17 @@ def wallet_kb():
 
 def main_reply_keyboard():
     return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="🛍 Products"), KeyboardButton(text="🎧 Support")], 
-        [KeyboardButton(text="💰 Wallet"), KeyboardButton(text="🎁 Share & Earn")]
+        [KeyboardButton(text="ðŸ› Products"), KeyboardButton(text="ðŸŽ§ Support")], 
+        [KeyboardButton(text="ðŸ’° Wallet"), KeyboardButton(text="ðŸŽ Share & Earn")]
     ], resize_keyboard=True, is_persistent=True)
 
 def home_text(name: str):
     chk = ce('check_anim')
     ulink = ce('user_link')
-    return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
+    return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> â€” Browse & buy products\n{ce('wallet')} <b>Deposit</b> â€” Add funds to your wallet\n{ce('support')} <b>Support</b> â€” Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
 
 def product_list_text():
-    return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
+    return f"{ce('store')} <b>Available Products</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
 
 async def animate_message(message: Message):
     text = f"{ce('loading')} <b>Loading...</b>"
@@ -562,7 +562,7 @@ async def add_balance_command(message: Message):
             await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", amount, target_id)
         await message.answer(f"{ce('success')} <b>Successfully added ${amount} to the wallet of user (ID: {target_id})!</b>", parse_mode="HTML")
         
-        user_msg = f"{ce('wallet')} <b>Balance Added!</b>\n━━━━━━━━━━━━━━━━━━━━━\n<b>{amount} USDT</b> has been added to your wallet by the admin.\nYou can now browse products and purchase easily."
+        user_msg = f"{ce('wallet')} <b>Balance Added!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n<b>{amount} USDT</b> has been added to your wallet by the admin.\nYou can now browse products and purchase easily."
         await bot.send_message(target_id, user_msg, parse_mode="HTML")
     except Exception as e:
         await message.answer(f"{ce('error')} <b>Error:</b> {e}", parse_mode="HTML")
@@ -577,7 +577,7 @@ async def send_to_user_command(message: Message):
     try:
         target_id = int(parts[1])
         text_to_send = parts[2]
-        user_msg = f"{ce('support_msg')} <b>Message from Admin:</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{text_to_send}"
+        user_msg = f"{ce('support_msg')} <b>Message from Admin:</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n{text_to_send}"
         
         await bot.send_message(target_id, user_msg, parse_mode="HTML")
         await message.answer(f"{ce('success')} <b>Message sent to the customer successfully!</b>", parse_mode="HTML")
@@ -627,7 +627,7 @@ async def add_stock(message: Message):
         product_info = PRODUCTS[product_key]
         
         # 1. Broadcast to users
-        broadcast_text = f"{ce('announcement')} <b>Stock Alert!</b>\n━━━━━━━━━━━━━━━━━━━━━\n🔥 New keys have been added for: <b>{product_info['title']}</b>\n\n{ce('quantity')} Available Stock: <b>{total}</b>\n⚡ Hurry up and grab yours now before it runs out!"
+        broadcast_text = f"{ce('announcement')} <b>Stock Alert!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ”¥ New keys have been added for: <b>{product_info['title']}</b>\n\n{ce('quantity')} Available Stock: <b>{total}</b>\nâš¡ Hurry up and grab yours now before it runs out!"
         users = await conn.fetch("SELECT telegram_id FROM users")
         sent_count = 0
         for u in users:
@@ -640,11 +640,11 @@ async def add_stock(message: Message):
         if CHANNEL_USERNAME != "@YourChannelUsername":
             group_text = (
                 f"{ce('announcement')} <b>STOCK ALERT!</b>\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🔥 New keys have been added for: <b>{product_info['title']}</b>\n\n"
+                f"â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
+                f"ðŸ”¥ New keys have been added for: <b>{product_info['title']}</b>\n\n"
                 f"{ce('quantity')} Available Stock: <b>{total}</b>\n"
-                f"⚡ Hurry up and grab yours now before it runs out!\n"
-                f"━━━━━━━━━━━━━━━━━━━━━"
+                f"âš¡ Hurry up and grab yours now before it runs out!\n"
+                f"â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
             )
             try:
                 await bot.send_message(
@@ -652,7 +652,7 @@ async def add_stock(message: Message):
                     text=group_text,
                     parse_mode="HTML",
                     reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="🛒 Buy Now", url=f"https://t.me/{BOT_USERNAME}?start=shop")]
+                        [InlineKeyboardButton(text="ðŸ›’ Buy Now", url=f"https://t.me/{BOT_USERNAME}?start=shop")]
                     ])
                 )
             except Exception as e:
@@ -678,10 +678,10 @@ async def product_callback(call: CallbackQuery):
         
     sold_count = await get_total_sold(PRODUCTS["cdk_chatgpt"]["stock_name"])
     product = PRODUCTS[product_key]
-    desc = product["desc"].replace("✅", ce("success"))
+    desc = product["desc"].replace("âœ…", ce("success"))
     
     caption = (
-        f"{ce('chatgpt')} <b>{product['title']}</b>\n━━━━━━━━━━━━━━\n"
+        f"{ce('chatgpt')} <b>{product['title']}</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('price')} Price: <b>${float(product['usd']):.2f}</b>\n"
         f"{ce('stock')} Stock: <b>{count} accounts</b>\n"
         f"{ce('sold')} Sold: <b>{sold_count} accounts</b>\n\n"
@@ -713,7 +713,7 @@ async def receive_custom_quantity(message: Message):
     try:
         qty = int(message.text.strip())
         if qty < min_qty:
-            error_text = f"{ce('error')} <b>Order Cannot Be Processed!</b>\n━━━━━━━━━━━━━━━━━━\n<blockquote>{ce('announcement')} <b>The minimum order quantity is {min_qty}.</b>\nPlease enter {min_qty} or more to continue.</blockquote>"
+            error_text = f"{ce('error')} <b>Order Cannot Be Processed!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n<blockquote>{ce('announcement')} <b>The minimum order quantity is {min_qty}.</b>\nPlease enter {min_qty} or more to continue.</blockquote>"
             await message.answer(error_text, parse_mode="HTML")
             return
     except ValueError:
@@ -726,7 +726,7 @@ async def receive_custom_quantity(message: Message):
 async def proceed_to_checkout(call_obj, product_key: str, qty: int):
     product = PRODUCTS[product_key]
     total_price = float(product["usd"]) * qty
-    text = f"{ce('checkout')} <b>Checkout</b>\n━━━━━━━━━━━━━━\n\n{ce('quantity')} Quantity: <b>{qty}</b>\n{ce('price')} Total Price: <b>${total_price:.2f}</b>\n\nChoose payment method:"
+    text = f"{ce('checkout')} <b>Checkout</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n{ce('quantity')} Quantity: <b>{qty}</b>\n{ce('price')} Total Price: <b>${total_price:.2f}</b>\n\nChoose payment method:"
     if isinstance(call_obj, Message): await call_obj.answer(text, reply_markup=checkout_payment_buttons(product_key, qty), parse_mode="HTML")
     else: await safe_edit_or_answer(call_obj.message, text, reply_markup=checkout_payment_buttons(product_key, qty))
 
@@ -760,7 +760,7 @@ async def pay_wallet_product(call: CallbackQuery):
 
         await call.message.answer(get_delivery_text(product, qty), parse_mode="HTML")
         
-        # 🟢 Send group notification for new purchase
+        # ðŸŸ¢ Send group notification for new purchase
         if CHANNEL_USERNAME != "@YourChannelUsername":
             group_sale_msg = (
                 f"{ce('buy_cart')} <b>New Purchase!</b>\n\n"
@@ -776,10 +776,10 @@ async def pay_wallet_product(call: CallbackQuery):
                 
         # Notify Admins with codes
         codes_str = "\n".join([f"<code>{i['item_data']}</code>" for i in items])
-        admin_msg = f"🛒 <b>Successful purchase from Wallet!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {product['title']}\nQuantity: {qty}\nDeducted Amount: {total_price} USDT\n\n<b>🔑 Codes pulled from stock:</b>\n{codes_str}"
+        admin_msg = f"ðŸ›’ <b>Successful purchase from Wallet!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {product['title']}\nQuantity: {qty}\nDeducted Amount: {total_price} USDT\n\n<b>ðŸ”‘ Codes pulled from stock:</b>\n{codes_str}"
         
         admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✉️ Send Code to Customer", callback_data=f"sendprod_{user_id}")]
+            [InlineKeyboardButton(text="âœ‰ï¸ Send Code to Customer", callback_data=f"sendprod_{user_id}")]
         ])
         for admin in ADMIN_IDS:
             try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
@@ -796,7 +796,7 @@ async def pay_binmanual_product(call: CallbackQuery):
     total_price = float(PRODUCTS[product_key]["usd"]) * qty
     
     text = (
-        f"{ce('binance')} <b>Manual Binance Payment</b>\n━━━━━━━━━━━━━━\n"
+        f"{ce('binance')} <b>Manual Binance Payment</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('price')} Amount to pay: <b>{total_price:.2f} USDT</b>\n\n"
         f"{ce('loading')} Please transfer the exact amount to the following Binance ID:\n\n"
         f"{ce('arrow_right')} <code>381880403</code>\n\n"
@@ -811,9 +811,9 @@ async def pay_binmanual_product(call: CallbackQuery):
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Message / Send Code", callback_data=f"sendprod_{user_id}")]
+        [InlineKeyboardButton(text="âœ‰ï¸ Message / Send Code", callback_data=f"sendprod_{user_id}")]
     ])
-    admin_msg = f"🟡 <b>Manual Binance Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
+    admin_msg = f"ðŸŸ¡ <b>Manual Binance Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
     for admin in ADMIN_IDS:
         try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
         except Exception: pass
@@ -829,11 +829,11 @@ async def pay_bep20_product(call: CallbackQuery):
     total_price = float(PRODUCTS[product_key]["usd"]) * qty
     
     text = (
-        f"{ce('usdt')} <b>USDT (BEP20) Payment</b>\n━━━━━━━━━━━━━━\n"
+        f"{ce('usdt')} <b>USDT (BEP20) Payment</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('price')} Amount to pay: <b>{total_price:.2f} USDT</b>\n\n"
         f"{ce('loading')} Please transfer the amount to the following Address (BEP20):\n\n"
         f"<code>0x40ae850b17bb209142f70eb75fa6f3c3b0a757aa</code>\n\n"
-        f"⚠️ <b>IMPORTANT:</b> Please transfer the EXACT amount ({total_price:.2f} USDT) <i>net</i> after network fees. We are not responsible for any deductions caused by network fees.\n\n"
+        f"âš ï¸ <b>IMPORTANT:</b> Please transfer the EXACT amount ({total_price:.2f} USDT) <i>net</i> after network fees. We are not responsible for any deductions caused by network fees.\n\n"
         f"{ce('support_msg')} After successful transfer, take a screenshot and send it to our support team for approval:\n"
         f"{ce('support')} {SUPPORT}"
     )
@@ -845,9 +845,9 @@ async def pay_bep20_product(call: CallbackQuery):
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Message / Send Code", callback_data=f"sendprod_{user_id}")]
+        [InlineKeyboardButton(text="âœ‰ï¸ Message / Send Code", callback_data=f"sendprod_{user_id}")]
     ])
-    admin_msg = f"🟡 <b>USDT BEP20 Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
+    admin_msg = f"ðŸŸ¡ <b>USDT BEP20 Payment Request!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nProduct: {PRODUCTS[product_key]['title']}\nQuantity: {qty}\nRequired Amount: {total_price} USDT\n\n<i>(After verifying the transfer, use the command <code>/pull {qty}</code> to pull codes and send them to the customer)</i>"
     for admin in ADMIN_IDS:
         try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
         except Exception: pass
@@ -856,7 +856,7 @@ async def pay_bep20_product(call: CallbackQuery):
 async def deposit_currency_chosen(call: CallbackQuery):
     await call.answer()
     deposit_waiting[call.from_user.id] = "USDT"
-    text = "💰 <b>Enter amount to deposit (e.g., 10 or 5.5):</b>"
+    text = "ðŸ’° <b>Enter amount to deposit (e.g., 10 or 5.5):</b>"
     await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard())
 
 async def receive_deposit_amount(message: Message):
@@ -871,7 +871,7 @@ async def receive_deposit_amount(message: Message):
         return
 
     deposit_waiting.pop(user_id, None)
-    text = f"💳 <b>Deposit via Crypto</b>\n\nAmount: <b>{amount} {currency}</b>"
+    text = f"ðŸ’³ <b>Deposit via Crypto</b>\n\nAmount: <b>{amount} {currency}</b>"
     await message.answer(text, reply_markup=deposit_amount_payment_buttons(amount, currency), parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith("topup_binmanual_"))
@@ -883,7 +883,7 @@ async def topup_binmanual_callback(call: CallbackQuery):
     user_id = call.from_user.id
 
     text = (
-        f"{ce('binance')} <b>Manual Binance Deposit</b>\n━━━━━━━━━━━━━━\n"
+        f"{ce('binance')} <b>Manual Binance Deposit</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('price')} Amount to transfer: <b>{amount} {currency}</b>\n\n"
         f"{ce('loading')} Please transfer the exact amount to the following Binance ID:\n\n"
         f"{ce('arrow_right')} <code>381880403</code>\n\n"
@@ -898,9 +898,9 @@ async def topup_binmanual_callback(call: CallbackQuery):
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Message Customer", callback_data=f"sendprod_{user_id}")]
+        [InlineKeyboardButton(text="âœ‰ï¸ Message Customer", callback_data=f"sendprod_{user_id}")]
     ])
-    admin_msg = f"🟡 <b>Manual Top-up Request (Binance)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
+    admin_msg = f"ðŸŸ¡ <b>Manual Top-up Request (Binance)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
     for admin in ADMIN_IDS:
         try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
         except Exception: pass
@@ -914,11 +914,11 @@ async def topup_bep20_callback(call: CallbackQuery):
     user_id = call.from_user.id
 
     text = (
-        f"{ce('usdt')} <b>USDT (BEP20) Deposit</b>\n━━━━━━━━━━━━━━\n"
+        f"{ce('usdt')} <b>USDT (BEP20) Deposit</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('price')} Amount to transfer: <b>{amount} {currency}</b>\n\n"
         f"{ce('loading')} Please transfer the amount to the following Address (BEP20):\n\n"
         f"<code>0x40ae850b17bb209142f70eb75fa6f3c3b0a757aa</code>\n\n"
-        f"⚠️ <b>IMPORTANT:</b> Please transfer the EXACT amount ({amount} {currency}) <i>net</i> after network fees. We are not responsible for any deductions caused by network fees.\n\n"
+        f"âš ï¸ <b>IMPORTANT:</b> Please transfer the EXACT amount ({amount} {currency}) <i>net</i> after network fees. We are not responsible for any deductions caused by network fees.\n\n"
         f"{ce('support_msg')} After successful transfer, take a screenshot and send it to our support team to add the balance to your wallet:\n"
         f"{ce('support')} {SUPPORT}"
     )
@@ -930,9 +930,9 @@ async def topup_bep20_callback(call: CallbackQuery):
     await safe_edit_or_answer(call.message, text, reply_markup=kb)
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✉️ Message Customer", callback_data=f"sendprod_{user_id}")]
+        [InlineKeyboardButton(text="âœ‰ï¸ Message Customer", callback_data=f"sendprod_{user_id}")]
     ])
-    admin_msg = f"🟡 <b>Manual Top-up Request (USDT BEP20)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
+    admin_msg = f"ðŸŸ¡ <b>Manual Top-up Request (USDT BEP20)!</b>\nUser: @{call.from_user.username}\nID: <code>{user_id}</code>\nRequested Amount: {amount} {currency}\n\n<i>(Customer will send the screenshot, you can use the <code>/addbalance</code> command directly)</i>"
     for admin in ADMIN_IDS:
         try: await bot.send_message(admin, admin_msg, parse_mode="HTML", reply_markup=admin_kb)
         except Exception: pass
@@ -945,7 +945,7 @@ async def admin_send_product_prompt(call: CallbackQuery):
     target_user = int(call.data.split("_")[1])
     admin_reply_waiting[call.from_user.id] = target_user
     
-    await call.message.reply(f"{ce('pencil')} <b>Alright, please send the code or message now to be forwarded to the customer (ID: <code>{target_user}</code>):</b>\n<i>(You can send text, photo, or file)\nTo cancel, send: ❌ Cancel</i>", parse_mode="HTML")
+    await call.message.reply(f"{ce('pencil')} <b>Alright, please send the code or message now to be forwarded to the customer (ID: <code>{target_user}</code>):</b>\n<i>(You can send text, photo, or file)\nTo cancel, send: âŒ Cancel</i>", parse_mode="HTML")
     await call.answer()
 
 async def show_support(message_or_call):
@@ -964,7 +964,7 @@ async def support_callback(call: CallbackQuery):
 @dp.callback_query(F.data == "home_deposit")
 async def deposit_inline_screen(call: CallbackQuery):
     await call.answer()
-    text = "💰 <b>Deposit Funds</b>\nSelect currency:"
+    text = "ðŸ’° <b>Deposit Funds</b>\nSelect currency:"
     await safe_edit_or_answer(call.message, text, reply_markup=deposit_currency_buttons())
 
 @dp.callback_query(F.data == "home_share")
@@ -977,7 +977,7 @@ async def referral_screen(call: CallbackQuery):
     earnings = (total_ref // 10) * 0.50
     
     text = (
-        f"{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{ce('share')} <b>Share & Earn Free USDT!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"Invite <b>10 friends</b> to use the bot and earn <b>$0.50 USDT</b> instantly inside your wallet!\n\n"
         f"{ce('users_group')} Your Total Invites: <b>{total_ref} users</b>\n"
         f"{ce('money_fly')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n"
@@ -997,12 +997,12 @@ async def wallet_inline(call: CallbackQuery):
     ulink = ce('user_link')
     
     text = (
-        f"{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{ce('wallet')} <b>AIX USER PROFILE & WALLET</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n"
         f"{ce('user')} Name: <b>{esc(call.from_user.first_name)}</b> {ulink}\n"
         f"{ce('price')} Wallet Balance: <b>{balance} USDT</b>\n\n"
         f"{ce('users_group')} Total Invited Users: <b>{total_ref} friends</b>\n"
         f"{ce('money_fly')} Referral Earnings: <b>{format_amount(earnings)} USDT</b>\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."
+        f"â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n{ce('checkout')} You can deposit funds or use your referral balance to purchase instantly."
     )
     await safe_edit_or_answer(msg, text, reply_markup=wallet_kb())
 
@@ -1029,9 +1029,9 @@ async def handle_admin_media(message: Message):
         target_id = admin_reply_waiting.pop(user_id)
         try:
             original_caption = message.html_text or ""
-            new_caption = f"🎁 <b>Your order is ready!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{original_caption}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
+            new_caption = f"ðŸŽ <b>Your order is ready!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n{original_caption}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
             await message.copy_to(target_id, caption=new_caption, parse_mode="HTML")
-            await message.answer(f"{ce('success')} <b>File/Photo sent to the customer (ID: {target_id}) successfully! ✅</b>", parse_mode="HTML")
+            await message.answer(f"{ce('success')} <b>File/Photo sent to the customer (ID: {target_id}) successfully! âœ…</b>", parse_mode="HTML")
         except Exception as e:
             await message.answer(f"{ce('error')} <b>Error occurred during sending! Maybe the user blocked the bot.</b>\nError: {e}", parse_mode="HTML")
         return
@@ -1041,7 +1041,7 @@ async def handle_text_messages(message: Message):
     user_id = message.from_user.id
     text_value = message.text.strip()
 
-    if text_value in ["❌ Cancel", "Cancel"]:
+    if text_value in ["âŒ Cancel", "Cancel"]:
         buy_waiting.pop(user_id, None)
         deposit_waiting.pop(user_id, None)
         if user_id in ADMIN_IDS:
@@ -1056,9 +1056,9 @@ async def handle_text_messages(message: Message):
     if user_id in ADMIN_IDS and user_id in admin_reply_waiting:
         target_id = admin_reply_waiting.pop(user_id)
         try:
-            user_msg = f"🎁 <b>Your order is ready!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{message.html_text}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
+            user_msg = f"ðŸŽ <b>Your order is ready!</b>\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n{message.html_text}\n\n{ce('heart')} <b>Thank you for trusting our store!</b>"
             await bot.send_message(target_id, user_msg, parse_mode="HTML")
-            await message.answer(f"{ce('success')} <b>Code sent to the customer successfully! ✅</b>", parse_mode="HTML")
+            await message.answer(f"{ce('success')} <b>Code sent to the customer successfully! âœ…</b>", parse_mode="HTML")
         except Exception as e:
             await message.answer(f"{ce('error')} <b>Error occurred during sending! Maybe the user blocked the bot.</b>\nError: {e}", parse_mode="HTML")
         return
@@ -1070,17 +1070,17 @@ async def handle_text_messages(message: Message):
         await receive_deposit_amount(message)
         return
 
-    if text_value in ["🛍 Products"]:
+    if text_value in ["ðŸ› Products"]:
         msg = await animate_message(message)
         await handle_shop_action(msg)
-    elif text_value in ["🎧 Support"]:
+    elif text_value in ["ðŸŽ§ Support"]:
         await show_support(message)
-    elif text_value in ["💰 Wallet"]:
+    elif text_value in ["ðŸ’° Wallet"]:
         class FakeCall:
             def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
             async def answer(self, *args, **kwargs): pass
         await wallet_inline(FakeCall(message, message.from_user))
-    elif text_value in ["🎁 Share & Earn"]:
+    elif text_value in ["ðŸŽ Share & Earn"]:
         class FakeCall:
             def __init__(self, message, from_user): self.message, self.from_user = message, from_user 
             async def answer(self, *args, **kwargs): pass
