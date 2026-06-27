@@ -71,7 +71,7 @@ EMOJI = {
     "search": "5231012545799666522",
     "hourglass": "5386367538735104399",
     "check_anim": "6276090299232031662",
-    "check_anim2": "5206607081334906820", # 🔴 تم إضافة علامة الصح المتحركة الجديدة هنا
+    "check_anim2": "5206607081334906820", 
     "user_link": "5440410042773824003",
     "usdt": "5879991085001871624",
     
@@ -185,7 +185,7 @@ PRODUCTS = {
         "stock_name": "CDK Activation Chatgpt 1Y",
         "title": "CDK (K12) FOR SINGLE",
         "image": CDK_IMAGE_FILE,
-        "usd": 5.5,
+        "usd": 5.0, # 🔴 تم التعديل لـ 5.0
         "type": "stock",
         "desc": CDK_SINGLE_DESC_EN
     }
@@ -397,7 +397,8 @@ def product_buttons(counts: dict):
     btn_text_wholesale = f"CDK (K12) FOR BULK | $4.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR BULK | $4.00 | 0"
     btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
-    btn_text_single = f"CDK (K12) FOR SINGLE | $5.50 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $5.50 | 0"
+    # 🔴 تم التعديل لـ 5.00
+    btn_text_single = f"CDK (K12) FOR SINGLE | $5.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $5.00 | 0"
     btn_2 = InlineKeyboardButton(text=btn_text_single, callback_data="product_cdk_chatgpt_single", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -451,8 +452,8 @@ def home_text(name: str):
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
 
 def product_list_text():
-    # 🔴 التعديلات تمت هنا: شيلنا الـ 10+ وحطينا علامة الصح المتحركة
-    return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice Bulk: $4.00 | Single: $5.50\n\n{ce('check_anim2')} Choose a product below:"
+    # 🔴 تم التعديل لـ 5.00
+    return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice Bulk: $4.00 | Single: $5.00\n\n{ce('check_anim2')} Choose a product below:"
 
 async def animate_message(message: Message):
     text = f"{ce('loading')} <b>Loading...</b>"
@@ -846,7 +847,8 @@ async def pay_bep20_product(call: CallbackQuery):
 async def deposit_currency_chosen(call: CallbackQuery):
     await call.answer()
     deposit_waiting[call.from_user.id] = "USDT"
-    text = "💰 <b>Enter amount to deposit (e.g., 10 or 5.5):</b>"
+    # 🔴 تم التعديل لـ 5 في نص المثال
+    text = "💰 <b>Enter amount to deposit (e.g., 10 or 5):</b>"
     await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard())
 
 async def receive_deposit_amount(message: Message):
