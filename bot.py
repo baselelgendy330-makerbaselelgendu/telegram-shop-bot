@@ -1228,7 +1228,7 @@ async def get_pay_transactions(
 ) -> list[dict]:
     """
     Get recent Binance Pay transactions history.
-
+    
     Returns list of transactions with:
         - orderId: Binance order ID
         - transactionId: transaction ID
@@ -2458,7 +2458,7 @@ def home_text(name: str) -> str:
         f"{ce('support')} <b>Support</b> — Get help anytime\n\n"
         f"{ce('check_anim')} Fast activation  "
         f"{ce('check_anim')} Secure payments  "
-        f"{ce('check_anim')} Trusted service"
+                f"{ce('check_anim')} Trusted service"
     )
 
 
