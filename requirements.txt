@@ -1,4 +1,3 @@
-aiogram
-asyncpg
-aiohttp
-python-binance
+aiogram==3.12.0
+aiosqlite==0.20.0
+aiohttp==3.9.5
