@@ -185,7 +185,7 @@ PRODUCTS = {
         "stock_name": "CDK Activation Chatgpt 1Y",
         "title": "CDK (K12) FOR SINGLE",
         "image": CDK_IMAGE_FILE,
-        "usd": 5.0, # 🔴 تم التعديل لـ 5.0
+        "usd": 5.0, 
         "type": "stock",
         "desc": CDK_SINGLE_DESC_EN
     }
@@ -231,12 +231,14 @@ async def process_referral_reward(user_id: int):
             
             new_total_ref = await conn.fetchval("SELECT total_ref FROM users WHERE telegram_id=$1", referrer_id)
             
+            # 🔴 تعديل: احتساب المكافأة كل 5 إحالات
             reward_earned = False
-            if new_total_ref > 0 and new_total_ref % 10 == 0:
+            if new_total_ref > 0 and new_total_ref % 5 == 0:
                 await conn.execute("UPDATE users SET balance_usdt = balance_usdt + $1 WHERE telegram_id=$2", 0.50, referrer_id)
                 reward_earned = True
                 
-            more_to_earn = 10 - (new_total_ref % 10)
+            # 🔴 تعديل: حساب المتبقي على 5
+            more_to_earn = 5 - (new_total_ref % 5)
             
             if reward_earned:
                 try: await bot.send_message(referrer_id, f"{ce('share')} <b>Congratulations!</b>\n━━━━━━━━━━━━━━\nYou reached {new_total_ref} active referrals! <b>+0.50 USDT</b> has been added to your wallet.", parse_mode="HTML")
@@ -397,7 +399,6 @@ def product_buttons(counts: dict):
     btn_text_wholesale = f"CDK (K12) FOR BULK | $4.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR BULK | $4.00 | 0"
     btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
-    # 🔴 تم التعديل لـ 5.00
     btn_text_single = f"CDK (K12) FOR SINGLE | $5.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $5.00 | 0"
     btn_2 = InlineKeyboardButton(text=btn_text_single, callback_data="product_cdk_chatgpt_single", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
@@ -452,7 +453,6 @@ def home_text(name: str):
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
 
 def product_list_text():
-    # 🔴 تم التعديل لـ 5.00
     return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice Bulk: $4.00 | Single: $5.00\n\n{ce('check_anim2')} Choose a product below:"
 
 async def animate_message(message: Message):
@@ -847,8 +847,7 @@ async def pay_bep20_product(call: CallbackQuery):
 async def deposit_currency_chosen(call: CallbackQuery):
     await call.answer()
     deposit_waiting[call.from_user.id] = "USDT"
-    # 🔴 تم التعديل لـ 5 في نص المثال
-    text = "💰 <b>Enter amount to deposit (e.g., 10 or 5):</b>"
+    text = "💰 <b>Enter amount to deposit (e.g., 10 or 5.5):</b>"
     await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard())
 
 async def receive_deposit_amount(message: Message):
@@ -959,6 +958,7 @@ async def deposit_inline_screen(call: CallbackQuery):
     text = "💰 <b>Deposit Funds</b>\nSelect currency:"
     await safe_edit_or_answer(call.message, text, reply_markup=deposit_currency_buttons())
 
+# 🔴 تعديل رسالة الإحالات لتظهر 5 بدل 10
 @dp.callback_query(F.data == "home_share")
 async def referral_screen(call: CallbackQuery):
     await call.answer()
@@ -966,11 +966,12 @@ async def referral_screen(call: CallbackQuery):
     ref_link = f"https://t.me/{bot_info.username}?start={call.from_user.id}"
     stats = await get_user_stats(call.from_user.id)
     total_ref = stats["total_ref"] if stats else 0
-    earnings = (total_ref // 10) * 0.50
+    # 🔴 تعديل حسبة الأرباح (كل 5 أشخاص بـ 0.5 دولار)
+    earnings = (total_ref // 5) * 0.50
     
     text = (
         f"{ce('share')} <b>Share & Earn Free USDT!</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Invite <b>10 friends</b> to use the bot and earn <b>$0.50 USDT</b> instantly inside your wallet!\n\n"
+        f"Invite <b>5 friends</b> to use the bot and earn <b>$0.50 USDT</b> instantly inside your wallet!\n\n"
         f"{ce('users_group')} Your Total Invites: <b>{total_ref} users</b>\n"
         f"{ce('money_fly')} Total Earned: <b>{format_amount(earnings)} USDT</b>\n\n"
         f"{ce('link_pin')} <b>Your Exclusive Referral Link:</b>\n"
@@ -978,13 +979,14 @@ async def referral_screen(call: CallbackQuery):
     )
     await safe_edit_or_answer(call.message, text, reply_markup=back_home_keyboard())
 
+# 🔴 تعديل أرباح المحفظة عشان تقسم على 5
 @dp.callback_query(F.data == "home_wallet")
 async def wallet_inline(call: CallbackQuery):
     await call.answer()
     stats = await get_user_stats(call.from_user.id)
     balance = stats["balance_usdt"] if stats else 0.0
     total_ref = stats["total_ref"] if stats else 0
-    earnings = (total_ref // 10) * 0.50
+    earnings = (total_ref // 5) * 0.50
     msg = await animate_message(call.message)
     ulink = ce('user_link')
     
