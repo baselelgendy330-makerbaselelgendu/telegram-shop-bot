@@ -173,7 +173,7 @@ CDK_SINGLE_DESC_EN = CDK_DESC_EN + "\n\n⚠️ <b>NOTE:</b> This product is sold
 PRODUCTS = {
     "cdk_chatgpt": {
         "stock_name": "CDK Activation Chatgpt 1Y",
-        "title": "CDK GPT Plus (K12 - EDU) 2 years",
+        "title": "CDK (K12) FOR BULK", # 🔴 تم تعديل الاسم هنا
         "image": CDK_IMAGE_FILE,
         "usd": 4.0,  
         "type": "stock",
@@ -392,7 +392,8 @@ def product_buttons(counts: dict):
     chatgpt_icon_id = "5359726582447487916" 
     refresh_icon_id = "5386367538735104399"
     
-    btn_text_wholesale = f"CDK GPT Plus (10+) | $4.00 | {stock_count}" if stock_count > 0 else f"CDK GPT Plus (10+) | $4.00 | 0"
+    # 🔴 تم تعديل الزرار الأولاني هنا عشان يبقى شبه التاني
+    btn_text_wholesale = f"CDK (K12) FOR BULK | $4.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR BULK | $4.00 | 0"
     btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
     btn_text_single = f"CDK (K12) FOR SINGLE | $5.50 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR SINGLE | $5.50 | 0"
