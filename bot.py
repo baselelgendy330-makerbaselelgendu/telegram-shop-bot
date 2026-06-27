@@ -71,6 +71,7 @@ EMOJI = {
     "search": "5231012545799666522",
     "hourglass": "5386367538735104399",
     "check_anim": "6276090299232031662",
+    "check_anim2": "5206607081334906820", # 🔴 تم إضافة علامة الصح المتحركة الجديدة هنا
     "user_link": "5440410042773824003",
     "usdt": "5879991085001871624",
     
@@ -94,6 +95,7 @@ SAFE_EMOJI_FALLBACK = {
     "store": "🛍", "stock": "➕", "sold": "↗️", "support_msg": "💬", "telegram": "⚡", "arrow_right": "➡️",
     "users_group": "👥", "money_fly": "💸", "link_pin": "📇", "quotes": "🗣️", "search": "🔍", "hourglass": "⌛", "announcement": "🚨",
     "check_anim": "✅",
+    "check_anim2": "✔️",
     "user_link": "🔗",
     "usdt": "💵",
     
@@ -173,7 +175,7 @@ CDK_SINGLE_DESC_EN = CDK_DESC_EN + "\n\n⚠️ <b>NOTE:</b> This product is sold
 PRODUCTS = {
     "cdk_chatgpt": {
         "stock_name": "CDK Activation Chatgpt 1Y",
-        "title": "CDK (K12) FOR BULK", # 🔴 تم تعديل الاسم هنا
+        "title": "CDK (K12) FOR BULK",
         "image": CDK_IMAGE_FILE,
         "usd": 4.0,  
         "type": "stock",
@@ -392,7 +394,6 @@ def product_buttons(counts: dict):
     chatgpt_icon_id = "5359726582447487916" 
     refresh_icon_id = "5386367538735104399"
     
-    # 🔴 تم تعديل الزرار الأولاني هنا عشان يبقى شبه التاني
     btn_text_wholesale = f"CDK (K12) FOR BULK | $4.00 | {stock_count}" if stock_count > 0 else f"CDK (K12) FOR BULK | $4.00 | 0"
     btn_1 = InlineKeyboardButton(text=btn_text_wholesale, callback_data="product_cdk_chatgpt", icon_custom_emoji_id=chatgpt_icon_id if stock_count > 0 else EMOJI["error"])
     
@@ -450,7 +451,8 @@ def home_text(name: str):
     return f"{ce('vip')} <b>AIX Store</b> {ce('verified')}\n━━━━━━━━━━━━━━━━━━\n\nHey, <b>{esc(name)}</b> {ulink}\nWelcome to your premium AI subscriptions store.\n\n{ce('store')} <b>Shop</b> — Browse & buy products\n{ce('wallet')} <b>Deposit</b> — Add funds to your wallet\n{ce('support')} <b>Support</b> — Get help anytime\n\n{chk} Fast activation  {chk} Secure payments  {chk} Trusted service"
 
 def product_list_text():
-    return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice (10+): $4.00 | Single: $5.50\n\n{ce('arrows_down')} Choose a product below:"
+    # 🔴 التعديلات تمت هنا: شيلنا الـ 10+ وحطينا علامة الصح المتحركة
+    return f"{ce('store')} <b>Available Products</b>\n━━━━━━━━━━━━━━━━━━\n\n{ce('chatgpt')} <b>CDK Activation Chatgpt 2 Year</b>\nPrice Bulk: $4.00 | Single: $5.50\n\n{ce('check_anim2')} Choose a product below:"
 
 async def animate_message(message: Message):
     text = f"{ce('loading')} <b>Loading...</b>"
