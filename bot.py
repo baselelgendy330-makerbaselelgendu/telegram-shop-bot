@@ -6,10 +6,10 @@ AIX Store Bot - Complete Single File
 Shop bot for selling CDK ChatGPT codes with Binance Pay auto-verification.
 
 Env vars:
-    BOT_TOKEN           - from @BotFather
-    DATABASE_URL        - SQLite file path (default: aix_store.db)
-    BINANCE_API_KEY     - from binance.com API Management
-    BINANCE_API_SECRET  - from binance.com API Management
+    BOT_TOKEN              - from @BotFather
+    DATABASE_URL            - SQLite file path (default: aix_store.db)
+    BINANCE_API_KEY         - from binance.com API Management
+    BINANCE_API_SECRET      - from binance.com API Management
 
 Install: pip install aiogram==3.12.0 aiosqlite==0.20.0 aiohttp==3.9.5
 Run:     python bot.py
@@ -386,7 +386,6 @@ async def close_db():
 async def init_db():
     """Initialize database tables."""
     db = await get_db()
-    # Users table
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -402,7 +401,6 @@ async def init_db():
         )
         """
     )
-    # Deposits/Orders table
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS deposits (
@@ -419,7 +417,6 @@ async def init_db():
         )
         """
     )
-    # Stock table
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS stock (
@@ -431,7 +428,6 @@ async def init_db():
         )
         """
     )
-    # Payments table
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS payments (
@@ -459,11 +455,12 @@ async def init_db():
 # ═══════════════════════════════════════════════════════════
 
 
-async def get_user(user_id: int) -> Optional[aiosqlite.Row]:
-    """Get user by Telegram ID."""
+async def get_user(user_id: int) -> Optional[dict]:
+    """Get user by Telegram ID. Returns dict or None."""
     db = await get_db()
     cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (user_id,))
-    return await cursor.fetchone()
+    row = await cursor.fetchone()
+    return dict(row) if row else None
 
 
 async def create_user(
@@ -474,15 +471,19 @@ async def create_user(
 ):
     """Create a new user."""
     db = await get_db()
+    
+    # Check if user already exists
     existing = await get_user(user_id)
     if existing:
         return
     
+    # Handle referral
     if referrer_id and referrer_id != user_id:
-        ref_exists = await db.execute(
+        cursor = await db.execute(
             "SELECT telegram_id FROM users WHERE telegram_id = ?", (referrer_id,)
         )
-        if await ref_exists.fetchone():
+        ref_exists = await cursor.fetchone()
+        if ref_exists:
             await db.execute(
                 """
                 INSERT INTO users (telegram_id, username, first_name, referred_by, ref_counted)
@@ -493,6 +494,7 @@ async def create_user(
             await db.commit()
             return
     
+    # Insert without referral
     await db.execute(
         "INSERT OR IGNORE INTO users (telegram_id, username, first_name) VALUES (?, ?, ?)",
         (user_id, username, first_name),
@@ -512,12 +514,17 @@ async def update_user_info(user_id: int, username: str, first_name: str):
 
 async def is_user_banned(user_id: int) -> bool:
     """Check if user is banned."""
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT is_banned FROM users WHERE telegram_id = ?", (user_id,)
-    )
-    row = await cursor.fetchone()
-    return bool(row and row["is_banned"])
+    try:
+        db = await get_db()
+        cursor = await db.execute(
+            "SELECT is_banned FROM users WHERE telegram_id = ?", (user_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+        return bool(row[0])
+    except Exception:
+        return False
 
 
 async def set_ban_status(user_id: int, banned: bool):
@@ -530,23 +537,31 @@ async def set_ban_status(user_id: int, banned: bool):
     await db.commit()
 
 
-async def get_user_stats(user_id: int) -> Optional[aiosqlite.Row]:
-    """Get user stats (balance, total_ref)."""
+async def get_user_stats(user_id: int) -> Optional[dict]:
+    """Get user stats (balance, total_ref). Returns dict or None."""
     db = await get_db()
     cursor = await db.execute(
         "SELECT balance_usdt, total_ref FROM users WHERE telegram_id = ?", (user_id,)
     )
-    return await cursor.fetchone()
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    return {"balance_usdt": row[0] or 0, "total_ref": row[1] or 0}
 
 
 async def get_balance(user_id: int) -> float:
     """Get user's wallet balance."""
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT balance_usdt FROM users WHERE telegram_id = ?", (user_id,)
-    )
-    row = await cursor.fetchone()
-    return float(row["balance_usdt"]) if row and row["balance_usdt"] else 0.0
+    try:
+        db = await get_db()
+        cursor = await db.execute(
+            "SELECT balance_usdt FROM users WHERE telegram_id = ?", (user_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None or row[0] is None:
+            return 0.0
+        return float(row[0])
+    except Exception:
+        return 0.0
 
 
 async def add_balance(user_id: int, amount: float):
@@ -577,10 +592,10 @@ async def process_referral_reward(user_id: int) -> dict:
     )
     user = await cursor.fetchone()
     
-    if not user or not user["referred_by"] or user["ref_counted"]:
+    if user is None or user[0] is None or user[1]:
         return {"processed": False}
 
-    referrer_id = user["referred_by"]
+    referrer_id = user[0]
 
     # Activate referral
     await db.execute(
@@ -598,7 +613,7 @@ async def process_referral_reward(user_id: int) -> dict:
         "SELECT total_ref FROM users WHERE telegram_id = ?", (referrer_id,)
     )
     ref_row = await cursor.fetchone()
-    new_total_ref = ref_row["total_ref"] if ref_row else 0
+    new_total_ref = ref_row[0] if ref_row else 0
 
     from config import REFERRAL_REWARD_AMOUNT, REFERRAL_THRESHOLD
 
@@ -636,7 +651,7 @@ async def get_stock_count(product_key: str = "cdk_chatgpt") -> int:
         (product["stock_name"],),
     )
     row = await cursor.fetchone()
-    return row[0] or 0
+    return row[0] if row else 0
 
 
 async def get_total_sold(product_name: str) -> int:
@@ -646,25 +661,21 @@ async def get_total_sold(product_name: str) -> int:
         "SELECT COUNT(*) FROM stock WHERE product = ? AND sold = 1", (product_name,)
     )
     row = await cursor.fetchone()
-    return row[0] or 0
+    return row[0] if row else 0
 
 
 async def reserve_stock(product_name: str, qty: int):
     """Reserve stock items (mark as sold). Returns list of items."""
     db = await get_db()
     cursor = await db.execute(
-        """
-        SELECT id, item_data FROM stock
-        WHERE product = ? AND sold = 0
-        ORDER BY id ASC LIMIT ?
-        """,
+        "SELECT id, item_data FROM stock WHERE product = ? AND sold = 0 ORDER BY id ASC LIMIT ?",
         (product_name, qty),
     )
     items = await cursor.fetchall()
     if len(items) < qty:
         return None
     
-    ids = [i["id"] for i in items]
+    ids = [i[0] for i in items]
     placeholders = ",".join(["?"] * len(ids))
     await db.execute(
         f"UPDATE stock SET sold = 1 WHERE id IN ({placeholders})",
@@ -699,7 +710,7 @@ async def get_available_stock(product_name: str) -> int:
         (product_name,),
     )
     row = await cursor.fetchone()
-    return row[0] or 0
+    return row[0] if row else 0
 
 
 # ═══════════════════════════════════════════════════════════
@@ -733,7 +744,8 @@ async def get_all_users() -> list:
     """Get all users for broadcast."""
     db = await get_db()
     cursor = await db.execute("SELECT telegram_id FROM users")
-    return await cursor.fetchall()
+    rows = await cursor.fetchall()
+    return rows if rows else []
 
 
 # ═══════════════════════════════════════════════════════════
@@ -774,21 +786,27 @@ async def update_binance_order_txid(order_id: str, txid: str) -> None:
     await db.commit()
 
 
-async def get_payment_by_order(order_id: str) -> Optional[aiosqlite.Row]:
-    """Get payment record by order_id."""
+async def get_payment_by_order(order_id: str) -> Optional[dict]:
+    """Get payment record by order_id. Returns dict or None."""
     db = await get_db()
     cursor = await db.execute("SELECT * FROM payments WHERE order_id = ?", (order_id,))
-    return await cursor.fetchone()
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    return dict(row)
 
 
-async def get_binance_order_by_txid(txid: str) -> Optional[aiosqlite.Row]:
-    """Get order by TXID."""
+async def get_binance_order_by_txid(txid: str) -> Optional[dict]:
+    """Get order by TXID. Returns dict or None."""
     db = await get_db()
     cursor = await db.execute(
         "SELECT * FROM payments WHERE txid = ? ORDER BY created_at DESC LIMIT 1",
         (txid,),
     )
-    return await cursor.fetchone()
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    return dict(row)
 
 
 async def mark_binance_order_delivered(order_id: str) -> None:
